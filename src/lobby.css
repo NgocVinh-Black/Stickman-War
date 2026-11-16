@@ -201,11 +201,13 @@ button.wood:active {
 .lb-title {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 0.9;
-  text-shadow: var(--outline);
+  justify-content: center;
   pointer-events: none;
+}
+.lb-title img {
+  height: 76px;
+  width: auto;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
 }
 .lb-title span {
   font-size: 16px;

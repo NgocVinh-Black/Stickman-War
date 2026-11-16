@@ -319,7 +319,7 @@ function showMenu(): void {
           </span>
           <span class="lb-badge" id="lb-badge"></span>
         </button>
-        <div class="lb-title"><span>Đại Chiến</span><b>Người Que</b></div>
+        <picture class="lb-title"><source srcset="./logo.webp" type="image/webp" /><img src="./logo.png" alt="Đại Chiến Người Que" /></picture>
         <div class="lb-top-right">
           <span class="lb-pill wood" title="Xu bắt kèo"><span class="coin">🪙</span><b id="lb-xu">—</b></span>
           <span class="lb-pill wood" title="Người đang online"><span class="coin">🟢</span><b id="lb-online">—</b></span>
@@ -686,38 +686,44 @@ save('guest', null); // xoá lựa chọn khách đã lưu từ bản cũ
 /** Vẽ lại nút Google / ghi chú khi biết cấu hình máy chủ (màn đăng nhập đang mở). */
 let loginPaint: (() => void) | null = null;
 
+/** Chữ G nhiều màu của Google (vẽ SVG, không tải ảnh). */
+const GOOGLE_G = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.5 5.8c4.4-4 6.8-10 6.8-17.2z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>`;
+
 /**
- * Màn đăng nhập: tranh bìa (public/login-art.*) làm nền, giữ đúng tỉ lệ 1672×941 kiểu "cover".
- * Các nút thật đặt theo % của tranh nên luôn trùng chỗ nút vẽ sẵn: nút Google, ô đồng ý, hai link, bánh răng.
+ * Màn đăng nhập: nền public/bg.* + logo public/logo.* (ảnh của game),
+ * nút Google / chơi khách / điều khoản / cài đặt dựng bằng HTML theo mẫu thiết kế.
  */
 function showLogin(): void {
   closeOverlay();
   clearInterval(tickerTimer);
   session = null;
   let agreed = load<boolean>('agree', false);
-  const art = `image-set(url('./login-art.webp') type('image/webp'), url('./login-art.jpg') type('image/jpeg'))`;
   app.innerHTML = `
     <main class="login-art">
-      <div class="login-art-blur" style="background-image:${art}"></div>
-      <div class="login-portrait">
-        <button class="la-gear-p" data-act="settings" aria-label="Cài đặt">⚙️</button>
-        <div class="la-agree-p">
-          <button class="la-check ${agreed ? 'on' : ''}" data-act="agree" role="checkbox" aria-checked="${agreed}" aria-label="Đồng ý điều khoản"></button>
-          <span>Tôi đồng ý với <button class="la-a" data-act="terms">Điều khoản dịch vụ</button> và <button class="la-a" data-act="privacy">Chính sách bảo mật</button></span>
+      <div class="la-bg"></div>
+      <div class="la-vignette"></div>
+      <button class="la-gear" data-act="settings" aria-label="Cài đặt">⚙</button>
+      <div class="la-center">
+        <picture class="la-logo">
+          <source srcset="./logo.webp" type="image/webp" />
+          <img src="./logo.png" alt="Đại Chiến Người Que" />
+        </picture>
+        <div class="la-actions">
+          <button class="la-google" data-act="google" aria-label="Đăng nhập bằng Google">
+            <span class="la-google-face">${GOOGLE_G}<b>Đăng nhập bằng Google</b></span>
+            <span class="la-glow"></span>
+            <span class="la-gis" id="google-btn"></span>
+          </button>
+          <p class="la-note" id="login-note"></p>
+          <div class="la-or"><span>Hoặc</span></div>
+          <button class="la-guest" data-act="guest"><span>Chơi với tư cách khách</span></button>
         </div>
       </div>
-      <div class="login-stage" style="background-image:${art}">
-        <button class="la-hot la-google" data-act="google" aria-label="Đăng nhập bằng Google">
-          <span class="la-glow"></span>
-          <span class="la-gis" id="google-btn"></span>
-        </button>
-        <button class="la-guest" data-act="guest"><span>Chơi với tư cách khách</span></button>
+      <div class="la-agree">
         <button class="la-check ${agreed ? 'on' : ''}" data-act="agree" role="checkbox" aria-checked="${agreed}" aria-label="Đồng ý điều khoản"></button>
-        <button class="la-hot la-link la-terms" data-act="terms" aria-label="Điều khoản dịch vụ"></button>
-        <button class="la-hot la-link la-privacy" data-act="privacy" aria-label="Chính sách bảo mật"></button>
-        <button class="la-hot la-gear" data-act="settings" aria-label="Cài đặt"></button>
-        <p class="la-note" id="login-note"></p>
+        <span>Tôi đồng ý với <button class="la-a" data-act="terms">Điều khoản dịch vụ</button> và <button class="la-a" data-act="privacy">Chính sách bảo mật</button></span>
       </div>
+      <div class="la-slogan"><b>Chiến đấu</b><span>và trở thành huyền thoại!</span></div>
     </main>`;
   const note = document.getElementById('login-note')!;
   const gis = document.getElementById('google-btn')!;
