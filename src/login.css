@@ -1,0 +1,291 @@
+/* ==========================================================================
+   Màn đăng nhập theo tranh bìa (public/login-art.webp, 1672×941).
+   .login-stage luôn giữ đúng tỉ lệ tranh và phủ kín màn hình (kiểu cover),
+   mọi nút đặt theo % của tranh nên trùng khít với nút vẽ sẵn.
+   ========================================================================== */
+
+.login-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0b0716;
+  font-family: var(--display);
+}
+.login-art-blur {
+  position: absolute;
+  inset: -60px;
+  background-position: center;
+  background-size: cover;
+  filter: blur(28px) brightness(0.5) saturate(1.2);
+}
+.login-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Luôn thấy trọn tranh (kiểu contain); phần thừa hai bên / trên dưới là bản mờ của tranh */
+  width: min(100vw, calc(100dvh * 1672 / 941));
+  aspect-ratio: 1672 / 941;
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  container-type: inline-size;
+  animation: la-in 0.8s ease-out;
+}
+@keyframes la-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+/* Vùng bấm đặt trùng lên hình vẽ sẵn */
+.la-hot {
+  position: absolute;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.la-google {
+  left: 33.07%;
+  top: 70.35%;
+  width: 33.49%;
+  height: 11.48%;
+  clip-path: polygon(6% 0, 94% 0, 100% 50%, 94% 100%, 6% 100%, 0 50%);
+}
+/* Ánh sáng lướt qua tấm biển vàng, sáng hơn khi rê chuột */
+.la-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  background-size: 250% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: la-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.la-google:hover .la-glow {
+  opacity: 1;
+}
+.la-google:hover {
+  filter: drop-shadow(0 0 1.2cqw rgba(255, 210, 80, 0.85));
+}
+.la-google:active {
+  transform: translateY(0.2cqw);
+}
+@keyframes la-shine {
+  0% {
+    background-position: 150% 0;
+  }
+  60%,
+  100% {
+    background-position: -50% 0;
+  }
+}
+/* Nút Google thật của Google, gần trong suốt, kéo giãn phủ kín tấm biển (JS tính tỉ lệ) */
+.la-gis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  opacity: 0.011;
+}
+
+/* Nút chơi khách dưới chữ "Hoặc": cùng dáng lục giác, viền vàng, nền tím tối */
+.la-guest {
+  position: absolute;
+  left: 39.2%;
+  top: 88.4%;
+  width: 21.6%;
+  height: 5.8%;
+  padding: 0.14cqw;
+  border: 0;
+  background: linear-gradient(180deg, #fff1a8, #e8a92a 55%, #a86a10);
+  clip-path: polygon(5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%, 0 50%);
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s;
+}
+.la-guest span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(48, 22, 84, 0.95), rgba(18, 8, 38, 0.97));
+  clip-path: polygon(5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%, 0 50%);
+  color: #ffe9a8;
+  font-size: 1.22cqw;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0.1cqw 0 #000;
+}
+.la-guest:hover {
+  filter: brightness(1.2) drop-shadow(0 0 0.8cqw rgba(255, 210, 80, 0.7));
+}
+.la-guest:active {
+  transform: translateY(0.15cqw);
+}
+
+/* Ô đồng ý điều khoản: vẽ đè lên ô vẽ sẵn để bật / tắt được */
+.la-check {
+  position: absolute;
+  left: 2.15%;
+  top: 93.1%;
+  width: 2.1%;
+  height: 3.7%;
+  padding: 0;
+  border: 0.17cqw solid #3fd0ff;
+  border-radius: 0.25cqw;
+  background: #0a0b1c;
+  box-shadow: 0 0 0.5cqw rgba(63, 208, 255, 0.6);
+  cursor: pointer;
+}
+.la-check.on::after {
+  content: '';
+  position: absolute;
+  left: 30%;
+  top: 6%;
+  width: 32%;
+  height: 62%;
+  border: solid #4fe0ff;
+  border-width: 0 0.3cqw 0.3cqw 0;
+  transform: rotate(40deg);
+  filter: drop-shadow(0 0 0.2cqw #4fe0ff);
+}
+.la-check.shake {
+  animation: la-shake 0.45s;
+  box-shadow: 0 0 0.9cqw #ff5a5a;
+  border-color: #ff6b6b;
+}
+@keyframes la-shake {
+  20%,
+  60% {
+    translate: -0.25cqw 0;
+  }
+  40%,
+  80% {
+    translate: 0.25cqw 0;
+  }
+}
+.la-link {
+  top: 93.3%;
+  height: 3%;
+}
+.la-terms {
+  left: 11.55%;
+  width: 9.05%;
+}
+.la-privacy {
+  left: 21.9%;
+  width: 9.1%;
+}
+.la-link:hover {
+  background: rgba(63, 208, 255, 0.12);
+  border-radius: 0.3cqw;
+}
+.la-gear {
+  left: 94.98%;
+  top: 2.45%;
+  width: 3.47%;
+  height: 6.15%;
+  border-radius: 50%;
+  transition: transform 0.4s;
+}
+.la-gear:hover {
+  transform: rotate(60deg);
+  box-shadow: 0 0 0.8cqw rgba(255, 255, 255, 0.5);
+}
+
+/* Lời nhắn (máy chủ chưa bật Google…) ngay trên chữ "Hoặc" */
+.la-note {
+  position: absolute;
+  left: 50%;
+  top: 82.4%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: 44%;
+  padding: 0.25cqw 1cqw;
+  border-radius: 0.6cqw;
+  background: rgba(10, 6, 24, 0.85);
+  border: 1px solid rgba(255, 210, 80, 0.5);
+  color: #ffd98a;
+  font-size: 0.85cqw;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.la-note:empty {
+  display: none;
+}
+
+/* Bản dọc (điện thoại cầm dọc): tranh bị cắt hai bên nên ô đồng ý + bánh răng hiện bằng HTML */
+.login-portrait {
+  display: none;
+}
+@media (max-aspect-ratio: 1/1) {
+  .login-stage {
+    width: min(240vw, calc(100dvh * 1672 / 941));
+    top: 46%;
+  }
+  .la-guest span {
+    font-size: 1.6cqw;
+  }
+  .la-note {
+    max-width: 40%;
+    white-space: normal;
+    font-size: 1.15cqw;
+  }
+  .login-stage .la-check,
+  .la-link,
+  .la-gear {
+    display: none;
+  }
+  .login-portrait {
+    display: block;
+  }
+  .la-gear-p {
+    position: absolute;
+    right: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(10, 6, 24, 0.7);
+    font-size: 22px;
+  }
+  .la-agree-p {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 16px;
+    color: #f1f5ff;
+    font-size: 14px;
+  }
+  .la-agree-p .la-check {
+    position: relative;
+    left: auto;
+    top: auto;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+    border-radius: 4px;
+  }
+  .la-agree-p .la-check.on::after {
+    border-width: 0 3px 3px 0;
+  }
+  .la-a {
+    padding: 0;
+    background: none;
+    color: #4fd8ff;
+    text-decoration: underline;
+    font: inherit;
+  }
+}

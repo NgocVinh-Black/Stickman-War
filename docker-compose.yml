@@ -1,0 +1,16 @@
+services:
+  nguoi-que-online:
+    build: .
+    image: nguoi-que-online:latest
+    container_name: nguoi-que-online
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3070:3000"
+    environment:
+      # Đặt trong file .env cạnh docker-compose.yml trên server: GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+    volumes:
+      - nguoi-que-data:/app/data
+
+volumes:
+  nguoi-que-data:
