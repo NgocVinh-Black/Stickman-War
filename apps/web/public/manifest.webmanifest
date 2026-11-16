@@ -1,0 +1,12 @@
+{
+  "name": "Stickman War",
+  "short_name": "Stickman War",
+  "description": "Game chiến thuật stickman: đào vàng, xây quân, phá tượng địch.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1b1d24",
+  "theme_color": "#1b1d24",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

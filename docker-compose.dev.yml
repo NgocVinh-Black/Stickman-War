@@ -1,0 +1,23 @@
+# Postgres cho máy dev: `pnpm db:up` (cổng 5433 để không đụng Postgres khác trên máy)
+name: stickman-war
+services:
+  db:
+    image: postgres:16
+    container_name: stickman-war-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stickmanwar
+      POSTGRES_PASSWORD: stickmanwar
+      POSTGRES_DB: stickmanwar
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - stickman-war-db-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U stickmanwar -d stickmanwar']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  stickman-war-db-dev:

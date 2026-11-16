@@ -1,0 +1,40 @@
+{
+  "name": "@stickman-war/server",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Máy chủ Stickman War: NestJS (Fastify) + WebSocket + PostgreSQL (Prisma)",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
+    "build": "prisma generate && tsup",
+    "start": "node dist/main.cjs",
+    "typecheck": "prisma generate >/dev/null && tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:import": "tsx --env-file-if-exists=.env scripts/import-json.ts"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.2.2",
+    "@nestjs/common": "^12.5.0",
+    "@nestjs/core": "^12.5.0",
+    "@nestjs/platform-fastify": "^12.5.0",
+    "@stickman-war/core": "workspace:*",
+    "@prisma/client": "^6.19.3",
+    "fastify": "^5.12.8",
+    "jose": "^6.2.17",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "ws": "^8.23.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.2",
+    "prisma": "^6.19.3",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

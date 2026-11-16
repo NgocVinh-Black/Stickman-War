@@ -1,0 +1,39 @@
+{
+  "name": "stickman-war",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Stickman War: game chiến thuật stickman (Vue 3 + NestJS + PostgreSQL)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm db:up && pnpm --parallel --filter @stickman-war/server --filter @stickman-war/web --filter @stickman-war/admin dev",
+    "dev:web": "pnpm --filter @stickman-war/web dev",
+    "dev:admin": "pnpm --filter @stickman-war/admin dev",
+    "dev:server": "pnpm --filter @stickman-war/server dev",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:migrate": "pnpm --filter @stickman-war/server db:migrate",
+    "db:import": "pnpm --filter @stickman-war/server db:import",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.12.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0",
+    "vue-eslint-parser": "^10.4.2"
+  },
+  "packageManager": "pnpm@12.21.0",
+  "type": "module"
+}

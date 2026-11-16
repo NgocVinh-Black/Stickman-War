@@ -1,0 +1,44 @@
+# Chạy trên server: Postgres + máy chủ online. Tạo file .env cạnh file này:
+#   POSTGRES_PASSWORD=<mật khẩu mạnh>
+#   GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com   (bỏ trống = chỉ chơi khách)
+#   ADMIN_EMAILS=ban@gmail.com                       (email Google được vào trang admin)
+#   ADMIN_TOKEN=<mã ≥ 16 ký tự>                       (vào admin không cần Google; bỏ trống = tắt)
+services:
+  db:
+    image: postgres:16
+    container_name: stickman-war-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stickmanwar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong file .env}
+      POSTGRES_DB: stickmanwar
+    volumes:
+      - stickman-war-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U stickmanwar -d stickmanwar']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  stickman-war-online:
+    build: .
+    image: stickman-war-online:latest
+    container_name: stickman-war-online
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://stickmanwar:${POSTGRES_PASSWORD}@db:5432/stickmanwar?schema=public
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    ports:
+      - '127.0.0.1:3070:3000'
+    volumes:
+      # Dữ liệu bản cũ (wallets.json, accounts.json) để chuyển sang Postgres: pnpm db:import
+      - stickman-war-data:/repo/data
+
+volumes:
+  stickman-war-pg:
+  stickman-war-data:

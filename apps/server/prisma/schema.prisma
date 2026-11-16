@@ -1,0 +1,64 @@
+// Dữ liệu người chơi Stickman War. Không lưu email Google.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Tài khoản đăng nhập Google. id = "g" + mã Google (giữ tương thích dữ liệu cũ).
+model Account {
+  id        String        @id
+  googleSub String        @unique
+  name      String
+  picture   String        @default("")
+  faction   String        @default("tribe")
+  rating    Int           @default(1000)
+  wins      Int           @default(0)
+  losses    Int           @default(0)
+  draws     Int           @default(0)
+  createdAt DateTime      @default(now())
+  lastSeen  DateTime      @default(now())
+  /// Quản trị viên: đặt lại mỗi lần đăng nhập theo ADMIN_EMAILS (email không được lưu).
+  isAdmin   Boolean       @default(false)
+  sessions  Session[]
+  matches   MatchRecord[]
+
+  @@index([rating(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/// Phiên đăng nhập (token ngẫu nhiên lưu trong trình duyệt), hết hạn sau 30 ngày.
+model Session {
+  token     String   @id
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+}
+
+/// Ví xu ảo bắt kèo. id: mã ví trình duyệt (khách) hoặc "acct-<id tài khoản>".
+model Wallet {
+  id        String   @id
+  xu        Int
+  updatedAt DateTime @updatedAt
+}
+
+/// Một trận online nhìn từ phía một tài khoản (lịch sử trận, thay đổi điểm Elo).
+model MatchRecord {
+  id        Int      @id @default(autoincrement())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  at        DateTime @default(now())
+  vs        String
+  result    String // win | lose | draw
+  faction   String
+  vsFaction String
+  rating    Int // điểm thay đổi sau trận
+
+  @@index([accountId, at(sort: Desc)])
+}
