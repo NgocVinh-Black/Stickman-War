@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTIONS, type FactionId } from '@nguoi-que/core';
+import { FACTIONS, type FactionId } from '@stickman-war/core';
 import { computed } from 'vue';
 
 /** Thẻ đối đầu trước trận: tộc hai bên và ai khắc ai. */

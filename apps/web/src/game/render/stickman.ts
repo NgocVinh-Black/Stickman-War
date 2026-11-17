@@ -1,5 +1,5 @@
-import type { FactionId, Head, Machine, Mount, Weapon } from '@nguoi-que/core';
-import { UNITS, type Arch, type UnitKind, type UnitStats } from '@nguoi-que/core';
+import type { FactionId, Head, Machine, Mount, Weapon } from '@stickman-war/core';
+import { UNITS, type Arch, type UnitKind, type UnitStats } from '@stickman-war/core';
 
 export type StickPose = {
   kind: UnitKind;
@@ -74,7 +74,7 @@ const DEFAULT_WEAPON: Partial<Record<Arch, Weapon>> = {
 const SWING: Arch[] = ['sword', 'miner', 'ninja', 'giant', 'builder'];
 
 /**
- * Vẽ một người que tại gốc toạ độ (chân chạm đất ở y = 0), mặt hướng +x.
+ * Vẽ một stickman tại gốc toạ độ (chân chạm đất ở y = 0), mặt hướng +x.
  * Người gọi lo translate / scale / lật hướng.
  */
 export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void {

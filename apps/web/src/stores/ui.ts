@@ -1,4 +1,4 @@
-import type { FactionId, UnitKind } from '@nguoi-que/core';
+import type { FactionId, UnitKind } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { ref, shallowRef } from 'vue';
 import type { MatchStats } from '../game/session';

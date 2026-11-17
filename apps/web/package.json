@@ -1,8 +1,8 @@
 {
-  "name": "@nguoi-que/web",
+  "name": "@stickman-war/web",
   "private": true,
   "version": "2.0.0",
-  "description": "Giao diện Đại Chiến Người Que: Vue 3 + Vite + Pinia + Vue Router, trận đánh vẽ bằng Canvas 2D",
+  "description": "Giao diện Stickman War: Vue 3 + Vite + Pinia + Vue Router, trận đánh vẽ bằng Canvas 2D",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@nguoi-que/core": "workspace:*",
+    "@stickman-war/core": "workspace:*",
     "pinia": "^4.1.0",
     "vue": "^3.5.45",
     "vue-router": "^5.5.1"

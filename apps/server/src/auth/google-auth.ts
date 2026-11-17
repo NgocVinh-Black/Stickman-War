@@ -24,7 +24,7 @@ export async function verifyGoogleIdToken(token: string, clientId: string, keys:
   if (typeof payload.sub !== 'string' || !/^\d{1,40}$/.test(payload.sub)) throw new Error('sub');
   return {
     sub: payload.sub,
-    name: typeof payload.name === 'string' ? payload.name : 'Người que',
+    name: typeof payload.name === 'string' ? payload.name : 'Stickman',
     picture: typeof payload.picture === 'string' && payload.picture.startsWith('https://') ? payload.picture : '',
   };
 }

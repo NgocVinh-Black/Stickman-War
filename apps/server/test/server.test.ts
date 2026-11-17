@@ -1,4 +1,4 @@
-import { WORLD_WIDTH, type ClientMsg, type ServerMsg } from '@nguoi-que/core';
+import { WORLD_WIDTH, type ClientMsg, type ServerMsg } from '@stickman-war/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { startGameServer as start, type GameServer } from '../src/bootstrap';

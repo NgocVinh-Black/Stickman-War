@@ -1,4 +1,4 @@
-import type { FactionId, MatchRecord } from '@nguoi-que/core';
+import type { FactionId, MatchRecord } from '@stickman-war/core';
 import type { GoogleProfile } from '../auth/google-auth';
 
 export type AccountRow = {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTIONS, POP_CAP, TRAIN_KEYS, UNITS, type UnitKind } from '@nguoi-que/core';
+import { FACTIONS, POP_CAP, TRAIN_KEYS, UNITS, type UnitKind } from '@stickman-war/core';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import BetPanel from '../components/BetPanel.vue';

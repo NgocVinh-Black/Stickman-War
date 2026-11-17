@@ -11,7 +11,7 @@ import {
   type ArmorType,
   type DamageType,
   type FactionId,
-} from '@nguoi-que/core';
+} from '@stickman-war/core';
 import { computed, ref } from 'vue';
 import HowToContent from '../../components/HowToContent.vue';
 import UnitIcon from '../../components/UnitIcon.vue';

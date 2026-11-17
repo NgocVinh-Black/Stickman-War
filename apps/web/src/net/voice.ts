@@ -1,4 +1,4 @@
-import type { ClientMsg, SignalData, VoicePeer } from '@nguoi-que/core';
+import type { ClientMsg, SignalData, VoicePeer } from '@stickman-war/core';
 import { load, save } from '../lib/storage';
 
 const ICE: RTCConfiguration = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };

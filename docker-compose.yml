@@ -4,37 +4,37 @@
 services:
   db:
     image: postgres:16
-    container_name: nguoi-que-db
+    container_name: stickman-war-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: nguoique
+      POSTGRES_USER: stickmanwar
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong file .env}
-      POSTGRES_DB: nguoique
+      POSTGRES_DB: stickmanwar
     volumes:
-      - nguoi-que-pg:/var/lib/postgresql/data
+      - stickman-war-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U nguoique -d nguoique']
+      test: ['CMD-SHELL', 'pg_isready -U stickmanwar -d stickmanwar']
       interval: 3s
       timeout: 3s
       retries: 20
 
-  nguoi-que-online:
+  stickman-war-online:
     build: .
-    image: nguoi-que-online:latest
-    container_name: nguoi-que-online
+    image: stickman-war-online:latest
+    container_name: stickman-war-online
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://nguoique:${POSTGRES_PASSWORD}@db:5432/nguoique?schema=public
+      DATABASE_URL: postgresql://stickmanwar:${POSTGRES_PASSWORD}@db:5432/stickmanwar?schema=public
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - '127.0.0.1:3070:3000'
     volumes:
       # Dữ liệu bản cũ (wallets.json, accounts.json) để chuyển sang Postgres: pnpm db:import
-      - nguoi-que-data:/repo/data
+      - stickman-war-data:/repo/data
 
 volumes:
-  nguoi-que-pg:
-  nguoi-que-data:
+  stickman-war-pg:
+  stickman-war-data:

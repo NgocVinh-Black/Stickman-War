@@ -1,19 +1,19 @@
 {
-  "name": "nguoi-que",
+  "name": "stickman-war",
   "private": true,
   "version": "2.0.0",
-  "description": "Đại Chiến Người Que: game chiến thuật người que (Vue 3 + NestJS + PostgreSQL)",
+  "description": "Stickman War: game chiến thuật stickman (Vue 3 + NestJS + PostgreSQL)",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm db:up && pnpm --parallel --filter @nguoi-que/server --filter @nguoi-que/web dev",
-    "dev:web": "pnpm --filter @nguoi-que/web dev",
-    "dev:server": "pnpm --filter @nguoi-que/server dev",
+    "dev": "pnpm db:up && pnpm --parallel --filter @stickman-war/server --filter @stickman-war/web dev",
+    "dev:web": "pnpm --filter @stickman-war/web dev",
+    "dev:server": "pnpm --filter @stickman-war/server dev",
     "db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
     "db:down": "docker compose -f docker-compose.dev.yml down",
-    "db:migrate": "pnpm --filter @nguoi-que/server db:migrate",
-    "db:import": "pnpm --filter @nguoi-que/server db:import",
+    "db:migrate": "pnpm --filter @stickman-war/server db:migrate",
+    "db:import": "pnpm --filter @stickman-war/server db:import",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

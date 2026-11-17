@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MIN_BET, betOdds, type Team } from '@nguoi-que/core';
+import { MIN_BET, betOdds, type Team } from '@stickman-war/core';
 import { computed, ref, watch } from 'vue';
 import { sound } from '../lib/sound';
 import { useOnline } from '../stores/online';

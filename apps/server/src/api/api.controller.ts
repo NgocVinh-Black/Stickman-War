@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Post, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
-import { FACTION_ORDER, type AccountInfo } from '@nguoi-que/core';
+import { FACTION_ORDER, type AccountInfo } from '@stickman-war/core';
 import { z } from 'zod';
 import { AccountsService, accountWallet } from '../accounts/accounts.service';
 import { googleKeys, verifyGoogleIdToken } from '../auth/google-auth';

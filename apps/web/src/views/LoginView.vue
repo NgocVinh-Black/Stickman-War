@@ -92,7 +92,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', fitGis));
     <div class="la-center">
       <picture class="la-logo">
         <source :srcset="asset('logo.webp')" type="image/webp" />
-        <img :src="asset('logo.png')" alt="Đại Chiến Người Que" />
+        <img :src="asset('logo.png')" alt="Stickman War" />
       </picture>
       <div class="la-actions">
         <button ref="plaque" class="la-google" aria-label="Đăng nhập bằng Google" @click="onPlaque">

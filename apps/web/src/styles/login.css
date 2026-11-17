@@ -20,7 +20,7 @@
   background-position: center 40%;
   animation: la-drift 30s ease-in-out infinite alternate;
 }
-/* Màn dọc (điện thoại): tranh 9:16 riêng, người que giữ đúng tỉ lệ */
+/* Màn dọc (điện thoại): tranh 9:16 riêng, stickman giữ đúng tỉ lệ */
 @media (max-aspect-ratio: 3/4) {
   .la-bg {
     background-image: image-set(url('/bg-mobile.webp') type('image/webp'), url('/bg-mobile.jpg') type('image/jpeg'));

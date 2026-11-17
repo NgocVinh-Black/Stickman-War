@@ -346,5 +346,5 @@ export function cleanName(raw: unknown): string {
     .replace(/[\u0000-\u001f\u007f<>]/g, '')
     .trim()
     .slice(0, NAME_MAX);
-  return name || 'Người que';
+  return name || 'Stickman';
 }

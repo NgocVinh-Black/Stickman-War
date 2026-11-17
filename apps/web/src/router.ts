@@ -3,7 +3,7 @@ import { auth } from './net/account';
 import { useSettings } from './stores/settings';
 
 /**
- * Hash history (#/…) để web tĩnh chạy dưới /nguoi-que/ mà không cần cấu hình thêm cho nginx.
+ * Hash history (#/…) để web tĩnh chạy dưới /stickman-war/ mà không cần cấu hình thêm cho nginx.
  * Màn đăng nhập hiện trước, trừ khi còn phiên Google hoặc đã chọn chơi khách trong lần mở trang này.
  */
 export const router = createRouter({

@@ -16,7 +16,7 @@ export type GameServer = {
 
 /**
  * Dựng và chạy máy chủ (dùng cho main.ts và test).
- * Đường dẫn có tiền tố (/nguoi-que/api/…, /nguoi-que/health sau nginx) được đưa về /api/…, /health.
+ * Đường dẫn có tiền tố (/stickman-war/api/…, /stickman-war/health sau nginx) được đưa về /api/…, /health.
  */
 export async function startGameServer(port: number, opts: Partial<ServerOptions> = {}): Promise<GameServer> {
   const options: ServerOptions = { googleClientId: '', log: () => {}, ...opts };

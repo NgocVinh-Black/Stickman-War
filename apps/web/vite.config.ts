@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [vue()],
-  // Đường dẫn tương đối để deploy được dưới thư mục con (vd. /nguoi-que/)
+  // Đường dẫn tương đối để deploy được dưới thư mục con (vd. /stickman-war/)
   base: './',
   server: {
     // Dev: chuyển WebSocket và API sang máy chủ NestJS (pnpm dev:server, cổng 8787)

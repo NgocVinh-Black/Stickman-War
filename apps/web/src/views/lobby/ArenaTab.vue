@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTIONS, type AccountInfo, type LobbyRoom } from '@nguoi-que/core';
+import { FACTIONS, type AccountInfo, type LobbyRoom } from '@stickman-war/core';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import PlayerAvatar from '../../components/PlayerAvatar.vue';
 import { formatTime } from '../../game/session';

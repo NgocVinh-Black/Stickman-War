@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CAMPAIGN, DIFFS, LEVELS, SKIRMISH, type Difficulty } from '@nguoi-que/core';
+import { CAMPAIGN, DIFFS, LEVELS, SKIRMISH, type Difficulty } from '@stickman-war/core';
 import { sound } from '../../lib/sound';
 import { useGame } from '../../stores/game';
 import { useSettings } from '../../stores/settings';

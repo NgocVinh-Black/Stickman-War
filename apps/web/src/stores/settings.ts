@@ -1,4 +1,4 @@
-import { CAMPAIGN, DIFFS, FACTION_ORDER, LEVELS, cleanName, type Difficulty, type FactionId } from '@nguoi-que/core';
+import { CAMPAIGN, DIFFS, FACTION_ORDER, LEVELS, cleanName, type Difficulty, type FactionId } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 import { sound } from '../lib/sound';
@@ -16,7 +16,7 @@ export const MENU_TABS: { id: MenuTab; label: string }[] = [
 
 /** Cài đặt và tiến độ người chơi lưu trong trình duyệt. */
 export const useSettings = defineStore('settings', () => {
-  const name = ref(load('name', `Người que ${Math.floor(100 + Math.random() * 900)}`));
+  const name = ref(load('name', `Stickman ${Math.floor(100 + Math.random() * 900)}`));
   const savedFaction = load<FactionId>('faction', 'tribe');
   const faction = ref<FactionId>(FACTION_ORDER.includes(savedFaction) ? savedFaction : 'tribe');
   const progress = reactive<Record<Difficulty, Progress>>({

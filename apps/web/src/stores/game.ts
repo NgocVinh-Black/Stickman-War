@@ -16,7 +16,7 @@ import {
   type Formation,
   type Stance,
   type UnitKind,
-} from '@nguoi-que/core';
+} from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { reactive, shallowRef } from 'vue';
 import { localMatch, type Match } from '../game/match';
@@ -281,7 +281,7 @@ export const useGame = defineStore('game', () => {
       ui().show({
         kind: 'generic',
         emoji: '👑',
-        title: harder ? `Chinh phục mức ${label}!` : 'Bạn là Vua Người Que!',
+        title: harder ? `Chinh phục mức ${label}!` : 'Bạn là Vua Stickman!',
         lines: [
           `Đã thắng cả ${LEVELS.length} màn chiến dịch mức ${label}.`,
           ...(harder && !wasDone ? [`🔓 Đã mở khoá mức ${CAMPAIGN[harder].label}: máy giàu hơn, đông hơn, đánh sớm hơn.`] : []),

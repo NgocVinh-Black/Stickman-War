@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTIONS, FACTION_ORDER, counteredBy, kindOf, type FactionId } from '@nguoi-que/core';
+import { FACTIONS, FACTION_ORDER, counteredBy, kindOf, type FactionId } from '@stickman-war/core';
 import { sound } from '../lib/sound';
 import { auth, updateProfile } from '../net/account';
 import { useOnline } from '../stores/online';

@@ -80,7 +80,7 @@ describe('Đăng nhập Google', () => {
         return { sub: '42', name: 'Chi', picture: '' };
       },
     });
-    const base = `http://127.0.0.1:${server.port}/nguoi-que/api`;
+    const base = `http://127.0.0.1:${server.port}/stickman-war/api`;
     const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
       fetch(`${base}/${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
     try {
@@ -100,7 +100,7 @@ describe('Đăng nhập Google', () => {
       const me = (await (await fetch(`${base}/me`, { headers: auth })).json()) as { xu: number };
       expect(me.xu).toBe(1000);
 
-      const ws = new WebSocket(`ws://127.0.0.1:${server.port}/nguoi-que/ws`);
+      const ws = new WebSocket(`ws://127.0.0.1:${server.port}/stickman-war/ws`);
       const msg = await new Promise<{ t: string; account: { name: string } | null }>((resolve, reject) => {
         ws.on('open', () => ws.send(JSON.stringify({ t: 'hello', name: 'giả mạo', session })));
         ws.on('message', (d) => {
@@ -114,7 +114,7 @@ describe('Đăng nhập Google', () => {
 
       const cfg = (await (await fetch(`${base}/config`)).json()) as { googleClientId: string };
       expect(cfg.googleClientId).toBe('');
-      expect((await (await fetch(`http://127.0.0.1:${server.port}/nguoi-que/health`)).json()) as object).toMatchObject({ ok: true });
+      expect((await (await fetch(`http://127.0.0.1:${server.port}/stickman-war/health`)).json()) as object).toMatchObject({ ok: true });
     } finally {
       await server.close();
     }

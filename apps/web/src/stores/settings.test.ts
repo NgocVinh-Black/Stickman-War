@@ -1,4 +1,4 @@
-import { LEVELS } from '@nguoi-que/core';
+import { LEVELS } from '@stickman-war/core';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useSettings } from './settings';
@@ -30,6 +30,14 @@ describe('Cài đặt và tiến độ chiến dịch', () => {
     s.setName('   <b>An</b>   ');
     expect(s.name).toBe('bAn/b');
     s.setName('');
-    expect(s.name).toBe('Người que');
+    expect(s.name).toBe('Stickman');
+  });
+
+  it('vẫn đọc dữ liệu lưu dưới tên cũ (nguoi-que:)', () => {
+    localStorage.setItem('nguoi-que:name', JSON.stringify('Cũ'));
+    localStorage.setItem('nguoi-que:progress', JSON.stringify({ unlocked: 3, stars: [3, 2, 1] }));
+    const s = useSettings();
+    expect(s.name).toBe('Cũ');
+    expect(s.progress.easy.unlocked).toBe(3);
   });
 });

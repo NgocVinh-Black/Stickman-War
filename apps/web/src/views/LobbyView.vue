@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CAMPAIGN, FACTIONS, LEVELS } from '@nguoi-que/core';
+import { CAMPAIGN, FACTIONS, LEVELS } from '@stickman-war/core';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import BgBattle from '../components/BgBattle.vue';
 import PlayerAvatar from '../components/PlayerAvatar.vue';
@@ -83,7 +83,7 @@ onBeforeUnmount(() => clearInterval(timer));
       </button>
       <picture class="lb-title">
         <source :srcset="asset('logo.webp')" type="image/webp" />
-        <img :src="asset('logo.png')" alt="Đại Chiến Người Que" />
+        <img :src="asset('logo.png')" alt="Stickman War" />
       </picture>
       <div class="lb-top-right">
         <span class="lb-pill wood" title="Xu bắt kèo"

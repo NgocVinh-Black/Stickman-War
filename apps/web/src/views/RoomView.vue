@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CHAT_MAX, FACTIONS, ROOM_GOLD, ROOM_MINUTES, type ClientMsg, type Team } from '@nguoi-que/core';
+import { CHAT_MAX, FACTIONS, ROOM_GOLD, ROOM_MINUTES, type ClientMsg, type Team } from '@stickman-war/core';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import BetPanel from '../components/BetPanel.vue';

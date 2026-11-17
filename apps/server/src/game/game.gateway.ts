@@ -9,7 +9,7 @@ const MAX_PAYLOAD = 16 * 1024;
 
 /**
  * Cổng WebSocket của game, gắn vào chính máy chủ HTTP của Nest (chung cổng với API).
- * Nhận mọi đường dẫn kết thúc bằng /ws (/ws khi dev, /nguoi-que/ws sau nginx).
+ * Nhận mọi đường dẫn kết thúc bằng /ws (/ws khi dev, /stickman-war/ws sau nginx).
  * Giao thức tin nhắn riêng của game ({ t: ... }) nên dùng ws trực tiếp thay vì @WebSocketGateway.
  */
 @Injectable()

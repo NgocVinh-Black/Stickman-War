@@ -1,4 +1,4 @@
-import type { BetPool, ChatLine, ClientMsg, EndReason, FactionId, LobbyRoom, ServerMsg, WaitRoom } from '@nguoi-que/core';
+import type { BetPool, ChatLine, ClientMsg, EndReason, FactionId, LobbyRoom, ServerMsg, WaitRoom } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { ref, shallowRef } from 'vue';
 import { onlineMatch, watchMatch } from '../game/match';

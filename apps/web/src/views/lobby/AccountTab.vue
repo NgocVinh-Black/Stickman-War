@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTIONS } from '@nguoi-que/core';
+import { FACTIONS } from '@stickman-war/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import PlayerAvatar from '../../components/PlayerAvatar.vue';

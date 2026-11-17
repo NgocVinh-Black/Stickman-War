@@ -1,6 +1,6 @@
-# Đại Chiến Người Que
+# Stickman War
 
-Game chiến thuật người que: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 8 tộc, chơi đơn và online 1v1.
+Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 8 tộc, chơi đơn và online 1v1.
 
 **Công nghệ**
 
@@ -25,7 +25,7 @@ pnpm dev            # máy chủ NestJS :8787 + web Vue http://localhost:5173 (p
 pnpm test           # test lõi game, web, máy chủ (test Postgres chạy khi có DATABASE_URL)
 pnpm lint && pnpm typecheck && pnpm format:check
 pnpm build          # web -> apps/web/dist, máy chủ -> apps/server/dist/main.cjs
-./deploy.sh         # kiểm tra + build + đẩy web và máy chủ (Docker) lên https://zone-c.io.vn/nguoi-que/
+./deploy.sh         # kiểm tra + build + đẩy web và máy chủ (Docker) lên https://zone-c.io.vn/stickman-war/
 ```
 
 Chuyển dữ liệu bản cũ (file `data/wallets.json`, `data/accounts.json`) sang Postgres: `pnpm db:import`.
@@ -77,11 +77,11 @@ NestJS được đóng gói bằng esbuild (tsup / tsx) nên mọi phụ thuộc
 1. https://console.cloud.google.com/ → **APIs & Services → OAuth consent screen** (External, điền tên app, Publish).
 2. **Credentials → Create credentials → OAuth client ID** loại **Web application**,
    *Authorized JavaScript origins*: `http://localhost:5173` và `https://zone-c.io.vn`.
-3. Đặt `GOOGLE_CLIENT_ID` trong `apps/server/.env` (dev) hoặc `/srv/nguoi-que-online/.env` (server).
+3. Đặt `GOOGLE_CLIENT_ID` trong `apps/server/.env` (dev) hoặc `/srv/stickman-war-online/.env` (server).
 
 ## Deploy
 
 `docker-compose.yml` chạy Postgres + máy chủ (migration tự chạy khi khởi động). File `.env` cạnh nó cần `POSTGRES_PASSWORD`
-(và `GOOGLE_CLIENT_ID`). Web tĩnh do nginx phục vụ; `nginx-nguoi-que.conf` chuyển `/nguoi-que/ws` và `/nguoi-que/api/` vào container.
+(và `GOOGLE_CLIENT_ID`). Web tĩnh do nginx phục vụ; `nginx-stickman-war.conf` chuyển `/stickman-war/ws` và `/stickman-war/api/` vào container.
 
 Chỉnh độ khó / cân bằng: `packages/core/src/levels.ts`, `factions.ts`, rồi `pnpm test` để chắc mọi màn vẫn thắng được.

@@ -1,4 +1,4 @@
-import { UNITS, WORLD_WIDTH, type Difficulty, type Team, type WorldEvent, type WorldView } from '@nguoi-que/core';
+import { UNITS, WORLD_WIDTH, type Difficulty, type Team, type WorldEvent, type WorldView } from '@stickman-war/core';
 import { sound } from '../lib/sound';
 import type { Match } from './match';
 import { Renderer } from './render/renderer';

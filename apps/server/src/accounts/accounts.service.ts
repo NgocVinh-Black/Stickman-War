@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import type { AccountInfo, FactionId, MatchRecord } from '@nguoi-que/core';
+import type { AccountInfo, FactionId, MatchRecord } from '@stickman-war/core';
 import type { GoogleProfile } from '../auth/google-auth';
 import { ACCOUNT_STORE } from '../tokens';
 import type { AccountRow, AccountStore, MatchEntry } from '../store/types';
@@ -18,7 +18,7 @@ export function cleanDisplayName(raw: unknown): string {
     .replace(/[\u0000-\u001f\u007f<>]/g, '')
     .trim()
     .slice(0, 16);
-  return name || 'Người que';
+  return name || 'Stickman';
 }
 
 /** Ví xu của tài khoản đi theo tài khoản (đăng nhập máy nào cũng thấy). */

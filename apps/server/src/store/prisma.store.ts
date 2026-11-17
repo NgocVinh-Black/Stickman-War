@@ -1,4 +1,4 @@
-import type { FactionId, MatchRecord } from '@nguoi-que/core';
+import type { FactionId, MatchRecord } from '@stickman-war/core';
 import type { PrismaClient } from '@prisma/client';
 import type { GoogleProfile } from '../auth/google-auth';
 import type { AccountRow, AccountStore, MatchEntry, WalletStore } from './types';

@@ -1,6 +1,6 @@
 // Lưu sẵn game để chơi offline. Trang chính: mạng trước, mất mạng thì dùng bản đã lưu.
 // File tĩnh (có hash trong tên): bản đã lưu trước.
-const CACHE = 'nguoi-que-v2';
+const CACHE = 'stickman-war-v2';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])));

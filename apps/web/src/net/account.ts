@@ -1,4 +1,4 @@
-import type { AccountInfo, FactionId } from '@nguoi-que/core';
+import type { AccountInfo, FactionId } from '@stickman-war/core';
 import { reactive } from 'vue';
 import { load, save } from '../lib/storage';
 
@@ -21,7 +21,7 @@ export const onAuthChange = (fn: Listener) => {
 };
 const changed = () => listeners.forEach((fn) => fn());
 
-/** Đường dẫn API tương đối với trang (chạy được dưới /nguoi-que/). */
+/** Đường dẫn API tương đối với trang (chạy được dưới /stickman-war/). */
 const apiUrl = (path: string) => new URL(`api/${path}`, location.href).toString();
 
 async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {

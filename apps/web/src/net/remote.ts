@@ -1,7 +1,7 @@
-import { UNITS, UNIT_ORDER, type Team, type UnitKind } from '@nguoi-que/core';
-import type { Drop, Projectile, TeamState, Unit, WorldEvent, WorldView } from '@nguoi-que/core';
-import { FACTION_ORDER, type FactionId } from '@nguoi-que/core';
-import { FLAG, FORMATIONS, PROJECTILES, STANCES, type ClientMsg, type ServerMsg, type Snapshot, type TeamSnap } from '@nguoi-que/core';
+import { UNITS, UNIT_ORDER, type Team, type UnitKind } from '@stickman-war/core';
+import type { Drop, Projectile, TeamState, Unit, WorldEvent, WorldView } from '@stickman-war/core';
+import { FACTION_ORDER, type FactionId } from '@stickman-war/core';
+import { FLAG, FORMATIONS, PROJECTILES, STANCES, type ClientMsg, type ServerMsg, type Snapshot, type TeamSnap } from '@stickman-war/core';
 
 /** Kết nối WebSocket tới máy chủ, tự đóng gói / giải mã tin nhắn. */
 export class OnlineClient {

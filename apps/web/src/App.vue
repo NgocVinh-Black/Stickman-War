@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACTION_ORDER } from '@nguoi-que/core';
+import { FACTION_ORDER } from '@stickman-war/core';
 import { onMounted, watch } from 'vue';
 import AppDialog from './components/AppDialog.vue';
 import ToastHost from './components/ToastHost.vue';

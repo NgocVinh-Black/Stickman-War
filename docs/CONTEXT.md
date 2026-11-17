@@ -1,10 +1,10 @@
-# Ngữ cảnh phát triển: Đại Chiến Người Que (Stickman War)
+# Ngữ cảnh phát triển: Stickman War
 
 Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc mới. Đọc file này trước, sau đó đọc `README.md`.
 
 - Repo: https://github.com/NgocVinh-Black/Stickman-War (nhánh `main`, **Public**)
-- Thư mục máy: `/home/vinh-le/Projects/nguoi-que`
-- Bản chạy thật (chưa deploy bản Vue + NestJS): https://zone-c.io.vn/nguoi-que/ qua `./deploy.sh`
+- Thư mục máy: `/home/vinh-le/Projects/stickman-war`
+- Bản chạy thật (chưa deploy bản Vue + NestJS): https://zone-c.io.vn/stickman-war/ qua `./deploy.sh`
 
 ## 1. Quy ước làm việc với chủ dự án
 
@@ -18,7 +18,7 @@ Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc m�
 ## 2. Công nghệ (từ 2026-11-16, bản 2.0)
 
 - **Monorepo pnpm** (pnpm 12 qua corepack): `packages/core`, `apps/web`, `apps/server`.
-- **FE** `apps/web`: Vue 3 + Vite 8 + TypeScript + Pinia 4 + Vue Router 5 (hash history `#/…` để chạy dưới `/nguoi-que/`).
+- **FE** `apps/web`: Vue 3 + Vite 8 + TypeScript + Pinia 4 + Vue Router 5 (hash history `#/…` để chạy dưới `/stickman-war/`).
   Trận đánh vẫn vẽ bằng Canvas 2D (`src/game/render`).
 - **BE** `apps/server`: NestJS 12 (adapter Fastify 5) + `ws` + Prisma 6 + PostgreSQL 16, Zod, jose, helmet, rate-limit.
   Đóng gói bằng tsup (esbuild) → `dist/main.cjs`; dev bằng `tsx watch`. Vì esbuild không sinh metadata decorator,
@@ -31,7 +31,7 @@ Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc m�
 ```bash
 pnpm install
 cp apps/server/.env.example apps/server/.env
-pnpm db:up && pnpm db:migrate    # Postgres dev (Docker, container nguoi-que-db-dev, cổng 5433)
+pnpm db:up && pnpm db:migrate    # Postgres dev (Docker, container stickman-war-db-dev, cổng 5433)
 pnpm dev                          # NestJS :8787 + Vue :5173
 pnpm db:import                    # chuyển data/wallets.json + data/accounts.json (bản cũ) sang Postgres
 ```
@@ -55,7 +55,7 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 | `apps/server/src/game/lobby.service.ts` | Phòng, ghép trận, chạy trận 30 tick/s, kèo, chat, thoại; mỗi kết nối xử lý tin theo hàng đợi |
 | `apps/server/src/game/game.gateway.ts` | Nhận upgrade WebSocket ở mọi đường dẫn kết thúc `/ws` trên server HTTP của Nest |
 | `apps/server/src/api/api.controller.ts` | `/api/config`, `/api/auth/google`, `/api/me` (GET/POST), `/api/logout`, `/api/leaderboard`, `/health` |
-| `apps/server/src/bootstrap.ts` | `startGameServer(port, opts)`: dựng Nest + Fastify, `rewriteUrl` bỏ tiền tố `/nguoi-que` |
+| `apps/server/src/bootstrap.ts` | `startGameServer(port, opts)`: dựng Nest + Fastify, `rewriteUrl` bỏ tiền tố `/stickman-war` |
 | `apps/server/prisma/schema.prisma` | `Account`, `Session`, `Wallet`, `MatchRecord` |
 
 ## 5. Tính năng đã có
@@ -75,7 +75,7 @@ rồi xoá file probe. Kết quả gần nhất: tỉ lệ thắng giữa các t
 
 1. **Bật đăng nhập Google**: cần Client ID (OAuth "Web application", origins `http://localhost:5173`, `https://zone-c.io.vn`).
    Luồng Google thật **chưa thử** (chỉ test bằng token tự ký).
-2. **Deploy bản 2.0**: server cần `/srv/nguoi-que-online/.env` có `POSTGRES_PASSWORD` (+ `GOOGLE_CLIENT_ID`), chạy `./deploy.sh`,
+2. **Deploy bản 2.0**: server cần `/srv/stickman-war-online/.env` có `POSTGRES_PASSWORD` (+ `GOOGLE_CLIENT_ID`), chạy `./deploy.sh`,
    rồi chạy import dữ liệu cũ một lần (lệnh trong `deploy.sh`). Image Docker đã được build thử trên máy dev.
 3. Sảnh vẫn tông gỗ ban ngày, lệch với màn đăng nhập tông tím / vàng neon.
 4. Chưa thử: điện thoại dọc, phòng chờ + thoại với 2 trình duyệt thật.

@@ -1,4 +1,4 @@
-import type { ArmorType, DamageType, UnitStats } from '@nguoi-que/core';
+import type { ArmorType, DamageType, UnitStats } from '@stickman-war/core';
 
 /** Dữ liệu cho Cẩm nang (GuideTab.vue hiển thị). */
 export type GuidePage = 'basics' | 'factions' | 'counters' | 'tactics';

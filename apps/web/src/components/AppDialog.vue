@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UNITS } from '@nguoi-que/core';
+import { UNITS } from '@stickman-war/core';
 import { computed, ref, watch } from 'vue';
 import { sound } from '../lib/sound';
 import { useSettings } from '../stores/settings';
@@ -102,7 +102,7 @@ function saveSettings(): void {
       <template v-else-if="d.kind === 'legal' && d.which === 'terms'">
         <h2>Điều khoản dịch vụ</h2>
         <ul class="howto">
-          <li>Đại Chiến Người Que là trò chơi miễn phí, chơi trên trình duyệt.</li>
+          <li>Stickman War là trò chơi miễn phí, chơi trên trình duyệt.</li>
           <li><b>Xu 🪙</b> trong game là xu ảo dùng để bắt kèo cho vui, không mua bán, không đổi ra tiền thật.</li>
           <li>Không dùng tên hiển thị hoặc chat để xúc phạm, quấy rối người khác. Chủ phòng có thể mời người vi phạm ra khỏi phòng.</li>
           <li>Không gian lận, không phá máy chủ. Tài khoản vi phạm có thể bị xoá.</li>

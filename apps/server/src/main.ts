@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     googleClientId,
     log: (msg) => console.log(new Date().toISOString(), msg),
   });
-  console.log(`Đại Chiến Người Que — máy chủ NestJS đang chạy ở cổng ${server.port}`);
+  console.log(`Stickman War — máy chủ NestJS đang chạy ở cổng ${server.port}`);
   if (!googleClientId) console.log('Chưa đặt GOOGLE_CLIENT_ID: đăng nhập Google đang tắt');
 }
 

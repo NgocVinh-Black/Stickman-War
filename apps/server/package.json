@@ -1,8 +1,8 @@
 {
-  "name": "@nguoi-que/server",
+  "name": "@stickman-war/server",
   "private": true,
   "version": "2.0.0",
-  "description": "Máy chủ Đại Chiến Người Que: NestJS (Fastify) + WebSocket + PostgreSQL (Prisma)",
+  "description": "Máy chủ Stickman War: NestJS (Fastify) + WebSocket + PostgreSQL (Prisma)",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
     "build": "prisma generate && tsup",
@@ -19,7 +19,7 @@
     "@nestjs/common": "^12.5.0",
     "@nestjs/core": "^12.5.0",
     "@nestjs/platform-fastify": "^12.5.0",
-    "@nguoi-que/core": "workspace:*",
+    "@stickman-war/core": "workspace:*",
     "@prisma/client": "^6.19.3",
     "fastify": "^5.12.8",
     "jose": "^6.2.17",

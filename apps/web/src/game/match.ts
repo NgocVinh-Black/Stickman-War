@@ -15,7 +15,7 @@ import {
   type UnitKind,
   type WorldEvent,
   type WorldView,
-} from '@nguoi-que/core';
+} from '@stickman-war/core';
 import type { RemoteWorld } from '../net/remote';
 
 const STEP = 1 / 60;

@@ -1,4 +1,4 @@
-import { UNITS, type UnitKind } from '@nguoi-que/core';
+import { UNITS, type UnitKind } from '@stickman-war/core';
 import { TEAM_COLORS } from './render/renderer';
 import { drawStickman } from './render/stickman';
 

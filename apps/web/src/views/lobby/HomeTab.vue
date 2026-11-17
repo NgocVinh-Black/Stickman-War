@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CAMPAIGN, FACTIONS, LEVELS, counteredBy } from '@nguoi-que/core';
+import { CAMPAIGN, FACTIONS, LEVELS, counteredBy } from '@stickman-war/core';
 import { computed } from 'vue';
 import { auth } from '../../net/account';
 import { useGame } from '../../stores/game';

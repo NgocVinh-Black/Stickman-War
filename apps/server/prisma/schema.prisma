@@ -1,4 +1,4 @@
-// Dữ liệu người chơi Đại Chiến Người Que. Không lưu email Google.
+// Dữ liệu người chơi Stickman War. Không lưu email Google.
 generator client {
   provider = "prisma-client-js"
 }

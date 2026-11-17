@@ -33,7 +33,7 @@ import {
   type Team,
   type UnitKind,
   type WorldEvent,
-} from '@nguoi-que/core';
+} from '@stickman-war/core';
 import type { WebSocket } from 'ws';
 import { AccountsService, accountWallet, type Side } from '../accounts/accounts.service';
 import { OPTIONS, type ServerOptions } from '../tokens';
@@ -162,7 +162,7 @@ export class LobbyService implements OnModuleDestroy {
   connect(ws: WebSocket): void {
     const p: Player = {
       ws,
-      name: 'Người que',
+      name: 'Stickman',
       wallet: `tmp-${randomUUID()}`,
       room: null,
       role: 'player',

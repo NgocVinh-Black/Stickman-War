@@ -1,4 +1,4 @@
-import { WORLD_WIDTH } from '@nguoi-que/core';
+import { WORLD_WIDTH } from '@stickman-war/core';
 import type { Renderer } from './render/renderer';
 
 /** Kéo màn hình, lăn chuột, chạm bản đồ nhỏ để di chuyển góc nhìn. Trả về hàm gỡ sự kiện. */

@@ -1,4 +1,4 @@
-import { UNITS, kindOf, type ProjectileKind, type Team } from '@nguoi-que/core';
+import { UNITS, kindOf, type ProjectileKind, type Team } from '@stickman-war/core';
 import {
   CENTER_MINE_X,
   LANE_DEPTH,
@@ -12,7 +12,7 @@ import {
   type Unit,
   type WorldView,
   type WorldEvent,
-} from '@nguoi-que/core';
+} from '@stickman-war/core';
 import { drawStickman } from './stickman';
 
 export const TEAM_COLORS: Record<Team, { ink: string; accent: string; stone: string; dark: string }> = {
