@@ -26,7 +26,7 @@ Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc m�
 - **Admin** `apps/admin`: Vue 3 + **Rspack** 2 (vue-loader, builtin:swc-loader), cổng dev 5174, gọi API qua `../api/`.
   API `apps/server/src/admin/*` (chỉ đọc), quyền: `ADMIN_EMAILS` (cờ `Account.isAdmin` đặt lại mỗi lần đăng nhập Google) hoặc `ADMIN_TOKEN`.
 - **Lõi game** `packages/core`: TS thuần, export từ `src/index.ts`, được web (Vite) và server (tsup gộp vào bundle) dùng trực tiếp.
-- Test: Vitest (core 31, web 3, server 28 gồm test Postgres thật khi có `DATABASE_URL`). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
+- Test: Vitest (core 32, web 3, server 28 gồm test Postgres thật khi có `DATABASE_URL`). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
 
 ## 3. Chạy dự án
 

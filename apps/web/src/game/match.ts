@@ -66,8 +66,12 @@ export function localMatch(world: World, ais: EnemyAI[]): Match {
   };
 }
 
-/** Nền sảnh: hai tộc ngẫu nhiên do AI điều khiển đánh nhau, tượng không bao giờ vỡ. */
-export function demoMatch(): Match {
+/**
+ * Nền sảnh: hai phe do AI điều khiển đánh nhau, tượng không bao giờ vỡ.
+ * Truyền tộc người chơi đang chọn thì cả hai phe đều là tộc đó (camera trôi theo giao tranh nên
+ * nhìn phía nào cũng thấy đúng tộc mình); không truyền thì hai tộc khác nhau ngẫu nhiên.
+ */
+export function demoMatch(mine?: FactionId): Match {
   const lv = LEVELS[6];
   const setup = (faction: FactionId) => ({
     faction,
@@ -77,9 +81,9 @@ export function demoMatch(): Match {
     unlocked: ARCH_ORDER,
     start: ['miner', 'miner', 'miner', 'sword', 'archer', 'spear'] as UnitKind[],
   });
-  const a = FACTION_ORDER[Math.floor(Math.random() * FACTION_ORDER.length)];
+  const a = mine && FACTION_ORDER.includes(mine) ? mine : FACTION_ORDER[Math.floor(Math.random() * FACTION_ORDER.length)];
   const others = FACTION_ORDER.filter((f) => f !== a);
-  const b = others[Math.floor(Math.random() * others.length)];
+  const b = mine && FACTION_ORDER.includes(mine) ? mine : others[Math.floor(Math.random() * others.length)];
   const world = new World([setup(a), setup(b)]);
   return localMatch(world, [new EnemyAI({ ...lv.ai, forceAttackAt: 60 }, 0), new EnemyAI({ ...lv.ai, forceAttackAt: 75 }, 1)]);
 }

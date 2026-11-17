@@ -83,6 +83,9 @@ const FORMATION_GAP: Record<Exclude<Formation, 'free'>, { row: number; slot: num
 // Quân lệch quá xa vị trí trong đội hình (vd. quân mới xây) thì chưa tính là đã nhập đội:
 // đội hình không đứng chờ, quân đó tự chạy lên nhập đội.
 const FORMATION_JOIN = 60;
+// Quân trong đội hình bám sát vị trí: đội hình nhích lên mỗi khung hình vài px, nếu cho sai số lớn
+// thì quân cứ đi một khung đứng một khung, nhìn giật cục.
+const FORMATION_TOLERANCE = 0.5;
 // Mỏ giữa bật + phòng thủ: quân đứng chắn trước mỏ, phía bên địch
 const CENTER_GUARD = 70;
 /** Hàng trong đội hình: 0 = khiên trước, 1 = cận chiến, 2 = bắn xa, 3 = hỗ trợ / công thành. */
@@ -479,8 +482,10 @@ export class World {
     const members = this.units.filter((u) => u.team === team && this.inFormation(u));
     if (!members.length) return;
     if (Number.isNaN(t.formX)) {
-      // Lập đội hình quanh quân đứng trước nhất; quân đang có lúc ra lệnh đều phải tập hợp đủ
-      t.formX = members.reduce((best, u) => ((u.x - best) * dir > 0 ? u.x : best), members[0].x);
+      // Lập đội hình sao cho mọi quân đã đứng sau (hoặc đúng) vị trí của mình: không ai phải
+      // quay lui rồi mới tiến. Quân đang có lúc ra lệnh đều phải tập hợp đủ.
+      const need = (u: Unit) => u.x + (u.x - this.slotX(u, u.x)); // mũi tối thiểu để vị trí của u không ở sau u
+      t.formX = members.reduce((best, u) => ((need(u) - best) * dir > 0 ? need(u) : best), need(members[0]));
       joined.clear();
       for (const u of members) joined.add(u.id);
     }
@@ -602,7 +607,7 @@ export class World {
     if (team.stance === 'attack') {
       if (Math.abs(ex - u.x) <= statueReach) u.engaged = true;
       if (!u.engaged && this.formationReady(u.team)) {
-        if (this.moveTo(u, this.slotX(u, team.formX), dt, 4)) u.facing = dir;
+        if (this.moveTo(u, this.slotX(u, team.formX), dt, FORMATION_TOLERANCE)) u.facing = dir;
         return;
       }
       this.engage(u, ex, STATUE_TARGET, statueReach, dt);
@@ -672,7 +677,7 @@ export class World {
     const dir = dirOf(u.team);
     if (team.stance === 'attack') {
       if (this.formationReady(u.team)) {
-        if (this.moveTo(u, this.slotX(u, team.formX), dt, 4)) u.facing = dir;
+        if (this.moveTo(u, this.slotX(u, team.formX), dt, FORMATION_TOLERANCE)) u.facing = dir;
         return;
       }
       let front: Unit | null = null;

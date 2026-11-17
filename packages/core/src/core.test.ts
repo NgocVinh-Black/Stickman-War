@@ -443,6 +443,29 @@ describe('Tộc và đội hình', () => {
     }
   });
 
+  it('hành quân theo đội hình: quân đi đều, không giật cục đi-đứng, không quay lui lúc xuất phát', () => {
+    for (const formation of ['line', 'spread', 'wedge', 'wall'] as const) {
+      const w = new World([side('tribe'), side('tribe')], seeded(9));
+      w.setFormation(0, formation);
+      for (const k of ['sword', 'sword', 'archer', 'archer', 'spear', 'healer', 'giant', 'cavalry'] as UnitKind[]) w.spawn(0, k, 500);
+      run(w, 15); // dàn trận phòng thủ
+      w.setStance(0, 'attack');
+      let toggles = 0;
+      let backSteps = 0;
+      const was = new Map<number, boolean>();
+      run(w, 20, () => {
+        for (const u of w.units) {
+          if (u.team !== 0) continue;
+          if (was.has(u.id) && was.get(u.id) !== u.moving) toggles++;
+          was.set(u.id, u.moving);
+          if (u.moving && u.facing !== 1) backSteps++;
+        }
+      });
+      expect(toggles, formation).toBeLessThan(10);
+      expect(backSteps, formation).toBe(0);
+    }
+  });
+
   it('mỏ kim cương + phòng thủ: lính ra đứng chắn trước mỏ giữa, tắt thì về giữ tượng', () => {
     const w = new World([side('tribe', ['miner']), side('tribe')], seeded(7));
     for (const k of ['miner', 'miner', 'sword', 'archer'] as UnitKind[]) w.spawn(0, k);
