@@ -1,0 +1,22 @@
+# Postgres cho máy dev: `pnpm db:up` (cổng 5433 để không đụng Postgres khác trên máy)
+services:
+  db:
+    image: postgres:16
+    container_name: nguoi-que-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nguoique
+      POSTGRES_PASSWORD: nguoique
+      POSTGRES_DB: nguoique
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - nguoi-que-db-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nguoique -d nguoique']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  nguoi-que-db-dev:

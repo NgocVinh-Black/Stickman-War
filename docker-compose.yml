@@ -1,16 +1,40 @@
+# Chạy trên server: Postgres + máy chủ online. Tạo file .env cạnh file này:
+#   POSTGRES_PASSWORD=<mật khẩu mạnh>
+#   GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com   (bỏ trống = chỉ chơi khách)
 services:
+  db:
+    image: postgres:16
+    container_name: nguoi-que-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nguoique
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong file .env}
+      POSTGRES_DB: nguoique
+    volumes:
+      - nguoi-que-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nguoique -d nguoique']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   nguoi-que-online:
     build: .
     image: nguoi-que-online:latest
     container_name: nguoi-que-online
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3070:3000"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      # Đặt trong file .env cạnh docker-compose.yml trên server: GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      DATABASE_URL: postgresql://nguoique:${POSTGRES_PASSWORD}@db:5432/nguoique?schema=public
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - '127.0.0.1:3070:3000'
     volumes:
-      - nguoi-que-data:/app/data
+      # Dữ liệu bản cũ (wallets.json, accounts.json) để chuyển sang Postgres: pnpm db:import
+      - nguoi-que-data:/repo/data
 
 volumes:
+  nguoi-que-pg:
   nguoi-que-data:

@@ -1,0 +1,30 @@
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
+
+/** Thông tin cần dùng trong ID token Google (không lấy email). */
+export type GoogleProfile = { sub: string; name: string; picture: string };
+
+const GOOGLE_JWKS = 'https://www.googleapis.com/oauth2/v3/certs';
+const ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
+
+/** Khoá công khai của Google (jose tự cache và tải lại khi Google xoay khoá). */
+export const googleKeys = (): JWTVerifyGetKey => createRemoteJWKSet(new URL(GOOGLE_JWKS));
+
+/**
+ * Kiểm tra ID token đăng nhập Google: chữ ký RS256 bằng khoá của Google,
+ * người nhận (aud) đúng Client ID của game, đúng nơi phát hành, còn hạn.
+ */
+export async function verifyGoogleIdToken(token: string, clientId: string, keys: JWTVerifyGetKey): Promise<GoogleProfile> {
+  if (typeof token !== 'string' || token.length > 4096) throw new Error('token');
+  const { payload } = await jwtVerify(token, keys, {
+    issuer: ISSUERS,
+    audience: clientId,
+    algorithms: ['RS256'],
+    clockTolerance: 60,
+  });
+  if (typeof payload.sub !== 'string' || !/^\d{1,40}$/.test(payload.sub)) throw new Error('sub');
+  return {
+    sub: payload.sub,
+    name: typeof payload.name === 'string' ? payload.name : 'Người que',
+    picture: typeof payload.picture === 'string' && payload.picture.startsWith('https://') ? payload.picture : '',
+  };
+}
