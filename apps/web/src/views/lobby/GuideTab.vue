@@ -152,8 +152,10 @@ const go = (p: GuidePage) => {
       </li>
       <li>↔️ <b>Tản rộng</b>: như hàng lối nhưng giãn cách xa. Dùng khi địch có nhiều pháp sư, khổng lồ, máy bắn đá đánh lan.</li>
       <li>🌀 <b>Tự do</b>: quân nhanh lao trước. Hợp với kỵ binh, ninja đánh úp hàng sau địch.</li>
+      <li>🔺 <b>Mũi nhọn</b>: kỵ binh, ninja, khổng lồ đi đầu, cả đội đứng sát nhau để chọc thủng phòng tuyến.</li>
+      <li>🛡️ <b>Tường khiên</b>: mọi quân cận chiến dàn chung hàng đầu, cung thủ núp ngay sau. Chắc nhưng sợ phép nổ.</li>
       <li><b>Đánh sớm</b>: kỵ binh + kiếm sĩ trước phút thứ 2, ăn thua với người làm giàu.</li>
-      <li><b>Làm giàu</b>: nhiều thợ mỏ + mỏ giữa + tháp canh giữ nhà, rồi ra quân đắt tiền.</li>
+      <li><b>Làm giàu</b>: nhiều thợ mỏ + mỏ kim cương (lính phòng thủ ra giữ mỏ) + tháp canh giữ nhà, rồi ra quân đắt tiền.</li>
       <li><b>Quấy rối</b>: ninja / kỵ binh săn thợ mỏ, nhặt túi vàng rơi.</li>
       <li><b>Công thành</b>: máy bắn đá / đại bác / xe phá thành phá tượng ×3, nhưng cần giáo binh che chắn.</li>
       <li>Nhìn tộc của địch trước trận: chọn quân có kiểu đòn khắc kiểu giáp của chúng (xem mục Khắc chế).</li>

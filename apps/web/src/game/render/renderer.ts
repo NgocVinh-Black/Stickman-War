@@ -169,7 +169,7 @@ export class Renderer {
     for (const team of [0, 1] as Team[]) {
       MINE_OFFSETS.forEach((_, i) => this.drawMine(mineX(team, i)));
     }
-    this.drawMine(CENTER_MINE_X, 1.6);
+    this.drawMine(CENTER_MINE_X, 1.6, true);
     for (const d of world.drops) this.drawDrop(d);
     for (const team of [0, 1] as Team[]) this.drawStatue(world, team);
 
@@ -256,7 +256,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawMine(x: number, size = 1): void {
+  private drawMine(x: number, size = 1, diamond = false): void {
     const { ctx, scale } = this;
     const sx = this.sx(x);
     if (sx < -80 * scale * size || sx > this.width + 80 * scale * size) return;
@@ -279,7 +279,7 @@ export class Renderer {
       ctx.lineTo(rx + r * 0.9, ry + 4);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#f2c230';
+      ctx.fillStyle = diamond ? '#6fe7ff' : '#f2c230';
       ctx.beginPath();
       ctx.moveTo(rx - r * 0.3, ry - r * 0.3);
       ctx.lineTo(rx, ry - r * 0.75);
@@ -290,7 +290,7 @@ export class Renderer {
     }
     // Lấp lánh
     const tw = (Math.sin(this.time * 3 + x) + 1) / 2;
-    ctx.fillStyle = `rgba(255, 250, 200, ${tw})`;
+    ctx.fillStyle = diamond ? `rgba(220, 250, 255, ${tw})` : `rgba(255, 250, 200, ${tw})`;
     ctx.beginPath();
     ctx.arc(4, -22, 2.2, 0, Math.PI * 2);
     ctx.fill();
@@ -607,8 +607,9 @@ export class Renderer {
         ctx.fillRect(mineX(team, i) * k - 1.5, h - 8, 3, 3);
       }
     }
-    ctx.fillStyle = '#f2c230';
+    ctx.fillStyle = '#6fe7ff';
     ctx.fillRect(CENTER_MINE_X * k - 3, h - 9, 6, 4);
+    ctx.fillStyle = '#f2c230';
     for (const d of world.drops) ctx.fillRect(d.x * k - 1.5, h - 12, 3, 3);
     for (const u of world.units) {
       if (u.dying || u.inside) continue;

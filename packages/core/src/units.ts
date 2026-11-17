@@ -7,7 +7,7 @@ export type Arch =
 /** Mã loại quân: Bộ Lạc dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
 export type UnitKind = string;
 export type Stance = 'defend' | 'attack' | 'garrison';
-export type Formation = 'free' | 'line' | 'spread';
+export type Formation = 'free' | 'line' | 'spread' | 'wedge' | 'wall';
 
 /** Kiểu đòn đánh: quyết định hệ số sát thương lên từng kiểu giáp (bảng DAMAGE_TABLE). */
 export type DamageType = 'slash' | 'pierce' | 'arrow' | 'magic' | 'blunt' | 'siege' | 'none';

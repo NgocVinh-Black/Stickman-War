@@ -36,7 +36,7 @@ export const PROJECTILES: ProjectileKind[] = [
   'sun',
   'wind',
 ];
-export const FORMATIONS: Formation[] = ['free', 'line', 'spread'];
+export const FORMATIONS: Formation[] = ['free', 'line', 'spread', 'wedge', 'wall'];
 export const validFaction = (f: unknown): f is FactionId => FACTION_ORDER.includes(f as FactionId);
 export const MAX_SPECTATORS = 20;
 export const LOBBY_MAX_ROOMS = 50;

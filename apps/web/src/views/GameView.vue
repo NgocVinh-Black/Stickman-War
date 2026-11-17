@@ -7,7 +7,7 @@ import UnitIcon from '../components/UnitIcon.vue';
 import { bindCamera, panByKeys } from '../game/camera';
 import { isNet } from '../game/session';
 import { sound } from '../lib/sound';
-import { FORMATION_INFO, STANCES, archIndex, useGame } from '../stores/game';
+import { FORMATION_CYCLE, FORMATION_INFO, STANCES, archIndex, useGame } from '../stores/game';
 import { useOnline } from '../stores/online';
 import { useUi } from '../stores/ui';
 
@@ -24,6 +24,14 @@ const watching = computed(() => mode.value?.type === 'watch');
 const netMode = computed(() => !!mode.value && isNet(mode.value));
 const kinds = computed<UnitKind[]>(() => [...(game.session?.match.unlocked ?? [])].sort((a, b) => archIndex(a) - archIndex(b)));
 const speed = ref(1);
+const formationMenu = ref(false);
+function pickFormation(f: (typeof FORMATION_CYCLE)[number]): void {
+  formationMenu.value = false;
+  game.setFormation(f);
+}
+const closeFormationMenu = (e: PointerEvent) => {
+  if (!(e.target instanceof Element && e.target.closest('.formation-wrap'))) formationMenu.value = false;
+};
 const time = ref(0);
 const keys = new Set<string>();
 let raf = 0;
@@ -95,6 +103,7 @@ onMounted(() => {
   s.attach(view.value);
   unbind = bindCamera(view.value, mini.value, () => game.session?.renderer ?? null);
   raf = requestAnimationFrame(frame);
+  document.addEventListener('pointerdown', closeFormationMenu);
   document.addEventListener('keydown', onKey);
   document.addEventListener('keyup', onKeyUp);
   document.addEventListener('visibilitychange', onHidden);
@@ -104,6 +113,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
   unbind();
+  document.removeEventListener('pointerdown', closeFormationMenu);
   document.removeEventListener('keydown', onKey);
   document.removeEventListener('keyup', onKeyUp);
   document.removeEventListener('visibilitychange', onHidden);
@@ -187,21 +197,39 @@ onBeforeUnmount(() => {
         >
           <span>{{ st.icon }}</span><small>{{ st.label }}</small>
         </button>
-        <button
-          class="stance-btn formation-btn"
-          :class="{ active: game.hud.formation !== 'free' }"
-          title="Đội hình (F)"
-          @click="game.cycleFormation()"
-        >
-          <span>{{ FORMATION_INFO[game.hud.formation].icon }}</span><small>{{ FORMATION_INFO[game.hud.formation].label }}</small>
-        </button>
+        <div class="formation-wrap">
+          <button
+            class="stance-btn formation-btn"
+            :class="{ active: game.hud.formation !== 'free' || formationMenu }"
+            title="Đội hình (F)"
+            @click="formationMenu = !formationMenu"
+          >
+            <span>{{ FORMATION_INFO[game.hud.formation].icon }}</span><small>{{ FORMATION_INFO[game.hud.formation].label }}</small>
+          </button>
+          <div v-if="formationMenu" class="formation-menu" role="menu">
+            <button
+              v-for="f in FORMATION_CYCLE"
+              :key="f"
+              role="menuitemradio"
+              :aria-checked="game.hud.formation === f"
+              :class="{ active: game.hud.formation === f }"
+              @click="pickFormation(f)"
+            >
+              <span class="fm-icon">{{ FORMATION_INFO[f].icon }}</span>
+              <span class="fm-text"
+                ><b>{{ FORMATION_INFO[f].label }}</b
+                ><small>{{ FORMATION_INFO[f].tip }}</small></span
+              >
+            </button>
+          </div>
+        </div>
         <button
           class="stance-btn center-btn"
           :class="{ active: game.hud.centerMine }"
-          title="Mỏ giữa (R): một nửa thợ mỏ sang đào mỏ vàng giữa bản đồ. Giàu gấp 4 nhưng phải đi qua chiến trường, chết thì rơi vàng cho địch nhặt"
+          title="Mỏ kim cương (R): một nửa thợ mỏ sang đào mỏ kim cương giữa bản đồ, giàu gấp 4. Khi Phòng thủ, lính ra đứng chắn trước mỏ để bảo vệ thợ mỏ"
           @click="game.toggleCenterMine()"
         >
-          <span>💰</span><small>Mỏ giữa</small>
+          <span>💎</span><small>Mỏ kim cương</small>
         </button>
       </div>
     </footer>

@@ -35,8 +35,18 @@ export const FORMATION_INFO: Record<Formation, { icon: string; label: string; ti
   free: { icon: '🌀', label: 'Tự do', tip: 'Mỗi quân tự lao lên theo tốc độ riêng' },
   line: { icon: '🧱', label: 'Hàng lối', tip: 'Cả đội đi cùng tốc độ quân chậm nhất: khiên trước, cận chiến, bắn xa, hỗ trợ sau cùng' },
   spread: { icon: '↔️', label: 'Tản rộng', tip: 'Như hàng lối nhưng giãn cách xa, ít bị phép nổ trúng cả đám' },
+  wedge: {
+    icon: '🔺',
+    label: 'Mũi nhọn',
+    tip: 'Kỵ binh, ninja, khổng lồ mở đường; cận chiến bám sát; bắn xa theo sau. Đội hình gọn để chọc thủng',
+  },
+  wall: {
+    icon: '🛡️',
+    label: 'Tường khiên',
+    tip: 'Mọi quân cận chiến đứng chung một hàng đầu, bắn xa núp sát ngay sau. Chắc chắn nhưng dễ dính phép nổ',
+  },
 };
-const FORMATION_CYCLE: Formation[] = ['free', 'line', 'spread'];
+export const FORMATION_CYCLE: Formation[] = ['free', 'line', 'spread', 'wedge', 'wall'];
 export const archIndex = (k: UnitKind) => ARCH_ORDER.indexOf(UNITS[k].arch);
 
 /** Số liệu HUD, đồng bộ từ mô phỏng mỗi khung hình (Vue chỉ vẽ lại phần đổi). */
@@ -145,13 +155,18 @@ export const useGame = defineStore('game', () => {
     if (stance === 'attack') sound.horn();
   }
 
-  function cycleFormation(): void {
+  function setFormation(next: Formation): void {
     const s = canCommand();
     if (!s) return;
-    const next = FORMATION_CYCLE[(FORMATION_CYCLE.indexOf(s.view.teams[0].formation) + 1) % FORMATION_CYCLE.length];
     s.match.setFormation(next);
     sound.click();
     ui().toast(`${FORMATION_INFO[next].icon} ${FORMATION_INFO[next].label}: ${FORMATION_INFO[next].tip}`, 2200);
+  }
+
+  function cycleFormation(): void {
+    const s = canCommand();
+    if (!s) return;
+    setFormation(FORMATION_CYCLE[(FORMATION_CYCLE.indexOf(s.view.teams[0].formation) + 1) % FORMATION_CYCLE.length]);
   }
 
   function toggleCenterMine(): void {
@@ -160,7 +175,7 @@ export const useGame = defineStore('game', () => {
     const on = !s.view.teams[0].centerMine;
     s.match.setCenterMine(on);
     sound.click();
-    ui().toast(on ? '💰 Một nửa thợ mỏ sang đào mỏ giữa' : '⛏️ Thợ mỏ về đào mỏ nhà', 1400);
+    ui().toast(on ? '💎 Một nửa thợ mỏ sang mỏ kim cương. Lính phòng thủ ra giữ mỏ' : '⛏️ Thợ mỏ về đào mỏ nhà, lính về giữ tượng', 1800);
   }
 
   function toggleSpeed(): void {
@@ -370,6 +385,7 @@ export const useGame = defineStore('game', () => {
     train,
     trainSlot,
     setStance,
+    setFormation,
     cycleFormation,
     toggleCenterMine,
     toggleSpeed,

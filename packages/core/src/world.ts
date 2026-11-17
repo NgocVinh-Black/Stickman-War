@@ -77,7 +77,14 @@ const BUILD_TIME = 6;
 const FORMATION_GAP: Record<Exclude<Formation, 'free'>, { row: number; slot: number }> = {
   line: { row: 55, slot: 30 },
   spread: { row: 95, slot: 85 },
+  wedge: { row: 45, slot: 22 },
+  wall: { row: 38, slot: 16 },
 };
+// Quân lệch quá xa vị trí trong đội hình (vd. quân mới xây) thì chưa tính là đã nhập đội:
+// đội hình không đứng chờ, quân đó tự chạy lên nhập đội.
+const FORMATION_JOIN = 60;
+// Mỏ giữa bật + phòng thủ: quân đứng chắn trước mỏ, phía bên địch
+const CENTER_GUARD = 70;
 /** Hàng trong đội hình: 0 = khiên trước, 1 = cận chiến, 2 = bắn xa, 3 = hỗ trợ / công thành. */
 export const ROW: Record<Arch, number> = {
   spear: 0,
@@ -93,6 +100,13 @@ export const ROW: Record<Arch, number> = {
   healer: 3,
   banner: 3,
   catapult: 3,
+};
+/** Đội hình có thứ tự hàng riêng (không có thì dùng ROW). */
+const FORMATION_ROW: Partial<Record<Formation, Partial<Record<Arch, number>>>> = {
+  // Mũi nhọn: quân nhanh / to xác mở đường, cận chiến theo sát, bắn xa và hỗ trợ sau
+  wedge: { cavalry: 0, ninja: 0, giant: 0, spear: 1, sword: 1, archer: 2, mage: 2, healer: 3, banner: 3, catapult: 3 },
+  // Tường khiên: mọi quân cận chiến đứng chung hàng đầu, bắn xa núp sát ngay sau
+  wall: { spear: 0, giant: 0, sword: 0, ninja: 0, cavalry: 0, archer: 1, mage: 1, healer: 2, banner: 2, catapult: 2 },
 };
 
 export type Rng = () => number;
@@ -233,6 +247,8 @@ export class World {
   time = 0;
   winner: Team | null = null;
   private nextId = 1;
+  /** Quân đã nhập đội hình tấn công của mỗi phe (theo id). */
+  private joined: [Set<number>, Set<number>] = [new Set(), new Set()];
 
   constructor(
     setups: [TeamSetup, TeamSetup],
@@ -430,9 +446,19 @@ export class World {
 
   /** Vị trí của quân trong đội hình (hàng theo loại quân, lệch trong hàng theo slot). */
   slotX(u: Unit, front: number): number {
-    const t = this.teams[u.team];
-    const gap = FORMATION_GAP[t.formation === 'spread' ? 'spread' : 'line'];
-    return front - dirOf(u.team) * (ROW[arch(u)] * gap.row + u.slot * gap.slot);
+    const f = this.teams[u.team].formation;
+    const gap = FORMATION_GAP[f === 'free' ? 'line' : f];
+    const a = arch(u);
+    const row = FORMATION_ROW[f]?.[a] ?? ROW[a];
+    return front - dirOf(u.team) * (row * gap.row + u.slot * gap.slot);
+  }
+
+  /**
+   * Nơi quân phòng thủ đứng giữ: trước tượng nhà, hoặc chắn trước mỏ giữa
+   * khi đang cho thợ mỏ sang đào ở đó.
+   */
+  defendPoint(team: Team): number {
+    return this.teams[team].centerMine ? CENTER_MINE_X + dirOf(team) * CENTER_GUARD : defendX(team);
   }
 
   private inFormation(u: Unit): boolean {
@@ -443,20 +469,29 @@ export class World {
   /** Mũi đội hình chỉ tiến lên theo tốc độ quân chậm nhất, và đứng chờ khi có quân tụt lại. */
   private updateFormation(team: Team, dt: number): void {
     const t = this.teams[team];
+    const joined = this.joined[team];
     if (t.stance !== 'attack' || t.formation === 'free') {
       t.formX = NaN;
+      joined.clear();
       return;
     }
     const dir = dirOf(team);
     const members = this.units.filter((u) => u.team === team && this.inFormation(u));
     if (!members.length) return;
     if (Number.isNaN(t.formX)) {
-      // Lập đội hình quanh quân đứng trước nhất
+      // Lập đội hình quanh quân đứng trước nhất; quân đang có lúc ra lệnh đều phải tập hợp đủ
       t.formX = members.reduce((best, u) => ((u.x - best) * dir > 0 ? u.x : best), members[0].x);
+      joined.clear();
+      for (const u of members) joined.add(u.id);
     }
     let slowest = Infinity;
     let behind = 0;
     for (const u of members) {
+      if (!joined.has(u.id)) {
+        // Quân tiếp viện: chạy lên tới gần vị trí thì mới nhập đội, đội hình không đứng chờ
+        if (Math.abs(this.slotX(u, t.formX) - u.x) > FORMATION_JOIN) continue;
+        joined.add(u.id);
+      }
       if (u.engaged) continue;
       slowest = Math.min(slowest, this.speedOf(u));
       behind = Math.max(behind, (this.slotX(u, t.formX) - u.x) * dir);
@@ -607,9 +642,9 @@ export class World {
     let x: number;
     if (t.formation === 'free') {
       const back = (s.backline ? 110 + u.slot * 110 : u.slot * 110) + (s.minRange ? 120 : 0);
-      x = defendX(u.team) - dir * back;
+      x = this.defendPoint(u.team) - dir * back;
     } else {
-      x = this.slotX(u, defendX(u.team) + dir * 40);
+      x = this.slotX(u, this.defendPoint(u.team) + dir * 40);
     }
     if (this.moveTo(u, x, dt, 4)) u.facing = dir;
   }
@@ -868,7 +903,7 @@ export class World {
     const assassin = !!s.blink || !!s.stealth;
     const sight = s.stationary ? s.range : assassin ? ASSASSIN_SIGHT : Math.max(SIGHT, s.range + 60);
     const stance = this.teams[u.team].stance;
-    const dx0 = defendX(u.team);
+    const dx0 = this.defendPoint(u.team);
     const dir = dirOf(u.team);
     let best: Unit | null = null;
     let bestD = Infinity;

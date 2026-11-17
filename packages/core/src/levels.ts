@@ -92,7 +92,7 @@ export const LEVELS: Level[] = [
   {
     name: 'Liên minh phương Đông',
     enemyFaction: 'desert',
-    intro: 'Sa Mạc giàu vàng, tượng dày, còn tranh mỏ giữa bản đồ. Ninja lướt qua tiền tuyến ám sát thợ mỏ của chúng.',
+    intro: 'Sa Mạc giàu vàng, tượng dày, còn tranh mỏ kim cương giữa bản đồ. Ninja lướt qua tiền tuyến ám sát thợ mỏ của chúng.',
     newUnits: ['ninja'],
     player: player(WITH_NINJA, 600),
     enemy: {

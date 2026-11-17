@@ -429,6 +429,32 @@ describe('Tộc và đội hình', () => {
     expect(spread('line')).toBeLessThan(250);
   });
 
+  it('đội hình tấn công không đứng chờ quân tiếp viện mới xây ở nhà', () => {
+    for (const formation of ['line', 'spread', 'wedge', 'wall'] as const) {
+      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      w.setFormation(0, formation);
+      for (const k of ['sword', 'sword', 'archer', 'spear'] as UnitKind[]) w.spawn(0, k, 900);
+      w.setStance(0, 'attack');
+      run(w, 5);
+      const before = w.teams[0].formX;
+      w.spawn(0, 'archer'); // tiếp viện xuất hiện cạnh tượng nhà, cách xa đội hình
+      run(w, 5);
+      expect(w.teams[0].formX - before, formation).toBeGreaterThan(200);
+    }
+  });
+
+  it('mỏ kim cương + phòng thủ: lính ra đứng chắn trước mỏ giữa, tắt thì về giữ tượng', () => {
+    const w = new World([side('tribe', ['miner']), side('tribe')], seeded(7));
+    for (const k of ['miner', 'miner', 'sword', 'archer'] as UnitKind[]) w.spawn(0, k);
+    w.setCenterMine(0, true);
+    run(w, 30);
+    const soldiers = () => w.units.filter((u) => u.team === 0 && UNITS[u.kind].arch !== 'miner');
+    for (const u of soldiers()) expect(Math.abs(u.x - WORLD_WIDTH / 2)).toBeLessThan(200);
+    w.setCenterMine(0, false);
+    run(w, 30);
+    for (const u of soldiers()) expect(u.x).toBeLessThan(WORLD_WIDTH / 2 - 600);
+  });
+
   it('thợ xây ra dựng tháp canh, tối đa 3 tháp', () => {
     const w = new World([{ ...side('tribe', ['builder']), gold: 5000 }, side('tribe')], seeded(4));
     for (let i = 0; i < 4; i++) w.train(0, 'builder');
