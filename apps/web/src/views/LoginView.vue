@@ -133,6 +133,13 @@ onBeforeUnmount(() => window.removeEventListener('resize', fitGis));
         <button class="la-a" @click="ui.show({ kind: 'legal', which: 'privacy' })">Chính sách bảo mật</button>
       </span>
     </div>
-    <div class="la-slogan"><b>Chiến đấu</b><span>và trở thành huyền thoại!</span></div>
+    <picture class="la-slogan la-slogan-fight">
+      <source :srcset="asset('chien-dau-khong-gioi-han.webp')" type="image/webp" />
+      <img :src="asset('chien-dau-khong-gioi-han.png')" alt="Chiến Đấu Không Giới Hạn" />
+    </picture>
+    <picture class="la-slogan la-slogan-legend">
+      <source :srcset="asset('tro-thanh-huyen-thoai.webp')" type="image/webp" />
+      <img :src="asset('tro-thanh-huyen-thoai.png')" alt="Trở thành Huyền Thoại!" />
+    </picture>
   </main>
 </template>
