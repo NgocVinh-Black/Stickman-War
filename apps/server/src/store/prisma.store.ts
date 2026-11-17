@@ -1,7 +1,7 @@
 import type { FactionId, MatchRecord } from '@stickman-war/core';
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import type { GoogleProfile } from '../auth/google-auth';
-import type { AccountRow, AccountStore, MatchEntry, WalletStore } from './types';
+import type { AccountQuery, AccountRow, AccountStore, AdminAccountRow, AdminSession, AdminStats, MatchEntry, WalletStore } from './types';
 
 type Row = {
   id: string;
@@ -13,6 +13,7 @@ type Row = {
   wins: number;
   losses: number;
   draws: number;
+  isAdmin: boolean;
 };
 const toRow = (a: Row): AccountRow => ({
   id: a.id,
@@ -24,17 +25,28 @@ const toRow = (a: Row): AccountRow => ({
   wins: a.wins,
   losses: a.losses,
   draws: a.draws,
+  isAdmin: a.isAdmin,
+});
+const DAY = 86_400_000;
+const adminInclude = (now: Date) => ({ _count: { select: { matches: true, sessions: { where: { expiresAt: { gt: now } } } } } }) as const;
+type WithCounts = Row & { createdAt: Date; lastSeen: Date; _count: { matches: number; sessions: number } };
+const toAdminRow = (a: WithCounts): AdminAccountRow => ({
+  ...toRow(a),
+  createdAt: a.createdAt.getTime(),
+  lastSeen: a.lastSeen.getTime(),
+  sessions: a._count.sessions,
+  matches: a._count.matches,
 });
 
 /** Tài khoản, phiên, lịch sử trận trong PostgreSQL. */
 export class PrismaAccountStore implements AccountStore {
   constructor(private readonly db: PrismaClient) {}
 
-  async upsertGoogle(p: GoogleProfile, name: string): Promise<AccountRow> {
+  async upsertGoogle(p: GoogleProfile, name: string, isAdmin: boolean): Promise<AccountRow> {
     const a = await this.db.account.upsert({
       where: { id: `g${p.sub}` },
-      create: { id: `g${p.sub}`, googleSub: p.sub, name, picture: p.picture },
-      update: { lastSeen: new Date(), ...(p.picture ? { picture: p.picture } : {}) },
+      create: { id: `g${p.sub}`, googleSub: p.sub, name, picture: p.picture, isAdmin },
+      update: { lastSeen: new Date(), isAdmin, ...(p.picture ? { picture: p.picture } : {}) },
     });
     return toRow(a);
   }
@@ -106,6 +118,54 @@ export class PrismaAccountStore implements AccountStore {
       take: limit,
     });
     return rows.map(toRow);
+  }
+
+  async adminStats(now: Date): Promise<AdminStats> {
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(now.getTime() - 7 * DAY);
+    const [accounts, newToday, new7d, active7d, activeSessions, matches, admins] = await this.db.$transaction([
+      this.db.account.count(),
+      this.db.account.count({ where: { createdAt: { gte: startOfDay } } }),
+      this.db.account.count({ where: { createdAt: { gte: weekAgo } } }),
+      this.db.account.count({ where: { lastSeen: { gte: weekAgo } } }),
+      this.db.session.count({ where: { expiresAt: { gt: now } } }),
+      this.db.matchRecord.count(),
+      this.db.account.count({ where: { isAdmin: true } }),
+    ]);
+    return { accounts, newToday, new7d, active7d, activeSessions, matches, admins };
+  }
+
+  async listAccounts(q: AccountQuery): Promise<{ total: number; rows: AdminAccountRow[] }> {
+    const where: Prisma.AccountWhereInput = q.q
+      ? { OR: [{ name: { contains: q.q, mode: 'insensitive' } }, { id: { contains: q.q } }] }
+      : {};
+    const orderBy: Prisma.AccountOrderByWithRelationInput = q.sort === 'name' ? { name: 'asc' } : { [q.sort]: 'desc' };
+    const [total, rows] = await this.db.$transaction([
+      this.db.account.count({ where }),
+      this.db.account.findMany({
+        where,
+        orderBy: [orderBy, { id: 'asc' }],
+        skip: q.offset,
+        take: q.limit,
+        include: adminInclude(new Date()),
+      }),
+    ]);
+    return { total, rows: rows.map(toAdminRow) };
+  }
+
+  async adminAccount(id: string): Promise<AdminAccountRow | null> {
+    const a = await this.db.account.findUnique({ where: { id }, include: adminInclude(new Date()) });
+    return a ? toAdminRow(a) : null;
+  }
+
+  async sessionsOf(id: string): Promise<AdminSession[]> {
+    const rows = await this.db.session.findMany({
+      where: { accountId: id, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true, expiresAt: true },
+    });
+    return rows.map((s) => ({ createdAt: s.createdAt.getTime(), expiresAt: s.expiresAt.getTime() }));
   }
 }
 

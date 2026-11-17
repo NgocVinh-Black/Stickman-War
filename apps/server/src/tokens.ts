@@ -18,6 +18,10 @@ export type ServerOptions = {
   verifyGoogle?: (credential: string) => Promise<GoogleProfile>;
   /** Ghi log ngắn (phòng, đăng nhập…). */
   log: (msg: string) => void;
+  /** Email Google được vào trang admin (so lúc đăng nhập, không lưu email). */
+  adminEmails?: string[];
+  /** Mã bí mật vào trang admin không cần Google (≥ 16 ký tự); rỗng = tắt. */
+  adminToken?: string;
   /** Nơi lưu dữ liệu; bỏ trống = PostgreSQL qua Prisma (DATABASE_URL). */
   stores?: { accounts: AccountStore; wallets: WalletStore };
 };

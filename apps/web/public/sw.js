@@ -1,6 +1,6 @@
 // Lưu sẵn game để chơi offline. Trang chính: mạng trước, mất mạng thì dùng bản đã lưu.
 // File tĩnh (có hash trong tên): bản đã lưu trước.
-const CACHE = 'stickman-war-v2';
+const CACHE = 'stickman-war-v3';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])));
@@ -19,8 +19,10 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  // WebSocket và API tài khoản luôn đi mạng, không lưu (tránh hiện hồ sơ / bảng xếp hạng cũ)
-  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.endsWith('/ws') || url.pathname.includes('/api/')) return;
+  // WebSocket, API tài khoản và trang admin (/admin/, app riêng) luôn đi mạng, không lưu
+  const skip =
+    url.pathname.endsWith('/ws') || url.pathname.includes('/api/') || url.pathname.includes('/admin/') || url.pathname.endsWith('/admin');
+  if (req.method !== 'GET' || url.origin !== location.origin || skip) return;
 
   if (req.mode === 'navigate') {
     e.respondWith(

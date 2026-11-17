@@ -1,0 +1,25 @@
+{
+  "name": "@stickman-war/admin",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Trang quản trị Stickman War: Vue 3 + Rspack, xem tài khoản đã đăng ký",
+  "type": "module",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "vue-tsc --noEmit && rspack build",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@stickman-war/core": "workspace:*",
+    "vue": "^3.5.45"
+  },
+  "devDependencies": {
+    "@rspack/cli": "2.3.1",
+    "@rspack/core": "2.3.1",
+    "@rspack/dev-server": "2.1.0",
+    "@swc/helpers": "^0.5.24",
+    "typescript": "~5.9.3",
+    "vue-loader": "17.4.2",
+    "vue-tsc": "^3.3.14"
+  }
+}

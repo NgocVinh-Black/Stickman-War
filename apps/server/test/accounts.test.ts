@@ -30,9 +30,16 @@ const good = {
 };
 
 describe('Đăng nhập Google', () => {
-  it('chấp nhận token Google hợp lệ, không lấy email', async () => {
+  it('chấp nhận token Google hợp lệ, email chưa xác minh thì bỏ', async () => {
     const p = await verifyGoogleIdToken(token({ ...good, email: 'a@b.c' }), CLIENT, keys);
     expect(p).toEqual({ sub: '1234567890', name: 'An', picture: 'https://x/a.png' });
+  });
+
+  it('chỉ lấy email khi Google đã xác minh (dùng để so ADMIN_EMAILS)', async () => {
+    const p = await verifyGoogleIdToken(token({ ...good, email: 'A@B.c', email_verified: true }), CLIENT, keys);
+    expect(p.email).toBe('a@b.c');
+    const q = await verifyGoogleIdToken(token({ ...good, email: 'a@b.c', email_verified: false }), CLIENT, keys);
+    expect(q.email).toBeUndefined();
   });
 
   it('từ chối token sai Client ID, hết hạn, sai chữ ký, sai nơi phát hành, sai khoá', async () => {
@@ -76,6 +83,7 @@ describe('Đăng nhập Google', () => {
     const server = await startGameServer(0, {
       stores: { accounts: new MemoryAccountStore(), wallets: new MemoryWalletStore() },
       verifyGoogle: async (c) => {
+        if (c === 'slow') throw Object.assign(new Error('request timed out'), { code: 'ERR_JWKS_TIMEOUT' });
         if (c !== 'ok') throw new Error('bad');
         return { sub: '42', name: 'Chi', picture: '' };
       },
@@ -86,6 +94,7 @@ describe('Đăng nhập Google', () => {
     try {
       expect((await post('auth/google', { credential: 'x' })).status).toBe(401);
       expect((await post('auth/google', {})).status).toBe(400);
+      expect((await post('auth/google', { credential: 'slow' })).status).toBe(503);
       const res = await post('auth/google', { credential: 'ok' });
       const { session, account } = (await res.json()) as { session: string; account: { name: string } };
       expect(account.name).toBe('Chi');

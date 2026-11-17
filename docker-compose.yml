@@ -1,6 +1,8 @@
 # Chạy trên server: Postgres + máy chủ online. Tạo file .env cạnh file này:
 #   POSTGRES_PASSWORD=<mật khẩu mạnh>
 #   GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com   (bỏ trống = chỉ chơi khách)
+#   ADMIN_EMAILS=ban@gmail.com                       (email Google được vào trang admin)
+#   ADMIN_TOKEN=<mã ≥ 16 ký tự>                       (vào admin không cần Google; bỏ trống = tắt)
 services:
   db:
     image: postgres:16
@@ -29,6 +31,8 @@ services:
     environment:
       DATABASE_URL: postgresql://stickmanwar:${POSTGRES_PASSWORD}@db:5432/stickmanwar?schema=public
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     ports:
       - '127.0.0.1:3070:3000'
     volumes:

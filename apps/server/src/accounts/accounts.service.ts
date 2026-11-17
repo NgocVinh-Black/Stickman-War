@@ -26,7 +26,7 @@ export const accountWallet = (id: string) => `acct-${id}`.slice(0, 64);
 
 /**
  * Tài khoản người chơi: đăng nhập Google, phiên, hồ sơ, Elo và lịch sử trận.
- * Chỉ lưu mã Google, tên, ảnh đại diện, tộc, thành tích. Không lưu email.
+ * Chỉ lưu mã Google, tên, ảnh đại diện, tộc, thành tích, cờ admin. Không lưu email.
  */
 @Injectable()
 export class AccountsService {
@@ -46,17 +46,25 @@ export class AccountsService {
     };
   }
 
-  async signIn(g: GoogleProfile): Promise<{ session: string; account: AccountInfo }> {
-    const a = await this.store.upsertGoogle(g, cleanDisplayName(g.name));
+  /** isAdmin: email Google nằm trong ADMIN_EMAILS (đặt lại mỗi lần đăng nhập). */
+  async signIn(g: GoogleProfile, isAdmin = false): Promise<{ session: string; account: AccountInfo; admin: boolean }> {
+    const a = await this.store.upsertGoogle(g, cleanDisplayName(g.name), isAdmin);
     const session = randomBytes(24).toString('base64url');
     await this.store.createSession(session, a.id, new Date(Date.now() + SESSION_DAYS * 86_400_000));
-    return { session, account: await this.info(a) };
+    return { session, account: await this.info(a), admin: a.isAdmin };
   }
 
   async bySession(token: unknown): Promise<AccountInfo | null> {
     if (typeof token !== 'string' || !token || token.length > 64) return null;
     const a = await this.store.sessionAccount(token);
     return a ? this.info(a) : null;
+  }
+
+  /** Tài khoản admin của phiên (null nếu phiên hết hạn hoặc không phải admin). */
+  async adminBySession(token: unknown): Promise<AccountRow | null> {
+    if (typeof token !== 'string' || !token || token.length > 64) return null;
+    const a = await this.store.sessionAccount(token);
+    return a?.isAdmin ? a : null;
   }
 
   async signOut(token: unknown): Promise<void> {

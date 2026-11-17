@@ -42,6 +42,21 @@ describe.skipIf(!url)('Kho dữ liệu PostgreSQL (Prisma)', () => {
     expect(await acc.bySession(a.session)).toBeNull();
   });
 
+  it('truy vấn trang admin: tìm, sắp xếp, đếm phiên / trận, thống kê', async () => {
+    const store = new PrismaAccountStore(db);
+    const acc = new AccountsService(store);
+    await acc.signIn({ sub: `${sub}1`, name: 'An', picture: '' }, true);
+    const { total, rows } = await store.listAccounts({ q: sub, sort: 'name', offset: 0, limit: 10 });
+    expect(total).toBe(2);
+    expect(rows.map((r) => r.id)).toEqual(ids);
+    expect(rows[0]).toMatchObject({ isAdmin: true, matches: 1, sessions: 1 });
+    expect(await store.adminAccount(ids[1])).toMatchObject({ matches: 1, isAdmin: false });
+    expect((await store.sessionsOf(ids[0])).length).toBe(1);
+    const stats = await store.adminStats(new Date());
+    expect(stats.accounts).toBeGreaterThanOrEqual(2);
+    expect(stats.admins).toBeGreaterThanOrEqual(1);
+  });
+
   it('ví xu lưu và đọc lại', async () => {
     const w = new PrismaWalletStore(db);
     await w.saveMany([

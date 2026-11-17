@@ -1,6 +1,8 @@
 import { Module, type DynamicModule, type OnModuleDestroy, Inject, Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { AccountsService } from './accounts/accounts.service';
+import { AdminController } from './admin/admin.controller';
+import { AdminService } from './admin/admin.service';
 import { ApiController, HealthController } from './api/api.controller';
 import { GameGateway } from './game/game.gateway';
 import { LobbyService } from './game/lobby.service';
@@ -26,7 +28,7 @@ export class AppModule {
   static forRoot(opts: ServerOptions): DynamicModule {
     return {
       module: AppModule,
-      controllers: [ApiController, HealthController],
+      controllers: [ApiController, HealthController, AdminController],
       providers: [
         { provide: OPTIONS, useValue: opts },
         { provide: PRISMA, useFactory: () => (opts.stores ? null : new PrismaClient()) },
@@ -43,6 +45,7 @@ export class AppModule {
         PrismaLifecycle,
         WalletsService,
         AccountsService,
+        AdminService,
         LobbyService,
         GameGateway,
       ],

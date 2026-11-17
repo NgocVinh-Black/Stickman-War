@@ -2,7 +2,8 @@ import { Body, Controller, Get, Headers, HttpCode, Inject, Post, ServiceUnavaila
 import { FACTION_ORDER, type AccountInfo } from '@stickman-war/core';
 import { z } from 'zod';
 import { AccountsService, accountWallet } from '../accounts/accounts.service';
-import { googleKeys, verifyGoogleIdToken } from '../auth/google-auth';
+import { AdminService } from '../admin/admin.service';
+import { googleKeys, isGoogleNetworkError, verifyGoogleIdToken } from '../auth/google-auth';
 import { LobbyService } from '../game/lobby.service';
 import { OPTIONS, type ServerOptions } from '../tokens';
 import { WalletsService } from '../wallets/wallets.service';
@@ -26,6 +27,7 @@ export class ApiController {
     @Inject(AccountsService) private readonly accounts: AccountsService,
     @Inject(WalletsService) private readonly wallets: WalletsService,
     @Inject(LobbyService) private readonly lobby: LobbyService,
+    @Inject(AdminService) private readonly admin: AdminService,
   ) {}
 
   @Get('config')
@@ -48,11 +50,14 @@ export class ApiController {
       const profile = this.opts.verifyGoogle
         ? await this.opts.verifyGoogle(body.credential)
         : await verifyGoogleIdToken(body.credential, this.opts.googleClientId, this.keys);
-      const out = await this.accounts.signIn(profile);
-      this.opts.log(`login ${out.account.id}`);
+      const out = await this.accounts.signIn(profile, this.admin.isAdminEmail(profile.email));
+      this.opts.log(`login ${out.account.id}${out.admin ? ' (admin)' : ''}`);
       return out;
     } catch (e) {
       this.opts.log(`login failed: ${(e as Error).message}`);
+      if (isGoogleNetworkError(e)) {
+        throw new ServiceUnavailableException({ error: 'Máy chủ chưa kết nối được Google, thử lại sau ít giây' });
+      }
       throw new UnauthorizedException({ error: 'Đăng nhập Google không hợp lệ' });
     }
   }

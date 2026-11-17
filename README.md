@@ -8,6 +8,7 @@ Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân p
 |---|---|
 | Frontend (`apps/web`) | **Vue 3** (Composition API, `<script setup>`) + **Vite** + **TypeScript** + **Pinia** + **Vue Router**; trận đánh vẽ bằng **Canvas 2D**, âm thanh WebAudio, thoại WebRTC, PWA |
 | Backend (`apps/server`) | **NestJS** (adapter **Fastify**) + WebSocket (`ws`) + **Prisma** + **PostgreSQL**, kiểm tra dữ liệu bằng **Zod**, token Google bằng **jose**, helmet + rate-limit |
+| Trang admin (`apps/admin`) | **Vue 3** + **Rspack** (vue-loader, swc): xem tài khoản đã đăng ký, thống kê, lịch sử trận |
 | Lõi game (`packages/core`) | TypeScript thuần dùng chung cho web và máy chủ: mô phỏng trận, 8 tộc, AI, màn chơi, giao thức online |
 | Công cụ | **pnpm** workspace (monorepo), **Vitest**, **ESLint** + **Prettier**, **GitHub Actions**, **Docker Compose** |
 
@@ -78,6 +79,18 @@ NestJS được đóng gói bằng esbuild (tsup / tsx) nên mọi phụ thuộc
 2. **Credentials → Create credentials → OAuth client ID** loại **Web application**,
    *Authorized JavaScript origins*: `http://localhost:5173` và `https://zone-c.io.vn`.
 3. Đặt `GOOGLE_CLIENT_ID` trong `apps/server/.env` (dev) hoặc `/srv/stickman-war-online/.env` (server).
+
+## Trang admin
+
+`pnpm dev` chạy cả trang admin ở http://localhost:5174 (riêng: `pnpm dev:admin`); khi deploy nằm ở `https://zone-c.io.vn/stickman-war/admin/`.
+Chỉ xem (không sửa / xoá): danh sách tài khoản (tìm, sắp xếp, phân trang), thống kê, chi tiết từng tài khoản
+(mã Google, ngày đăng ký, lần cuối vào, Elo, thắng / thua, xu, phiên đăng nhập còn hạn, 50 trận gần nhất).
+
+Đặt trong `apps/server/.env` (hoặc `.env` trên server) rồi chạy lại máy chủ:
+
+- `ADMIN_EMAILS=ban@gmail.com` — tài khoản Google có email này (đã xác minh) được vào. Email chỉ dùng để so lúc đăng nhập, không lưu.
+  Khi chạy local cần thêm `http://localhost:5174` vào *Authorized JavaScript origins* của Client ID.
+- `ADMIN_TOKEN=<≥ 16 ký tự>` — vào bằng mã bí mật, không cần Google (tạo: `openssl rand -hex 24`). Sai 10 lần trong 15 phút thì khoá 15 phút.
 
 ## Deploy
 

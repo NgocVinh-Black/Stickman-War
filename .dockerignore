@@ -7,3 +7,4 @@ docs
 *.md
 **/.env
 apps/web
+apps/admin

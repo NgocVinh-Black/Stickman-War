@@ -36,6 +36,11 @@ export class WalletsService implements OnModuleDestroy {
     if (!this.balances.has(id)) this.balances.set(id, xu ?? START_XU);
   }
 
+  /** Số dư để xem (trang admin): lấy trong bộ nhớ nếu có, không thì đọc DB, không nạp vào bộ nhớ. */
+  async peek(id: string): Promise<number> {
+    return this.balances.get(id) ?? (await this.store.load(id)) ?? START_XU;
+  }
+
   get(id: string): number {
     return this.balances.get(id) ?? START_XU;
   }

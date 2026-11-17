@@ -23,8 +23,10 @@ Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc m�
 - **BE** `apps/server`: NestJS 12 (adapter Fastify 5) + `ws` + Prisma 6 + PostgreSQL 16, Zod, jose, helmet, rate-limit.
   Đóng gói bằng tsup (esbuild) → `dist/main.cjs`; dev bằng `tsx watch`. Vì esbuild không sinh metadata decorator,
   **mọi tham số constructor phải dùng `@Inject(TOKEN)` tường minh** (token trong `src/tokens.ts`).
+- **Admin** `apps/admin`: Vue 3 + **Rspack** 2 (vue-loader, builtin:swc-loader), cổng dev 5174, gọi API qua `../api/`.
+  API `apps/server/src/admin/*` (chỉ đọc), quyền: `ADMIN_EMAILS` (cờ `Account.isAdmin` đặt lại mỗi lần đăng nhập Google) hoặc `ADMIN_TOKEN`.
 - **Lõi game** `packages/core`: TS thuần, export từ `src/index.ts`, được web (Vite) và server (tsup gộp vào bundle) dùng trực tiếp.
-- Test: Vitest (core 29, web 2, server 24 gồm test Postgres thật khi có `DATABASE_URL`). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
+- Test: Vitest (core 31, web 3, server 28 gồm test Postgres thật khi có `DATABASE_URL`). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
 
 ## 3. Chạy dự án
 
@@ -54,6 +56,7 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 | `apps/web/src/views/*` | `LoginView` (ảnh `public/bg-desktop.*`, `public/bg-mobile.*`, `public/logo.*`), `LobbyView` + `lobby/*Tab.vue`, `GameView`, `RoomView` |
 | `apps/server/src/game/lobby.service.ts` | Phòng, ghép trận, chạy trận 30 tick/s, kèo, chat, thoại; mỗi kết nối xử lý tin theo hàng đợi |
 | `apps/server/src/game/game.gateway.ts` | Nhận upgrade WebSocket ở mọi đường dẫn kết thúc `/ws` trên server HTTP của Nest |
+| `apps/server/src/admin/*` | API trang admin `/api/admin/*` (config, login bằng mã, me, stats, accounts, accounts/:id) |
 | `apps/server/src/api/api.controller.ts` | `/api/config`, `/api/auth/google`, `/api/me` (GET/POST), `/api/logout`, `/api/leaderboard`, `/health` |
 | `apps/server/src/bootstrap.ts` | `startGameServer(port, opts)`: dựng Nest + Fastify, `rewriteUrl` bỏ tiền tố `/stickman-war` |
 | `apps/server/prisma/schema.prisma` | `Account`, `Session`, `Wallet`, `MatchRecord` |

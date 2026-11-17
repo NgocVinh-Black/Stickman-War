@@ -7,8 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm db:up && pnpm --parallel --filter @stickman-war/server --filter @stickman-war/web dev",
+    "dev": "pnpm db:up && pnpm --parallel --filter @stickman-war/server --filter @stickman-war/web --filter @stickman-war/admin dev",
     "dev:web": "pnpm --filter @stickman-war/web dev",
+    "dev:admin": "pnpm --filter @stickman-war/admin dev",
     "dev:server": "pnpm --filter @stickman-war/server dev",
     "db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
     "db:down": "docker compose -f docker-compose.dev.yml down",
