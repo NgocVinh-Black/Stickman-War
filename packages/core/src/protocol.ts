@@ -22,7 +22,8 @@ export const PVP_SETUP: TeamSetup = {
 };
 export const PVP_MAX_SECONDS = 20 * 60;
 export const NAME_MAX = 16;
-export const STANCES: Stance[] = ['garrison', 'defend', 'attack'];
+// Thêm thế mới vào cuối để chỉ số cũ không đổi
+export const STANCES: Stance[] = ['garrison', 'defend', 'attack', 'hold'];
 export const PROJECTILES: ProjectileKind[] = [
   'arrow',
   'bullet',
@@ -75,9 +76,11 @@ export type ClientMsg =
   | { t: 'voiceMute'; muted: boolean }
   | { t: 'signal'; to: string; data: SignalData }
   | { t: 'leave' }
-  | { t: 'train'; kind: UnitKind }
+  | { t: 'train'; kind: UnitKind; x?: number } // x: chỗ dựng tháp của thợ xây (toạ độ phía người gửi)
   | { t: 'stance'; stance: Stance }
+  | { t: 'hold'; x: number } // cắm cờ tập hợp tại x (toạ độ phía người gửi, đã lật nếu là team 1)
   | { t: 'centerMine'; on: boolean }
+  | { t: 'mineSplit'; split: number[] } // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
   | { t: 'surrender' }
   | { t: 'rematch' }
   | { t: 'ping'; c: number };
@@ -116,7 +119,8 @@ export type SignalData = {
 export type VoicePeer = { id: string; name: string; muted: boolean; role: 'player' | 'watcher' };
 
 export type RoomSettings = { gold: number; minutes: number };
-export type Seat = { name: string; host: boolean; ready: boolean; faction: FactionId };
+/** faction: null khi người nhận là người chơi bên kia (hai người chơi không thấy tộc của nhau trước trận). */
+export type Seat = { name: string; host: boolean; ready: boolean; faction: FactionId | null };
 export type ChatLine = { from: string; text: string; kind: 'player' | 'watcher' | 'system' };
 
 /** Phòng chờ nhìn từ phía người nhận. Ghế 0 là bên trái khi vào trận. */
@@ -203,6 +207,8 @@ export type TeamSnap = {
   cm: number; // 1 = đang đào mỏ giữa
   f: number; // chỉ số tộc trong FACTION_ORDER
   fm: number; // chỉ số đội hình trong FORMATIONS
+  hx: number; // chỗ cắm cờ tập hợp
+  ms: number[]; // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
 };
 
 export type Snapshot = {
@@ -227,7 +233,9 @@ export const FLAG = {
   hidden: 32,
   slowed: 64,
   poisoned: 128,
-  toCenter: 256,
+  toCenter: 256, // thợ mỏ đào mỏ kim cương
+  dashing: 512,
+  gold: 1024, // thợ mỏ đào mỏ vàng (không có cờ nào: mỏ bạc)
 } as const;
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -255,6 +263,8 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
       cm: s.centerMine ? 1 : 0,
       f: FACTION_ORDER.indexOf(s.faction),
       fm: FORMATIONS.indexOf(s.formation),
+      hx: r1(mx(s.holdX)),
+      ms: [...s.mineSplit],
     };
   };
   const other = (1 - viewer) as Team;
@@ -280,7 +290,9 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
         (u.hidden ? FLAG.hidden : 0) |
         (u.slowT > 0 ? FLAG.slowed : 0) |
         (u.poisonT > 0 ? FLAG.poisoned : 0) |
-        (u.toCenter ? FLAG.toCenter : 0),
+        (u.toCenter ? FLAG.toCenter : 0) |
+        (u.dashT > 0 ? FLAG.dashing : 0) |
+        (u.mine === 1 ? FLAG.gold : 0),
       r2(u.walk),
       r2(u.attackT),
       r2(u.deadT),

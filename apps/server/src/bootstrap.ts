@@ -5,7 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { LobbyService } from './game/lobby.service';
-import type { ServerOptions } from './tokens';
+import type { ServerOptions } from './common/tokens';
 
 export type GameServer = {
   port: number;

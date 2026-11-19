@@ -1,7 +1,7 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { AccountsService } from '../accounts/accounts.service';
-import { OPTIONS, type ServerOptions } from '../tokens';
+import { OPTIONS, type ServerOptions } from '../common/tokens';
 
 const TOKEN_SESSION_MS = 12 * 3_600_000;
 const FAIL_WINDOW_MS = 15 * 60_000;

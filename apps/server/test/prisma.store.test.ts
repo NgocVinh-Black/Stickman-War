@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccountsService } from '../src/accounts/accounts.service';
-import { PrismaAccountStore, PrismaWalletStore } from '../src/store/prisma.store';
+import { PrismaAccountStore, PrismaWalletStore } from '../src/database/prisma.store';
 
 // Chạy với Postgres thật khi có DATABASE_URL (pnpm db:up + .env); không có thì bỏ qua.
 const url = process.env.DATABASE_URL;

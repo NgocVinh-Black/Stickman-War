@@ -1,6 +1,6 @@
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
-import { OPTIONS, WALLET_STORE, type ServerOptions } from '../tokens';
-import type { WalletStore } from '../store/types';
+import { OPTIONS, WALLET_STORE, type ServerOptions } from '../common/tokens';
+import type { WalletStore } from '../database/store.types';
 
 export const START_XU = 1000;
 /** Cháy túi (dưới mức này) thì được cấp lại RELIEF_XU khi kết nối. */

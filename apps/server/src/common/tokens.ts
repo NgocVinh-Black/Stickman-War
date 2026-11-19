@@ -1,5 +1,5 @@
-import type { GoogleProfile } from './auth/google-auth';
-import type { AccountStore, WalletStore } from './store/types';
+import type { GoogleProfile } from '../auth/google-auth';
+import type { AccountStore, WalletStore } from '../database/store.types';
 
 /**
  * Token DI. Máy chủ được đóng gói bằng esbuild (tsup / tsx) nên không có metadata kiểu

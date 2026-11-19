@@ -3,11 +3,12 @@ import { FACTION_ORDER, type AccountInfo } from '@stickman-war/core';
 import { z } from 'zod';
 import { AccountsService, accountWallet } from '../accounts/accounts.service';
 import { AdminService } from '../admin/admin.service';
-import { googleKeys, isGoogleNetworkError, verifyGoogleIdToken } from '../auth/google-auth';
+import { googleKeys, isGoogleNetworkError, verifyGoogleIdToken } from './google-auth';
 import { LobbyService } from '../game/lobby.service';
-import { OPTIONS, type ServerOptions } from '../tokens';
+import { OPTIONS, type ServerOptions } from '../common/tokens';
 import { WalletsService } from '../wallets/wallets.service';
-import { ZodPipe } from './zod.pipe';
+import { bearer } from '../common/bearer';
+import { ZodPipe } from '../common/zod.pipe';
 
 const GoogleLogin = z.object({ credential: z.string().min(1).max(4096) });
 const ProfilePatch = z.object({
@@ -15,11 +16,9 @@ const ProfilePatch = z.object({
   faction: z.enum(FACTION_ORDER as [string, ...string[]]).optional(),
 });
 
-const bearer = (header?: string) => /^Bearer (\S+)$/.exec(header ?? '')?.[1] ?? '';
-
-/** API tài khoản: cấu hình, đăng nhập Google, hồ sơ, bảng xếp hạng. */
+/** API đăng nhập và hồ sơ: cấu hình, đăng nhập Google, đăng xuất, /api/me. */
 @Controller('api')
-export class ApiController {
+export class AuthController {
   private readonly keys = googleKeys();
 
   constructor(
@@ -33,11 +32,6 @@ export class ApiController {
   @Get('config')
   config() {
     return { googleClientId: this.opts.googleClientId };
-  }
-
-  @Get('leaderboard')
-  async leaderboard() {
-    return { players: await this.accounts.leaderboard() };
   }
 
   @Post('auth/google')
@@ -90,15 +84,5 @@ export class ApiController {
     const me = await this.accounts.bySession(bearer(auth));
     if (!me) throw new UnauthorizedException({ error: 'Chưa đăng nhập' });
     return me;
-  }
-}
-
-@Controller()
-export class HealthController {
-  constructor(@Inject(LobbyService) private readonly lobby: LobbyService) {}
-
-  @Get('health')
-  health() {
-    return { ok: true, ...this.lobby.stats() };
   }
 }

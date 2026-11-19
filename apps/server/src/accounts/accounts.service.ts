@@ -2,8 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AccountInfo, FactionId, MatchRecord } from '@stickman-war/core';
 import type { GoogleProfile } from '../auth/google-auth';
-import { ACCOUNT_STORE } from '../tokens';
-import type { AccountRow, AccountStore, MatchEntry } from '../store/types';
+import { ACCOUNT_STORE } from '../common/tokens';
+import type { AccountRow, AccountStore, MatchEntry } from '../database/store.types';
 
 const SESSION_DAYS = 30;
 const HISTORY_SHOW = 20;

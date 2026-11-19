@@ -2,10 +2,8 @@
 import {
   DAMAGE_TABLE,
   FACTIONS,
-  FACTION_COUNTER_MULT,
   FACTION_ORDER,
   UNITS,
-  counteredBy,
   kindOf,
   roster,
   type ArmorType,
@@ -19,7 +17,7 @@ import { ARMOR_LABEL, DMG_LABEL, GUIDE_PAGES, traits, type GuidePage } from '../
 import { sound } from '../../lib/sound';
 import { useSettings } from '../../stores/settings';
 
-/** Cẩm nang: cách chơi, bảng quân 8 tộc, bảng khắc chế, chiến thuật. */
+/** Cẩm nang: cách chơi, bảng quân 8 tộc, bảng khắc chế, điểm mạnh / yếu từng tộc, chiến thuật. */
 const settings = useSettings();
 const page = ref<GuidePage>('basics');
 const faction = ref<FactionId>(settings.faction);
@@ -27,8 +25,6 @@ const fd = computed(() => FACTIONS[faction.value]);
 const units = computed(() => [...roster(faction.value), kindOf(faction.value, 'tower')]);
 const armors = Object.keys(ARMOR_LABEL) as ArmorType[];
 const dmgs = (Object.keys(DMG_LABEL) as DamageType[]).filter((d) => d !== 'none');
-const pct = Math.round((FACTION_COUNTER_MULT - 1) * 100);
-const names = (ids: FactionId[]) => ids.map((x) => `${FACTIONS[x].icon} ${FACTIONS[x].name}`).join(', ');
 const cellClass = (v: number) => (v >= 1.2 ? 'good' : v <= 0.8 ? 'bad' : '');
 const go = (p: GuidePage) => {
   sound.click();
@@ -62,10 +58,8 @@ const go = (p: GuidePage) => {
           <h3>{{ fd.name }}</h3>
           <p>{{ fd.desc }}</p>
           <p class="faction-passive">✨ {{ fd.passive }}</p>
-          <p>
-            <span class="good">Khắc (+{{ pct }}%): {{ names(fd.counters) }}</span> ·
-            <span class="bad">Sợ: {{ names(counteredBy(faction)) }}</span>
-          </p>
+          <p class="bad">⚠️ Điểm yếu: {{ fd.weakness }}</p>
+          <p class="good">🎯 Cách đánh bại: {{ fd.beat }}</p>
         </div>
       </div>
       <div class="table-wrap">
@@ -123,22 +117,24 @@ const go = (p: GuidePage) => {
           </tbody>
         </table>
       </div>
-      <h3>Tộc khắc tộc</h3>
-      <p class="muted">Quân của tộc khắc gây thêm {{ pct }}% sát thương lên mọi quân của tộc bị khắc.</p>
+      <h3>Điểm mạnh, điểm yếu từng tộc</h3>
+      <p class="muted">Không có tộc nào khắc cứng tộc nào. Mỗi tộc có điểm yếu riêng: chọn quân và chiến thuật nhắm vào đó để lật kèo.</p>
       <div class="table-wrap">
         <table class="counter-table">
           <thead>
             <tr>
               <th>Tộc</th>
-              <th>Khắc</th>
-              <th>Sợ</th>
+              <th>Mạnh</th>
+              <th>Yếu</th>
+              <th>Cách đánh bại</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="id in FACTION_ORDER" :key="id">
               <td>{{ FACTIONS[id].icon }} {{ FACTIONS[id].name }}</td>
-              <td class="good">{{ names(FACTIONS[id].counters) }}</td>
-              <td class="bad">{{ names(counteredBy(id)) }}</td>
+              <td class="good">{{ FACTIONS[id].passive }}</td>
+              <td class="bad">{{ FACTIONS[id].weakness }}</td>
+              <td>{{ FACTIONS[id].beat }}</td>
             </tr>
           </tbody>
         </table>

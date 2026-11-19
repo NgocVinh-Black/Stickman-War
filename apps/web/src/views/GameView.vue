@@ -7,7 +7,8 @@ import UnitIcon from '../components/UnitIcon.vue';
 import { bindCamera, panByKeys } from '../game/camera';
 import { isNet } from '../game/session';
 import { sound } from '../lib/sound';
-import { FORMATION_CYCLE, FORMATION_INFO, STANCES, archIndex, useGame } from '../stores/game';
+import { FORMATION_CYCLE, FORMATION_INFO, MINE_INFO, MINE_PRESETS, STANCES, archIndex, useGame } from '../stores/game';
+import { MINES, MINE_KINDS, type MineSplit } from '@stickman-war/core';
 import { useOnline } from '../stores/online';
 import { useUi } from '../stores/ui';
 
@@ -29,7 +30,42 @@ function pickFormation(f: (typeof FORMATION_CYCLE)[number]): void {
   formationMenu.value = false;
   game.setFormation(f);
 }
+/**
+ * Bảng chia thợ mỏ theo số thợ thật. Thêm 1 thợ cho mỏ i thì rút từ mỏ khác đông thợ nhất;
+ * bớt 1 thợ thì đưa về mỏ bạc (đang bớt bạc thì sang vàng). Tổng số thợ không đổi;
+ * số thợ mới xây sau đó được chia theo đúng tỉ lệ này.
+ */
+const mineMenu = ref(false);
+const mineCap = (i: number) => MINES[MINE_KINDS[i]].cap;
+const canAddMiner = (i: number) => game.hud.miners[i] < mineCap(i) && game.hud.miners.some((n, j) => j !== i && n > 0);
+const canRemoveMiner = (i: number) => game.hud.miners[i] > 0 && (i !== 0 || [1, 2].some((j) => game.hud.miners[j] < mineCap(j)));
+function bumpMine(i: number, d: number): void {
+  const next = [...game.hud.miners] as MineSplit;
+  if (d > 0) {
+    // Thêm vàng / kim cương: rút từ mỏ bạc trước (bạc là chỗ chứa thợ dư), hết bạc mới rút mỏ còn lại.
+    // Thêm bạc: rút từ mỏ đông hơn trong vàng / kim cương.
+    const order = i === 0 ? [1, 2].sort((a, b) => next[b] - next[a]) : [0, 3 - i];
+    const from = order.find((j) => next[j] > 0);
+    if (from === undefined) return;
+    next[from]--;
+    next[i]++;
+  } else {
+    if (next[i] <= 0) return;
+    next[i]--;
+    // Bớt vàng / kim cương: về bạc. Bớt bạc: sang mỏ vàng / kim cương còn chỗ
+    const to = i !== 0 ? 0 : [1, 2].find((j) => next[j] < mineCap(j));
+    if (to === undefined) return;
+    next[to]++;
+  }
+  game.setMineSplit(next);
+}
+/** Kiểu chia có sẵn đang dùng (so theo tỉ lệ, vd. 3·3·0 vẫn là Cân bằng 1·1·0). */
+const isPreset = (split: MineSplit) => {
+  const cur = game.hud.mineSplit;
+  return [0, 1, 2].every((a) => [0, 1, 2].every((b) => split[a] * cur[b] === split[b] * cur[a]));
+};
 const closeFormationMenu = (e: PointerEvent) => {
+  if (!(e.target instanceof Element && e.target.closest('.mine-wrap'))) mineMenu.value = false;
   if (!(e.target instanceof Element && e.target.closest('.formation-wrap'))) formationMenu.value = false;
 };
 const time = ref(0);
@@ -71,6 +107,7 @@ const onKey = (e: KeyboardEvent) => {
   keys.add(k);
   const s = game.session;
   if (!s) return;
+  if (k === 'escape' && game.cancelPlacing()) return;
   if (k === ' ' || k === 'escape' || k === 'p') {
     e.preventDefault();
     if (ui.dialog) {
@@ -81,7 +118,7 @@ const onKey = (e: KeyboardEvent) => {
   if (e.repeat) return;
   const slot = TRAIN_KEYS.indexOf(k);
   if (slot >= 0) game.trainSlot(slot);
-  if (k === 'r') game.toggleCenterMine();
+  if (k === 'r') game.cycleMinePreset();
   if (k === 'f') game.cycleFormation();
   const st = STANCES.find((x) => x.key.toLowerCase() === k);
   if (st) game.setStance(st.id);
@@ -101,7 +138,12 @@ onMounted(() => {
     return;
   }
   s.attach(view.value);
-  unbind = bindCamera(view.value, mini.value, () => game.session?.renderer ?? null);
+  unbind = bindCamera(
+    view.value,
+    mini.value,
+    () => game.session?.renderer ?? null,
+    (x) => game.placeAt(x),
+  );
   raf = requestAnimationFrame(frame);
   document.addEventListener('pointerdown', closeFormationMenu);
   document.addEventListener('keydown', onKey);
@@ -158,7 +200,11 @@ onBeforeUnmount(() => {
     </header>
     <canvas ref="mini" class="minimap" />
     <section class="stage">
-      <canvas ref="view" />
+      <canvas ref="view" :class="{ 'flag-cursor': game.flagMode || game.buildMode }" />
+      <div v-if="game.flagMode" class="flag-hint">🚩 Chạm vào chiến trường hoặc bản đồ nhỏ để cắm cờ · Esc để huỷ</div>
+      <div v-else-if="game.buildMode" class="flag-hint">
+        🔨 Chạm chỗ muốn dựng tháp (trên sân nhà) · bấm thợ xây lần nữa để dựng chỗ mặc định · Esc để huỷ
+      </div>
       <div :key="game.hud.countdown" class="countdown" :class="{ pop: !!game.hud.countdown }">{{ game.hud.countdown }}</div>
     </section>
 
@@ -175,7 +221,7 @@ onBeforeUnmount(() => {
           v-for="k in kinds"
           :key="k"
           class="unit-btn"
-          :class="{ disabled: !game.hud.units[k]?.can }"
+          :class="{ disabled: !game.hud.units[k]?.can, picking: game.buildMode === k }"
           :title="`${UNITS[k].name}: ${UNITS[k].desc}\n${UNITS[k].counter}`"
           @click="game.train(k)"
         >
@@ -191,8 +237,15 @@ onBeforeUnmount(() => {
           v-for="st in STANCES"
           :key="st.id"
           class="stance-btn"
-          :class="{ active: game.hud.stance === st.id }"
-          :title="`${st.label} (${st.key})`"
+          :class="{
+            active: st.id === 'hold' ? game.flagMode || game.hud.stance === 'hold' : game.hud.stance === st.id,
+            picking: st.id === 'hold' && game.flagMode,
+          }"
+          :title="
+            st.id === 'hold'
+              ? `Cắm cờ (${st.key}): bấm rồi chạm vào chiến trường hoặc bản đồ nhỏ, cả đội và quân mới xây ra đó đứng giữ`
+              : `${st.label} (${st.key})`
+          "
           @click="game.setStance(st.id)"
         >
           <span>{{ st.icon }}</span><small>{{ st.label }}</small>
@@ -223,14 +276,44 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-        <button
-          class="stance-btn center-btn"
-          :class="{ active: game.hud.centerMine }"
-          title="Mỏ kim cương (R): một nửa thợ mỏ sang đào mỏ kim cương giữa bản đồ, giàu gấp 4. Khi Phòng thủ, lính ra đứng chắn trước mỏ để bảo vệ thợ mỏ"
-          @click="game.toggleCenterMine()"
-        >
-          <span>💎</span><small>Mỏ kim cương</small>
-        </button>
+        <div class="mine-wrap">
+          <button
+            class="stance-btn center-btn"
+            :class="{ active: mineMenu || game.hud.centerMine }"
+            title="Chia thợ mỏ (R đổi nhanh): bạc sát nhà, vàng xa hơn, kim cương giữa bản đồ"
+            @click="mineMenu = !mineMenu"
+          >
+            <span>⛏️</span><small>{{ game.hud.miners.join(' · ') }}</small>
+          </button>
+          <div v-if="mineMenu" class="formation-menu mine-menu" role="dialog" aria-label="Chia thợ mỏ">
+            <b class="mine-title">Chia thợ mỏ</b>
+            <div v-for="(m, i) in MINE_INFO" :key="m.label" class="mine-row">
+              <span class="fm-icon">{{ m.icon }}</span>
+              <span class="fm-text"
+                ><b>{{ m.label }}</b
+                ><small>{{ m.tip }}</small></span
+              >
+              <span class="mine-step">
+                <button :aria-label="`Bớt 1 thợ ${m.label}`" :disabled="!canRemoveMiner(i)" @click="bumpMine(i, -1)">−</button>
+                <b :aria-label="`${game.hud.miners[i]} thợ`"
+                  >{{ game.hud.miners[i] }}<small v-if="Number.isFinite(mineCap(i))">/{{ mineCap(i) }}</small></b
+                >
+                <button :aria-label="`Thêm 1 thợ ${m.label}`" :disabled="!canAddMiner(i)" @click="bumpMine(i, 1)">+</button>
+              </span>
+            </div>
+            <div class="mine-presets">
+              <button
+                v-for="p in MINE_PRESETS"
+                :key="p.label"
+                :class="{ active: isPreset(p.split) }"
+                :title="p.tip"
+                @click="game.setMineSplit(p.split)"
+              >
+                {{ p.label }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </footer>
   </main>

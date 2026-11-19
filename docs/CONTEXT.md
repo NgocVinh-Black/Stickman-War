@@ -22,11 +22,13 @@ Tài liệu bàn giao để tiếp tục phát triển ở phiên làm việc m�
   Trận đánh vẫn vẽ bằng Canvas 2D (`src/game/render`).
 - **BE** `apps/server`: NestJS 12 (adapter Fastify 5) + `ws` + Prisma 6 + PostgreSQL 16, Zod, jose, helmet, rate-limit.
   Đóng gói bằng tsup (esbuild) → `dist/main.cjs`; dev bằng `tsx watch`. Vì esbuild không sinh metadata decorator,
-  **mọi tham số constructor phải dùng `@Inject(TOKEN)` tường minh** (token trong `src/tokens.ts`).
+  **mọi tham số constructor phải dùng `@Inject(TOKEN)` tường minh** (token trong `src/common/tokens.ts`).
+  Mỗi tính năng một module Nest (`accounts`, `wallets`, `auth`, `game`, `admin`, `database`), `AppModule.forRoot` chỉ ghép lại.
 - **Admin** `apps/admin`: Vue 3 + **Rspack** 2 (vue-loader, builtin:swc-loader), cổng dev 5174, gọi API qua `../api/`.
+  Cấu trúc: `views/` (trang), `components/`, `lib/` (api, google, format), `styles/`.
   API `apps/server/src/admin/*` (chỉ đọc), quyền: `ADMIN_EMAILS` (cờ `Account.isAdmin` đặt lại mỗi lần đăng nhập Google) hoặc `ADMIN_TOKEN`.
 - **Lõi game** `packages/core`: TS thuần, export từ `src/index.ts`, được web (Vite) và server (tsup gộp vào bundle) dùng trực tiếp.
-- Test: Vitest (core 32, web 3, server 28 gồm test Postgres thật khi có `DATABASE_URL`). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
+- Test: Vitest (core 47, web 4, server 31 gồm test Postgres thật khi có `DATABASE_URL`, admin 3). ESLint 10 + Prettier 3. CI: `.github/workflows/ci.yml`.
 
 ## 3. Chạy dự án
 
@@ -46,7 +48,7 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 | Chỗ | Vai trò |
 |---|---|
 | `packages/core/src/units.ts` | Khung quân (`Arch`), chỉ số gốc `BASE`, `DAMAGE_TABLE`, sinh `UNITS` cho 8 tộc, `kindOf`, `roster`, `TRAIN_KEYS` |
-| `packages/core/src/factions.ts` | Dữ liệu 8 tộc: nội tại, khắc tộc, tên / chỉ số / hình dáng (`look`) |
+| `packages/core/src/factions.ts` | Dữ liệu 8 tộc: nội tại, điểm yếu, cách đánh bại, tên / chỉ số / hình dáng (`look`) |
 | `packages/core/src/world.ts` | Mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, tháp, triệu hồi, túi vàng, mỏ giữa, kỳ cựu |
 | `packages/core/src/protocol.ts` | Tin nhắn WebSocket (`ClientMsg`, `ServerMsg`), ảnh chụp trạng thái, `AccountInfo` |
 | `apps/web/src/stores/game.ts` | Phiên chơi (`GameSession`), HUD reactive, chiến dịch / đấu máy, thắng thua, tạm dừng |
@@ -54,16 +56,19 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 | `apps/web/src/stores/ui.ts` | Hộp thoại dựng từ dữ liệu (`AppDialog.vue`, không dùng v-html) + toast |
 | `apps/web/src/stores/settings.ts` | Tên, tộc, tiến độ chiến dịch (localStorage), tab sảnh, chơi khách |
 | `apps/web/src/views/*` | `LoginView` (ảnh `public/bg-desktop.*`, `public/bg-mobile.*`, `public/logo.*`), `LobbyView` + `lobby/*Tab.vue`, `GameView`, `RoomView` |
-| `apps/server/src/game/lobby.service.ts` | Phòng, ghép trận, chạy trận 30 tick/s, kèo, chat, thoại; mỗi kết nối xử lý tin theo hàng đợi |
+| `apps/server/src/game/lobby.service.ts` | Phòng, ghép trận, chạy trận 30 tick/s, kèo, chat, thoại; mỗi kết nối xử lý tin theo hàng đợi. Kiểu + hằng số ở `room.ts`, chia quỹ kèo ở `bets.ts` |
 | `apps/server/src/game/game.gateway.ts` | Nhận upgrade WebSocket ở mọi đường dẫn kết thúc `/ws` trên server HTTP của Nest |
 | `apps/server/src/admin/*` | API trang admin `/api/admin/*` (config, login bằng mã, me, stats, accounts, accounts/:id) |
-| `apps/server/src/api/api.controller.ts` | `/api/config`, `/api/auth/google`, `/api/me` (GET/POST), `/api/logout`, `/api/leaderboard`, `/health` |
+| `apps/server/src/auth/auth.controller.ts` | `/api/config`, `/api/auth/google`, `/api/me` (GET/POST), `/api/logout` |
+| `apps/server/src/accounts/accounts.controller.ts`, `health/health.controller.ts` | `/api/leaderboard`, `/health` |
+| `apps/server/src/database/*` | `DatabaseModule`: kho Prisma (`prisma.store.ts`) hoặc kho bộ nhớ cho test (`memory.store.ts`) |
+| `apps/web/src/styles/index.css` | Import mọi file CSS theo đúng thứ tự (base → … → lobby → login) |
 | `apps/server/src/bootstrap.ts` | `startGameServer(port, opts)`: dựng Nest + Fastify, `rewriteUrl` bỏ tiền tố `/stickman-war` |
 | `apps/server/prisma/schema.prisma` | `Account`, `Session`, `Wallet`, `MatchRecord` |
 
 ## 5. Tính năng đã có
 
-8 tộc × 12 quân + tháp; khắc chế đòn / giáp / tộc; đội hình; kỳ cựu; mỏ giữa + túi vàng; chiến dịch 8 màn × 3 độ khó;
+8 tộc × 12 quân + tháp; khắc chế đòn / giáp, mỗi tộc một điểm yếu; đội hình; kỳ cựu; mỏ giữa + túi vàng; chiến dịch 16 màn × 3 độ khó (tộc địch xáo theo từng tiến độ);
 đấu máy; online 1v1, phòng chờ, đấu trường, người xem, bắt kèo xu ảo, thoại WebRTC; màn đăng nhập (Google / khách,
 ô đồng ý điều khoản bắt buộc, mỗi lần mở đều hiện trừ khi còn phiên Google); sảnh kiểu game di động tông gỗ; Cẩm nang;
 tài khoản (Elo, lịch sử, đổi tên). Đã thử thật trên trình duyệt sau khi chuyển sang Vue + NestJS: đăng nhập khách, sảnh,
@@ -88,7 +93,7 @@ rồi xoá file probe. Kết quả gần nhất: tỉ lệ thắng giữa các t
 
 ## 8. Lưu ý kỹ thuật
 
-- Ảnh trong `apps/web/public` tham chiếu bằng `import.meta.env.BASE_URL + 'logo.png'` trong template, hoặc `url('/bg.webp')` trong CSS.
+- Ảnh trong `apps/web/public` tham chiếu bằng `import.meta.env.BASE_URL + 'logo.png'` trong template, hoặc `url('/bg-desktop.webp')` trong CSS.
 - Snapshot online gửi chỉ số quân trong `UNIT_ORDER`; client và máy chủ phải cùng phiên bản.
 - `noUnusedLocals` bật ở mọi gói. pnpm 12 chặn script cài đặt: các gói được phép ở `allowBuilds` trong `pnpm-workspace.yaml`.
 - Bản sao lưu trước các đợt sửa lớn: `/home/vinh-le/Projects/nguoi-que-backup-2026-11-16.tar.gz` (ngoài repo, bản trước 2.0).

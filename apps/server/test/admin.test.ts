@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { startGameServer } from '../src/bootstrap';
-import { MemoryAccountStore, MemoryWalletStore } from '../src/store/memory.store';
+import { MemoryAccountStore, MemoryWalletStore } from '../src/database/memory.store';
 
 const ADMIN_TOKEN = 'test-admin-token-0123456789';
 

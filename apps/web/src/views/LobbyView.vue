@@ -42,7 +42,7 @@ watch(
 
 // Dòng thông báo chạy ở chân sảnh
 const tickerLines = computed(() => [
-  `Tộc của bạn: ${faction.value.icon} ${faction.value.name}. Khắc ${faction.value.counters.map((x) => `${FACTIONS[x].icon} ${FACTIONS[x].name}`).join(', ')}.`,
+  `Tộc của bạn: ${faction.value.icon} ${faction.value.name}. Xem điểm mạnh / yếu từng tộc trong Cẩm nang.`,
   'Mẹo: bấm F trong trận để đổi đội hình, Hàng lối giữ cả đội đi cùng nhau.',
   'Mẹo: Thợ xây dựng tháp canh trước nhà, chặn được kỵ binh đánh úp.',
   'Mẹo: thợ mỏ chết sẽ rơi túi vàng, quân phe nào chạm trước thì nhặt được.',

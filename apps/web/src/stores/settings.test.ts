@@ -9,9 +9,11 @@ describe('Cài đặt và tiến độ chiến dịch', () => {
     setActivePinia(createPinia());
   });
 
-  it('thắng màn lưu sao, mở màn tiếp, màn cuối mở mức khó hơn', () => {
+  it('thắng màn lưu sao, mở màn tiếp, màn cuối đánh dấu hoàn thành; mức Thường / Khó mở sẵn', () => {
     const s = useSettings();
-    expect(s.diffOpen('normal')).toBe(false);
+    expect(s.diffOpen('normal')).toBe(true);
+    expect(s.diffOpen('hard')).toBe(true);
+    expect(s.progress.normal.unlocked).toBe(0);
     s.recordWin('easy', 0, 2);
     expect(s.progress.easy.unlocked).toBe(1);
     expect(s.stars).toBe(2);
@@ -19,10 +21,20 @@ describe('Cài đặt và tiến độ chiến dịch', () => {
     expect(s.progress.easy.stars[0]).toBe(2);
     s.recordWin('easy', LEVELS.length - 1, 3);
     expect(s.progress.easy.completed).toBe(true);
-    expect(s.diffOpen('normal')).toBe(true);
     // Lưu vào localStorage, mở lại vẫn còn
     setActivePinia(createPinia());
     expect(useSettings().progress.easy.completed).toBe(true);
+  });
+
+  it('mỗi mức khó xáo thứ tự tộc địch một lần và giữ nguyên khi mở lại; tiến độ cũ đã phá đảo mở tiếp màn mới', () => {
+    localStorage.setItem('stickman-war:progress', JSON.stringify({ unlocked: 7, stars: [3, 3, 3, 3, 3, 3, 3, 3], completed: true }));
+    const s = useSettings();
+    const order = [...s.enemyFactions];
+    expect(order).toHaveLength(LEVELS.length);
+    expect(s.progress.easy.unlocked).toBe(8);
+    expect(s.progress.easy.completed).toBe(false);
+    setActivePinia(createPinia());
+    expect(useSettings().enemyFactions).toEqual(order);
   });
 
   it('tên được làm sạch', () => {

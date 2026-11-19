@@ -89,6 +89,7 @@ export class RemoteWorld implements WorldView {
       faction: 'tribe',
       formation: 'free',
       formX: NaN,
+      holdX: 0,
       gold: 0,
       statueHp: 1,
       statueMax: 1,
@@ -99,6 +100,7 @@ export class RemoteWorld implements WorldView {
       kills: 0,
       statueCooldown: 0,
       centerMine: false,
+      mineSplit: [1, 1, 0],
     });
     this.teams = [empty(), empty()];
   }
@@ -118,6 +120,8 @@ export class RemoteWorld implements WorldView {
       team.centerMine = t.cm === 1;
       team.faction = FACTION_ORDER[t.f] ?? 'tribe';
       team.formation = FORMATIONS[t.fm] ?? 'free';
+      team.holdX = t.hx ?? 0;
+      if (t.ms?.length === 3) team.mineSplit = [t.ms[0], t.ms[1], t.ms[2]];
     });
 
     const prev = new Map(this.units.map((u) => [u.id, u]));
@@ -159,8 +163,12 @@ export class RemoteWorld implements WorldView {
         lifeT: 0,
         lastStruck: 0,
         buildSlot: -1,
+        buildX: NaN,
+        combat: false,
         toCenter: false,
         mine: 0,
+        dashT: 0,
+        dashX: x,
         mining: false,
         mineT: 0,
         carrying: 0,
@@ -177,6 +185,8 @@ export class RemoteWorld implements WorldView {
       u.mining = (flags & FLAG.mining) !== 0;
       u.carrying = flags & FLAG.carrying ? 1 : 0;
       u.toCenter = (flags & FLAG.toCenter) !== 0;
+      u.mine = u.toCenter ? 2 : flags & FLAG.gold ? 1 : 0;
+      u.dashT = flags & FLAG.dashing ? 0.1 : 0;
       u.hidden = (flags & FLAG.hidden) !== 0;
       u.slowT = flags & FLAG.slowed ? 1 : 0;
       u.poisonT = flags & FLAG.poisoned ? 1 : 0;

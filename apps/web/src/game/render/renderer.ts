@@ -2,7 +2,6 @@ import { UNITS, kindOf, type ProjectileKind, type Team } from '@stickman-war/cor
 import {
   CENTER_MINE_X,
   LANE_DEPTH,
-  MINE_OFFSETS,
   WORLD_WIDTH,
   dirOf,
   mineX,
@@ -14,6 +13,9 @@ import {
   type WorldEvent,
 } from '@stickman-war/core';
 import { drawStickman } from './stickman';
+
+/** Màu quặng của từng loại mỏ. */
+const MINE_ORE = { silver: '#cfd6de', gold: '#f2c230', diamond: '#6fe7ff' } as const;
 
 export const TEAM_COLORS: Record<Team, { ink: string; accent: string; stone: string; dark: string }> = {
   0: { ink: '#161a24', accent: '#3e8bff', stone: '#9aa7b8', dark: '#5d6a7c' },
@@ -167,11 +169,13 @@ export class Renderer {
     }
     this.drawBackground();
     for (const team of [0, 1] as Team[]) {
-      MINE_OFFSETS.forEach((_, i) => this.drawMine(mineX(team, i)));
+      this.drawMine(mineX(team, 0), 0.9, 'silver');
+      this.drawMine(mineX(team, 1), 1.15, 'gold');
     }
-    this.drawMine(CENTER_MINE_X, 1.6, true);
+    this.drawMine(CENTER_MINE_X, 1.6, 'diamond');
     for (const d of world.drops) this.drawDrop(d);
     for (const team of [0, 1] as Team[]) this.drawStatue(world, team);
+    for (const team of [0, 1] as Team[]) if (world.teams[team].stance === 'hold') this.drawRallyFlag(world.teams[team].holdX, team);
 
     const units = world.units.filter((u) => !u.inside).sort((a, b) => a.lane - b.lane);
     for (const u of units) this.drawUnit(u);
@@ -256,7 +260,9 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawMine(x: number, size = 1, diamond = false): void {
+  private drawMine(x: number, size = 1, kind: 'silver' | 'gold' | 'diamond' = 'gold'): void {
+    const diamond = kind === 'diamond';
+    const ore = MINE_ORE[kind];
     const { ctx, scale } = this;
     const sx = this.sx(x);
     if (sx < -80 * scale * size || sx > this.width + 80 * scale * size) return;
@@ -279,7 +285,7 @@ export class Renderer {
       ctx.lineTo(rx + r * 0.9, ry + 4);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = diamond ? '#6fe7ff' : '#f2c230';
+      ctx.fillStyle = ore;
       ctx.beginPath();
       ctx.moveTo(rx - r * 0.3, ry - r * 0.3);
       ctx.lineTo(rx, ry - r * 0.75);
@@ -290,7 +296,11 @@ export class Renderer {
     }
     // Lấp lánh
     const tw = (Math.sin(this.time * 3 + x) + 1) / 2;
-    ctx.fillStyle = diamond ? `rgba(220, 250, 255, ${tw})` : `rgba(255, 250, 200, ${tw})`;
+    ctx.fillStyle = diamond
+      ? `rgba(220, 250, 255, ${tw})`
+      : kind === 'silver'
+        ? `rgba(245, 248, 255, ${tw})`
+        : `rgba(255, 250, 200, ${tw})`;
     ctx.beginPath();
     ctx.arc(4, -22, 2.2, 0, Math.PI * 2);
     ctx.fill();
@@ -394,6 +404,29 @@ export class Renderer {
     const sy = this.sy(u.lane);
     const c = TEAM_COLORS[u.team];
 
+    // Đang lướt: vệt bóng mờ phía sau và người chúi về trước
+    if (u.dashT > 0 && !u.dying) {
+      for (let i = 3; i >= 1; i--) {
+        ctx.save();
+        ctx.globalAlpha = 0.12 * (4 - i);
+        ctx.translate(sx - u.facing * i * 16 * scale, sy);
+        ctx.scale(scale * s.scale * u.facing, scale * s.scale);
+        ctx.rotate(0.35);
+        drawStickman(ctx, {
+          kind: u.kind,
+          walk: u.walk,
+          moving: true,
+          attack: -1,
+          mining: -1,
+          carrying: false,
+          ink: c.ink,
+          accent: c.accent,
+          flash: false,
+        });
+        ctx.restore();
+      }
+    }
+
     // Bóng
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath();
@@ -407,6 +440,7 @@ export class Renderer {
     ctx.translate(sx, sy);
     ctx.scale(scale * s.scale * (s.stationary ? dirOf(u.team) : u.facing), scale * s.scale);
     if (u.hidden) ctx.globalAlpha = 0.28;
+    if (u.dashT > 0 && !u.dying) ctx.rotate(0.35);
     if (u.dying) {
       const fall = Math.min(1, u.deadT / 0.4);
       ctx.rotate(-fall * Math.PI * 0.5);
@@ -421,6 +455,7 @@ export class Renderer {
       mining: u.mining ? u.mineT * 4 : -1,
       carrying: u.carrying > 0,
       gem: u.toCenter,
+      silver: u.mine === 0,
       ink: c.ink,
       accent: c.accent,
       flash: u.hitFlash > 0,
@@ -583,6 +618,37 @@ export class Renderer {
 
   // ---------- Bản đồ nhỏ ----------
 
+  /** Cờ tập hợp (Cắm cờ): cột cờ cắm xuống đất, lá cờ màu phe, phấp phới nhẹ. */
+  private drawRallyFlag(x: number, team: Team): void {
+    const { ctx, scale } = this;
+    const sx = this.sx(x);
+    if (sx < -40 * scale || sx > this.width + 40 * scale) return;
+    const base = this.sy(0.15, 0);
+    const pole = 70 * scale;
+    ctx.save();
+    ctx.strokeStyle = '#3b2a1a';
+    ctx.lineWidth = Math.max(2, 3 * scale);
+    ctx.beginPath();
+    ctx.moveTo(sx, base);
+    ctx.lineTo(sx, base - pole);
+    ctx.stroke();
+    const wave = Math.sin(this.time * 6) * 3 * scale;
+    const w = 30 * scale * dirOf(team);
+    ctx.fillStyle = TEAM_COLORS[team].accent;
+    ctx.beginPath();
+    ctx.moveTo(sx, base - pole);
+    ctx.quadraticCurveTo(sx + w * 0.5, base - pole - 4 * scale + wave, sx + w, base - pole + 2 * scale);
+    ctx.lineTo(sx + w, base - pole + 18 * scale);
+    ctx.quadraticCurveTo(sx + w * 0.5, base - pole + 14 * scale + wave, sx, base - pole + 18 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(sx, base, 8 * scale, 2.5 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   drawMinimap(mini: HTMLCanvasElement, world: WorldView): void {
     const rect = mini.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -604,7 +670,7 @@ export class Renderer {
       ctx.fillStyle = TEAM_COLORS[team].accent;
       ctx.fillRect(statueX(team) * k - 3, 3, 6, h - 8);
       for (let i = 0; i < 2; i++) {
-        ctx.fillStyle = '#f2c230';
+        ctx.fillStyle = i === 0 ? MINE_ORE.silver : MINE_ORE.gold;
         ctx.fillRect(mineX(team, i) * k - 1.5, h - 8, 3, 3);
       }
     }
@@ -619,6 +685,13 @@ export class Renderer {
       if (u.hidden && u.team !== 0) continue;
       const size = a === 'giant' || a === 'catapult' || a === 'tower' ? 4 : a === 'cavalry' ? 3.2 : 2.5;
       ctx.fillRect(u.x * k - size / 2, 6 + u.lane * (h - 16), size, size);
+    }
+    for (const team of [0, 1] as Team[]) {
+      if (world.teams[team].stance !== 'hold') continue;
+      ctx.fillStyle = TEAM_COLORS[team].accent;
+      const fx = world.teams[team].holdX * k;
+      ctx.fillRect(fx - 0.75, 2, 1.5, h - 7);
+      ctx.fillRect(fx, 2, 6 * dirOf(team), 4);
     }
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1.5;

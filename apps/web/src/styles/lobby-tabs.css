@@ -1,0 +1,96 @@
+/* Các tab sảnh: chơi đơn, online */
+
+/* ---------- Menu: tab offline / online ---------- */
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.tabs button {
+  padding: 10px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+.tabs button.active {
+  background: var(--panel-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 250px;
+}
+.tab-body .section-title {
+  margin: 10px 0 0;
+}
+.wide {
+  width: 100%;
+}
+.diff-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.diff-easy {
+  box-shadow: inset 0 -3px 0 #4ade80;
+}
+.diff-normal {
+  box-shadow: inset 0 -3px 0 #facc15;
+}
+.diff-hard {
+  box-shadow: inset 0 -3px 0 #ef4444;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+}
+.field input,
+.join-row input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  user-select: text;
+}
+.field input:focus,
+.join-row input:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.join-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.join-row input {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-align: center;
+  font-weight: 800;
+}
+.join-row input::placeholder {
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+.online-status {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}

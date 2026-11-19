@@ -2,8 +2,8 @@ import { WORLD_WIDTH, type ClientMsg, type ServerMsg } from '@stickman-war/core'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { startGameServer as start, type GameServer } from '../src/bootstrap';
-import { MemoryAccountStore, MemoryWalletStore } from '../src/store/memory.store';
-import type { ServerOptions } from '../src/tokens';
+import { MemoryAccountStore, MemoryWalletStore } from '../src/database/memory.store';
+import type { ServerOptions } from '../src/common/tokens';
 
 /** Máy chủ thật (NestJS + WebSocket) chạy trên kho dữ liệu trong bộ nhớ, không cần Postgres. */
 const startGameServer = (opts: Partial<ServerOptions> = {}) =>
@@ -159,6 +159,27 @@ describe('Máy chủ online', () => {
     // Phòng tạo không tự vào trận: chờ khách sẵn sàng và chủ phòng bắt đầu
     expect((await begin(a, b)).opponent).toBe('Chủ phòng');
     expect((await a.waitFor('start')).opponent).toBe('Khách');
+  }, 15000);
+
+  it('phòng chờ: đổi tộc được, hai người chơi không thấy tộc của nhau, người xem thấy cả hai', async () => {
+    const a = await connect('Chủ');
+    const b = await connect('Khách');
+    const w = await connect('Xem');
+    a.send({ t: 'create' });
+    const { code } = await a.waitFor('waitroom');
+    b.send({ t: 'join', code, as: 'play' });
+    await b.waitFor('waitroom', (m) => !!m.seats[1]);
+    w.send({ t: 'join', code, as: 'watch' });
+    a.send({ t: 'faction', id: 'orc' });
+    b.send({ t: 'faction', id: 'elf' });
+    const ra = await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'orc' && !!m.seats[1]);
+    expect(ra.seats[1]?.faction).toBeNull();
+    const rb = await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'elf');
+    expect(rb.seats[0]?.faction).toBeNull();
+    const rw = await w.waitFor('waitroom', (m) => m.seats[0]?.faction === 'orc' && m.seats[1]?.faction === 'elf');
+    expect(rw.you.role).toBe('watcher');
+    // Vào trận thì mỗi bên dùng đúng tộc đã chọn
+    expect((await begin(a, b)).factions).toEqual(['elf', 'orc']);
   }, 15000);
 
   it('làm sạch tên và bỏ qua tin nhắn rác', async () => {

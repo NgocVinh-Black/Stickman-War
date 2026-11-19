@@ -2,7 +2,7 @@
 import { FACTIONS, type FactionId } from '@stickman-war/core';
 import { computed } from 'vue';
 
-/** Thẻ đối đầu trước trận: tộc hai bên và ai khắc ai. */
+/** Thẻ đối đầu trước trận: tộc hai bên (chi tiết từng tộc xem trong Cẩm nang). */
 const props = defineProps<{ mine: FactionId; theirs: FactionId }>();
 const a = computed(() => FACTIONS[props.mine]);
 const b = computed(() => FACTIONS[props.theirs]);
@@ -19,10 +19,5 @@ const b = computed(() => FACTIONS[props.theirs]);
       <span>{{ b.icon }}</span><b>{{ b.name }}</b
       ><small>Địch</small>
     </div>
-    <p>
-      <span v-if="a.counters.includes(theirs)" class="good">Tộc bạn <b>khắc</b> {{ b.name }}: +20% sát thương</span>
-      <span v-else-if="b.counters.includes(mine)" class="bad">{{ b.name }} <b>khắc</b> tộc bạn: địch +20% sát thương</span>
-      <span v-else>Không bên nào khắc bên nào</span>
-    </p>
   </div>
 </template>

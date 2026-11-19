@@ -1,0 +1,320 @@
+/* Online: ghép trận, đấu trường, xem trận, độ khó chiến dịch, bắt kèo */
+
+/* ---------- Phòng chờ online ---------- */
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  margin: 4px auto 8px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--gold);
+  animation: spin 0.9s linear infinite;
+}
+.room-code {
+  margin: 10px auto;
+  padding: 10px 18px;
+  width: fit-content;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px dashed var(--gold);
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: var(--gold);
+  user-select: all;
+}
+.dialog .small {
+  font-size: 13px;
+}
+.link {
+  word-break: break-all;
+  color: var(--text);
+  user-select: all;
+}
+.ping {
+  flex: none;
+  min-width: 52px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.flag-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(20, 24, 32, 0.8);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+}
+.flag-cursor {
+  cursor: crosshair;
+}
+.unit-btn.picking,
+.stance-btn.picking {
+  animation: flag-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes flag-pulse {
+  to {
+    filter: brightness(1.35);
+  }
+}
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: clamp(56px, 14vw, 120px);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow:
+    0 6px 0 #9b6f00,
+    0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.countdown.pop {
+  animation: count-pop 0.9s ease-out forwards;
+}
+.dialog-actions .btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes count-pop {
+  0% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- Đấu trường: danh sách phòng ---------- */
+
+.tabs {
+  grid-template-columns: repeat(3, 1fr);
+}
+.tabs button {
+  padding-left: 4px;
+  padding-right: 4px;
+  white-space: nowrap;
+}
+.join-row {
+  grid-template-columns: 1fr auto auto;
+}
+.arena-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.arena-empty {
+  margin: 24px 0 8px;
+  color: var(--muted);
+}
+.arena-room {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.arena-room.open {
+  border-color: var(--gold);
+}
+.arena-info {
+  flex: 1;
+  min-width: 0;
+}
+.arena-names {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arena-names i {
+  margin: 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.arena-info small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.arena-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.arena-actions .btn {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* Thanh dưới khi đang xem trận */
+.watch-bar {
+  align-items: center;
+  justify-content: space-between;
+}
+.watch-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+.watch-label .ally-name {
+  color: var(--ally);
+}
+.watch-label .enemy-name {
+  color: var(--enemy);
+}
+.ally-stat {
+  box-shadow: inset 0 -2px 0 var(--ally);
+}
+.enemy-stat {
+  box-shadow: inset 0 -2px 0 var(--enemy);
+}
+
+/* ---------- Chọn độ khó chiến dịch ---------- */
+
+.camp-diff .diff {
+  opacity: 0.55;
+}
+.camp-diff .diff.active {
+  opacity: 1;
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.camp-diff .diff.locked {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+/* ---------- Bắt kèo khi xem trận ---------- */
+
+.watch-bar {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.bet {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.bet:empty {
+  display: none;
+}
+.bet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.bet-wallet {
+  margin-right: auto;
+  white-space: nowrap;
+}
+.bet-wallet b {
+  color: var(--gold);
+}
+.bet-wallet small,
+.bet-pool {
+  color: var(--muted);
+}
+.bet-pool {
+  font-size: 12px;
+}
+.bet-chips {
+  display: flex;
+  gap: 4px;
+}
+.chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chip.active {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.bet-side {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bet-side.ally {
+  box-shadow: inset 0 -3px 0 var(--ally);
+}
+.bet-side.enemy {
+  box-shadow: inset 0 -3px 0 var(--enemy);
+}
+.bet-side small {
+  color: var(--gold);
+}
+.bet-side:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.bet-mine b {
+  color: var(--gold);
+}
+.bet-result {
+  font-weight: 700;
+  color: var(--gold);
+}
+.bet-result:empty {
+  display: none;
+}
+@media (max-width: 720px) {
+  .watch-bar .watch-label {
+    display: none;
+  }
+}

@@ -1,6 +1,4 @@
-import './styles/style.css';
-import './styles/lobby.css';
-import './styles/login.css';
+import './styles/index.css';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';

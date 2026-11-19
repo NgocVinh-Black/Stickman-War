@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { AdminAccount } from '../api';
-import { ago, faction, fmtDate, fmtNum } from '../format';
+import type { AdminAccount } from '../lib/api';
+import { ago, faction, fmtDate, fmtNum } from '../lib/format';
 import Avatar from './Avatar.vue';
 
 defineProps<{ accounts: AdminAccount[]; loading: boolean; selected: string | null }>();

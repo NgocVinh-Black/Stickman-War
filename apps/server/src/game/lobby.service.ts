@@ -15,98 +15,42 @@ import {
   SIGNAL_MAX_BYTES,
   STANCES,
   UNIT_ORDER,
+  WORLD_WIDTH,
   World,
   cleanChat,
   cleanName,
   encodeSnapshot,
   validFaction,
-  type BetOutcome,
   type ChatLine,
   type ClientMsg,
   type EndReason,
   type FactionId,
   type LobbyRoom,
-  type RoomSettings,
   type RoomState,
   type Seat,
   type ServerMsg,
   type Team,
   type UnitKind,
-  type WorldEvent,
 } from '@stickman-war/core';
 import type { WebSocket } from 'ws';
 import { AccountsService, accountWallet, type Side } from '../accounts/accounts.service';
-import { OPTIONS, type ServerOptions } from '../tokens';
+import { OPTIONS, type ServerOptions } from '../common/tokens';
 import { WalletsService, validWalletId } from '../wallets/wallets.service';
-
-const TICK_HZ = 30;
-const SEND_EVERY = 2; // gửi trạng thái 15 lần/giây
-const COUNTDOWN = 3;
-const MAX_MSG_PER_SEC = 40;
-// Bắt tay WebRTC gửi dồn nhiều ứng viên ICE cho từng người: đếm riêng, ngưỡng cao hơn
-const MAX_SIGNAL_PER_SEC = 200;
-const MAX_ROOMS = 500;
-const LOBBY_EVERY_MS = 2000;
-const HEARTBEAT_MS = 15_000;
-const CHAT_GAP_MS = 600;
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-type Player = {
-  ws: WebSocket;
-  name: string;
-  /** Mã ví xu (trình duyệt gửi lên, hoặc ví theo tài khoản); không hợp lệ thì dùng ví tạm theo kết nối. */
-  wallet: string;
-  room: Room | null;
-  /** Trong phòng với tư cách người chơi hay người xem. */
-  role: 'player' | 'watcher';
-  /** Đang mở tab Đấu trường, nhận danh sách phòng. */
-  lobby: boolean;
-  team: Team;
-  faction: FactionId;
-  /** Mã tài khoản khi đã đăng nhập Google; null = khách. */
-  account: string | null;
-  alive: boolean;
-  msgWindow: number;
-  msgCount: number;
-  lastChat: number;
-  /** Mã thoại công khai (không lộ mã ví). */
-  vid: string;
-  voice: boolean;
-  muted: boolean;
-  sigWindow: number;
-  sigCount: number;
-  /** Hàng đợi xử lý tin nhắn: tin sau chờ tin trước (hello cần đọc DB). */
-  queue: Promise<void>;
-};
-
-type Room = {
-  code: string;
-  /**
-   * Phòng tạo bằng "Tạo phòng": có phòng chờ, chủ phòng bấm bắt đầu, đánh xong quay về phòng chờ.
-   * Phòng ghép nhanh (private = false) tự vào trận khi đủ 2 người, đánh xong bỏ phiếu đấu lại.
-   */
-  private: boolean;
-  host: Player | null;
-  /** Người chơi (không phải chủ phòng) đã bấm sẵn sàng. */
-  ready: Set<Player>;
-  settings: RoomSettings;
-  chat: ChatLine[];
-  /** Ví bị chủ phòng mời ra, không vào lại được. */
-  banned: Set<string>;
-  players: Player[];
-  watchers: Set<Player>;
-  state: RoomState;
-  startedAt: number;
-  lastEnd: { winner: Team | null; reason: EndReason } | null;
-  world: World | null;
-  events: WorldEvent[];
-  timer: NodeJS.Timeout | null;
-  tick: number;
-  rematch: Set<Player>;
-  /** Kèo của người xem theo mã ví; side là team người chơi được cược. */
-  bets: Map<string, { side: Team; amount: number }>;
-  betsClosed: boolean;
-};
+import { settleBets } from './bets';
+import {
+  TICK_HZ,
+  SEND_EVERY,
+  COUNTDOWN,
+  MAX_MSG_PER_SEC,
+  MAX_SIGNAL_PER_SEC,
+  MAX_ROOMS,
+  LOBBY_EVERY_MS,
+  HEARTBEAT_MS,
+  CHAT_GAP_MS,
+  CODE_CHARS,
+  type Player,
+  type Room,
+} from './room';
 
 /**
  * Sảnh online: phòng, ghép trận, chạy trận (server-authoritative), người xem, bắt kèo,
@@ -248,13 +192,15 @@ export class LobbyService implements OnModuleDestroy {
       for (const p of room.watchers) this.send(p, { t: 'room', ...info, watching: true });
       return;
     }
-    const seat = (t: Team): Seat | null => {
+    // Người chơi chỉ thấy tộc của mình; người xem thấy tộc cả hai bên
+    const seat = (t: Team, viewer: Player): Seat | null => {
       const x = room.players.find((q) => q.team === t);
-      return x ? { name: x.name, host: x === room.host, ready: x === room.host || room.ready.has(x), faction: x.faction } : null;
+      if (!x) return null;
+      const hidden = viewer.role === 'player' && viewer !== x;
+      return { name: x.name, host: x === room.host, ready: x === room.host || room.ready.has(x), faction: hidden ? null : x.faction };
     };
     const base = {
       code: room.code,
-      seats: [seat(0), seat(1)] as [Seat | null, Seat | null],
       watchers: [...room.watchers].map((x) => x.name),
       host: room.host?.name ?? '',
       settings: room.settings,
@@ -263,6 +209,7 @@ export class LobbyService implements OnModuleDestroy {
       this.send(p, {
         t: 'waitroom',
         ...base,
+        seats: [seat(0, p), seat(1, p)],
         you: { role: p.role, host: p === room.host, seat: p.role === 'player' ? p.team : null },
       });
     }
@@ -331,27 +278,16 @@ export class LobbyService implements OnModuleDestroy {
     }
   }
 
-  /** Chia quỹ: bên thắng nhận lại tiền cược + phần của bên thua theo tỉ lệ; hoà hoặc kèo một phía thì hoàn tiền. */
+  /** Chia quỹ kèo (cách chia ở bets.ts) rồi báo kết quả cho mọi kết nối dùng ví đó, kể cả đã rời phòng. */
   private settleBets(room: Room, winner: Team | null): void {
     if (!room.bets.size) return;
-    const totals = [0, 0];
-    for (const b of room.bets.values()) totals[b.side] += b.amount;
-    const refund = winner === null || totals[0] === 0 || totals[1] === 0;
-    for (const [id, b] of room.bets) {
-      let outcome: BetOutcome = 'lose';
-      let payout = 0;
-      if (refund) {
-        outcome = 'refund';
-        payout = b.amount;
-      } else if (b.side === winner) {
-        outcome = 'win';
-        payout = b.amount + Math.floor((b.amount * totals[1 - winner]) / totals[winner]);
-      }
-      const xu = payout ? this.wallets.add(id, payout) : this.wallets.get(id);
-      // Báo mọi kết nối dùng ví này (kể cả đã rời phòng)
-      for (const p of this.players) if (p.wallet === id) this.send(p, { t: 'betResult', outcome, amount: b.amount, payout, xu });
+    const { refund, pool, results } = settleBets(room.bets, winner);
+    for (const r of results) {
+      const xu = r.payout ? this.wallets.add(r.wallet, r.payout) : this.wallets.get(r.wallet);
+      for (const p of this.players)
+        if (p.wallet === r.wallet) this.send(p, { t: 'betResult', outcome: r.outcome, amount: r.amount, payout: r.payout, xu });
     }
-    this.opts.log(`room ${room.code}: settled ${room.bets.size} bets (${refund ? 'refund' : `pool ${totals[0] + totals[1]}`})`);
+    this.opts.log(`room ${room.code}: settled ${room.bets.size} bets (${refund ? 'refund' : `pool ${pool}`})`);
     room.bets.clear();
   }
 
@@ -831,12 +767,19 @@ export class LobbyService implements OnModuleDestroy {
         break;
       case 'train':
         if (p.role === 'player' && room?.state === 'playing' && UNIT_ORDER.includes(msg.kind as UnitKind)) {
-          room.world!.train(p.team, msg.kind);
+          const x = typeof msg.x === 'number' && Number.isFinite(msg.x) ? (p.team === 1 ? WORLD_WIDTH - msg.x : msg.x) : undefined;
+          room.world!.train(p.team, msg.kind, x);
         }
         break;
       case 'stance':
         if (p.role === 'player' && room?.state === 'playing' && STANCES.includes(msg.stance)) {
           room.world!.setStance(p.team, msg.stance);
+        }
+        break;
+      case 'hold':
+        if (p.role === 'player' && room?.state === 'playing' && typeof msg.x === 'number' && Number.isFinite(msg.x)) {
+          // Ảnh chụp của team 1 bị lật gương, nên toạ độ người gửi cũng phải lật lại
+          room.world!.setHold(p.team, p.team === 1 ? WORLD_WIDTH - msg.x : msg.x);
         }
         break;
       case 'faction':
@@ -850,6 +793,9 @@ export class LobbyService implements OnModuleDestroy {
         if (p.role === 'player' && room?.state === 'playing' && FORMATIONS.includes(msg.mode)) {
           room.world!.setFormation(p.team, msg.mode);
         }
+        break;
+      case 'mineSplit':
+        if (p.role === 'player' && room?.state === 'playing' && Array.isArray(msg.split)) room.world!.setMineSplit(p.team, msg.split);
         break;
       case 'centerMine':
         if (p.role === 'player' && room?.state === 'playing') room.world!.setCenterMine(p.team, msg.on === true);

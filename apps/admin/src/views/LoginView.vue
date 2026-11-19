@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue';
-import { loginOptions, loginWithGoogle, loginWithToken } from '../api';
-import { renderGoogleButton } from '../google';
+import { loginOptions, loginWithGoogle, loginWithToken } from '../lib/api';
+import { renderGoogleButton } from '../lib/google';
 
 const opts = ref<{ google: boolean; token: boolean; clientId: string } | null>(null);
 const token = ref('');

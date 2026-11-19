@@ -15,6 +15,8 @@ export type GenericDialog = {
   lines?: string[];
   small?: string;
   matchup?: [FactionId, FactionId];
+  /** Cho chọn tộc của mình ngay trong hộp thoại trước trận. */
+  pickFaction?: (id: FactionId) => void;
   newUnits?: UnitKind[];
   stars?: number;
   stats?: MatchStats;

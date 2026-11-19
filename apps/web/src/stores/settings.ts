@@ -1,4 +1,4 @@
-import { CAMPAIGN, DIFFS, FACTION_ORDER, LEVELS, cleanName, type Difficulty, type FactionId } from '@stickman-war/core';
+import { CAMPAIGN, DIFFS, FACTION_ORDER, LEVELS, campaignFactions, cleanName, type Difficulty, type FactionId } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 import { sound } from '../lib/sound';
@@ -19,13 +19,32 @@ export const useSettings = defineStore('settings', () => {
   const name = ref(load('name', `Stickman ${Math.floor(100 + Math.random() * 900)}`));
   const savedFaction = load<FactionId>('faction', 'tribe');
   const faction = ref<FactionId>(FACTION_ORDER.includes(savedFaction) ? savedFaction : 'tribe');
+  /**
+   * Tiến độ một mức khó. Lần đầu (hoặc tiến độ cũ chưa có) thì xáo thứ tự tộc địch.
+   * Tiến độ cũ đã phá đảo 8 màn thì mở tiếp các màn mới.
+   */
+  function initProgress(d: Difficulty): Progress {
+    const p = loadProgress(d);
+    let changed = false;
+    if (p.seed === undefined) {
+      p.seed = Math.floor(Math.random() * 2 ** 31);
+      changed = true;
+    }
+    if (p.completed && p.stars.length < LEVELS.length && p.unlocked < p.stars.length) {
+      p.unlocked = p.stars.length;
+      p.completed = false;
+      changed = true;
+    }
+    if (changed) saveProgress(d, p);
+    return p;
+  }
   const progress = reactive<Record<Difficulty, Progress>>({
-    easy: loadProgress('easy'),
-    normal: loadProgress('normal'),
-    hard: loadProgress('hard'),
+    easy: initProgress('easy'),
+    normal: initProgress('normal'),
+    hard: initProgress('hard'),
   });
-  /** Thường mở khi thắng hết chiến dịch Dễ, Khó mở khi thắng hết Thường. */
-  const diffOpen = (d: Difficulty) => d === 'easy' || !!progress[DIFFS[DIFFS.indexOf(d) - 1]].completed;
+  /** Mọi mức khó đều chơi được ngay; mỗi mức có tiến độ màn riêng. */
+  const diffOpen = (d: Difficulty) => DIFFS.includes(d);
   const savedDiff = load<Difficulty>('campDiff', 'easy');
   const campDiff = ref<Difficulty>(DIFFS.includes(savedDiff) && diffOpen(savedDiff) ? savedDiff : 'easy');
   const savedTab = load<MenuTab>('tab', 'home');
@@ -44,6 +63,8 @@ export const useSettings = defineStore('settings', () => {
   const current = computed(() => progress[campDiff.value]);
   const nextLevel = computed(() => Math.min(current.value.unlocked, LEVELS.length - 1));
   const stars = computed(() => current.value.stars.reduce((a, b) => a + (b ?? 0), 0));
+  /** Tộc địch từng màn ở mức khó đang chọn. */
+  const enemyFactions = computed(() => campaignFactions(current.value.seed ?? 1));
 
   function setName(raw: string): void {
     name.value = cleanName(raw);
@@ -80,6 +101,7 @@ export const useSettings = defineStore('settings', () => {
     current,
     nextLevel,
     stars,
+    enemyFactions,
     diffOpen,
     diffLabel,
     setName,

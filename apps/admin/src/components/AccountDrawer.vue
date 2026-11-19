@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { getAccount, type AccountDetail } from '../api';
-import { RESULT_LABEL, ago, faction, fmtDate, fmtNum } from '../format';
+import { getAccount, type AccountDetail } from '../lib/api';
+import { RESULT_LABEL, ago, faction, fmtDate, fmtNum } from '../lib/format';
 import Avatar from './Avatar.vue';
 
 const props = defineProps<{ id: string }>();

@@ -11,6 +11,7 @@ import {
   type ClientMsg,
   type FactionId,
   type Formation,
+  type MineSplit,
   type Stance,
   type UnitKind,
   type WorldEvent,
@@ -24,9 +25,12 @@ const STEP = 1 / 60;
 export type Match = {
   view: WorldView;
   step: (dt: number) => WorldEvent[];
-  train: (kind: UnitKind) => boolean;
+  /** Xây quân; thợ xây kèm x: chỗ dựng tháp người chơi chọn. */
+  train: (kind: UnitKind, x?: number) => boolean;
   setStance: (s: Stance) => void;
+  setHold: (x: number) => void;
   setCenterMine: (on: boolean) => void;
+  setMineSplit: (split: MineSplit) => void;
   setFormation: (f: Formation) => void;
   canTrain: (kind: UnitKind) => boolean;
   whyNot: (kind: UnitKind) => string;
@@ -49,9 +53,11 @@ export function localMatch(world: World, ais: EnemyAI[]): Match {
       }
       return world.drainEvents();
     },
-    train: (k) => world.train(0, k),
+    train: (k, x) => world.train(0, k, x),
     setStance: (s) => world.setStance(0, s),
+    setHold: (x) => world.setHold(0, x),
     setCenterMine: (on) => world.setCenterMine(0, on),
+    setMineSplit: (split) => world.setMineSplit(0, split),
     setFormation: (f) => world.setFormation(0, f),
     canTrain: (k) => world.canTrain(0, k),
     whyNot: (k) => {
@@ -101,13 +107,15 @@ export function onlineMatch(
       remote.advance(dt);
       return remote.drainEvents();
     },
-    train: (k) => {
+    train: (k, x) => {
       if (!match.canTrain(k)) return false;
-      send({ t: 'train', kind: k });
+      send(x === undefined ? { t: 'train', kind: k } : { t: 'train', kind: k, x });
       return true;
     },
     setStance: (stance) => send({ t: 'stance', stance }),
+    setHold: (x) => send({ t: 'hold', x }),
     setCenterMine: (on) => send({ t: 'centerMine', on }),
+    setMineSplit: (split) => send({ t: 'mineSplit', split }),
     setFormation: (mode) => send({ t: 'formation', mode }),
     canTrain: (k) => !!remote.snaps && state.started() && canTrainSnap(remote.snaps[0], k, state.ended()),
     whyNot: (k) => {
@@ -134,7 +142,9 @@ export function watchMatch(remote: RemoteWorld): Match {
     },
     train: () => false,
     setStance: () => {},
+    setHold: () => {},
     setCenterMine: () => {},
+    setMineSplit: () => {},
     setFormation: () => {},
     canTrain: () => false,
     whyNot: () => 'Bạn đang xem trận',

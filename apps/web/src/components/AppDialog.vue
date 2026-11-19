@@ -5,6 +5,7 @@ import { sound } from '../lib/sound';
 import { useSettings } from '../stores/settings';
 import { useUi } from '../stores/ui';
 import FactionPicker from './FactionPicker.vue';
+import FactionRow from './FactionRow.vue';
 import HowToContent from './HowToContent.vue';
 import MatchupCard from './MatchupCard.vue';
 import UnitIcon from './UnitIcon.vue';
@@ -53,6 +54,10 @@ function saveSettings(): void {
           </p>
         </template>
         <MatchupCard v-if="d.matchup" :mine="d.matchup[0]" :theirs="d.matchup[1]" />
+        <template v-if="d.matchup && d.pickFaction">
+          <p class="small">Chọn tộc của bạn cho trận này:</p>
+          <FactionRow :model-value="d.matchup[0]" @update:model-value="d.pickFaction" />
+        </template>
         <div v-for="unit in d.newUnits" :key="unit" class="new-unit">
           <UnitIcon :kind="unit" />
           <div>

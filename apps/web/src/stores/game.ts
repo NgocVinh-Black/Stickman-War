@@ -14,13 +14,15 @@ import {
   type Difficulty,
   type FactionId,
   type Formation,
+  type MineSplit,
   type Stance,
   type UnitKind,
 } from '@stickman-war/core';
 import { defineStore } from 'pinia';
-import { reactive, shallowRef } from 'vue';
+import { reactive, ref, shallowRef } from 'vue';
 import { localMatch, type Match } from '../game/match';
 import { GameSession, isNet, starsFor, statsOf, type Mode } from '../game/session';
+import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { router } from '../router';
 import { useSettings } from './settings';
@@ -29,7 +31,25 @@ import { useUi, type DialogButton } from './ui';
 export const STANCES: { id: Stance; icon: string; label: string; key: string }[] = [
   { id: 'garrison', icon: '🏰', label: 'Rút về', key: 'Q' },
   { id: 'defend', icon: '🛡️', label: 'Phòng thủ', key: 'W' },
+  { id: 'hold', icon: '🚩', label: 'Cắm cờ', key: 'S' },
   { id: 'attack', icon: '⚔️', label: 'Tấn công', key: 'E' },
+];
+/** Ba loại mỏ: biểu tượng, tên, mô tả ngắn. */
+export const MINE_INFO = [
+  { icon: '🥈', label: 'Bạc', tip: 'Sát nhà, an toàn, có vàng nhanh. Không giới hạn thợ' },
+  { icon: '🥇', label: 'Vàng', tip: 'Hơn bạc ~20%, vẫn trong vùng lính giữ. Tối đa 4 thợ' },
+  {
+    icon: '💎',
+    label: 'Kim cương',
+    tip: 'Hơn bạc ~50% nhưng đi xa, gần 1 phút mới về lần đầu, dễ bị đánh. Tối đa 6 thợ. Lính Phòng thủ ra chắn trước mỏ',
+  },
+] as const;
+/** Kiểu chia thợ mỏ có sẵn [bạc, vàng, kim cương]. */
+export const MINE_PRESETS: { label: string; tip: string; split: MineSplit }[] = [
+  { label: 'Cân bằng', tip: 'nửa bạc, nửa vàng', split: [1, 1, 0] },
+  { label: 'An toàn', tip: 'chỉ đào bạc sát nhà', split: [1, 0, 0] },
+  { label: 'Đào vàng', tip: 'phần lớn ra mỏ vàng', split: [1, 3, 0] },
+  { label: 'Làm giàu', tip: 'một nửa sang mỏ kim cương', split: [1, 1, 2] },
 ];
 export const FORMATION_INFO: Record<Formation, { icon: string; label: string; tip: string }> = {
   free: { icon: '🌀', label: 'Tự do', tip: 'Mỗi quân tự lao lên theo tốc độ riêng' },
@@ -59,6 +79,9 @@ type Hud = {
   stance: Stance;
   formation: Formation;
   centerMine: boolean;
+  mineSplit: MineSplit;
+  /** Số thợ mỏ đang ở từng mỏ [bạc, vàng, kim cương]. */
+  miners: [number, number, number];
   factions: [FactionId, FactionId];
   units: Record<UnitKind, { can: boolean; queued: number; progress: number }>;
   countdown: string;
@@ -76,6 +99,8 @@ export const useGame = defineStore('game', () => {
     stance: 'defend',
     formation: 'free',
     centerMine: false,
+    mineSplit: [1, 1, 0],
+    miners: [0, 0, 0],
     factions: ['tribe', 'tribe'],
     units: {},
     countdown: '',
@@ -117,6 +142,10 @@ export const useGame = defineStore('game', () => {
     hud.stance = t.stance;
     hud.formation = t.formation;
     hud.centerMine = t.centerMine;
+    if (hud.mineSplit.some((n, i) => n !== t.mineSplit[i])) hud.mineSplit = [...t.mineSplit];
+    const miners: [number, number, number] = [0, 0, 0];
+    for (const u of v.units) if (u.team === 0 && !u.dying && UNITS[u.kind].arch === 'miner') miners[u.mine] = (miners[u.mine] ?? 0) + 1;
+    if (miners.some((n, i) => n !== hud.miners[i])) hud.miners = miners;
     if (hud.factions[0] !== t.faction || hud.factions[1] !== v.teams[1].faction) hud.factions = [t.faction, v.teams[1].faction];
     const head = t.queue[0];
     for (const k of s.match.unlocked) {
@@ -138,6 +167,18 @@ export const useGame = defineStore('game', () => {
   function train(kind: UnitKind): void {
     const s = canCommand();
     if (!s) return;
+    // Thợ xây: chọn chỗ dựng tháp trước (bấm lại lần nữa thì dựng ở chỗ mặc định)
+    if (UNITS[kind].build && s.match.canTrain(kind)) {
+      if (buildMode.value === kind) {
+        buildMode.value = null;
+        if (s.match.train(kind)) sound.click();
+        return;
+      }
+      flagMode.value = false;
+      buildMode.value = kind;
+      sound.click();
+      return;
+    }
     if (s.match.train(kind)) sound.click();
     else ui().toast(s.match.whyNot(kind), 1200);
   }
@@ -150,9 +191,54 @@ export const useGame = defineStore('game', () => {
   function setStance(stance: Stance): void {
     const s = canCommand();
     if (!s) return;
+    if (stance === 'hold') {
+      toggleFlagMode();
+      return;
+    }
+    buildMode.value = null;
+    flagMode.value = false;
     s.match.setStance(stance);
     sound.click();
     if (stance === 'attack') sound.horn();
+  }
+
+  /** Đang chờ người chơi chạm chiến trường / bản đồ nhỏ để cắm cờ tập hợp. */
+  const flagMode = ref(false);
+  /** Đang chờ người chơi chạm chiến trường để chọn chỗ dựng tháp cho thợ xây loại này. */
+  const buildMode = ref<UnitKind | null>(null);
+  function toggleFlagMode(): void {
+    if (!canCommand()) return;
+    flagMode.value = !flagMode.value;
+    buildMode.value = null;
+    sound.click();
+  }
+  function cancelPlacing(): boolean {
+    if (!flagMode.value && !buildMode.value) return false;
+    flagMode.value = false;
+    buildMode.value = null;
+    return true;
+  }
+  /**
+   * Chạm chiến trường tại x: cắm cờ tập hợp, hoặc xây thợ xây ra dựng tháp ở đó.
+   * Trả về true nếu đã xử lý (không thì chạm chỉ để lia góc nhìn).
+   */
+  function placeAt(x: number): boolean {
+    const s = canCommand();
+    if (!s) return false;
+    if (flagMode.value) {
+      flagMode.value = false;
+      s.match.setHold(x);
+      sound.click();
+      return true;
+    }
+    const kind = buildMode.value;
+    if (kind) {
+      buildMode.value = null;
+      if (s.match.train(kind, x)) sound.click();
+      else ui().toast(s.match.whyNot(kind), 1200);
+      return true;
+    }
+    return false;
   }
 
   function setFormation(next: Formation): void {
@@ -169,13 +255,24 @@ export const useGame = defineStore('game', () => {
     setFormation(FORMATION_CYCLE[(FORMATION_CYCLE.indexOf(s.view.teams[0].formation) + 1) % FORMATION_CYCLE.length]);
   }
 
-  function toggleCenterMine(): void {
+  /** Chia thợ mỏ theo tỉ lệ [bạc, vàng, kim cương]. */
+  function setMineSplit(split: MineSplit): void {
     const s = canCommand();
     if (!s) return;
-    const on = !s.view.teams[0].centerMine;
-    s.match.setCenterMine(on);
+    if (!split.some((n) => n > 0)) return;
+    s.match.setMineSplit(split);
     sound.click();
-    ui().toast(on ? '💎 Một nửa thợ mỏ sang mỏ kim cương. Lính phòng thủ ra giữ mỏ' : '⛏️ Thợ mỏ về đào mỏ nhà, lính về giữ tượng', 1800);
+  }
+
+  /** Đổi lần lượt các kiểu chia thợ mỏ có sẵn (phím R). */
+  function cycleMinePreset(): void {
+    const s = canCommand();
+    if (!s) return;
+    const cur = s.view.teams[0].mineSplit;
+    const i = MINE_PRESETS.findIndex((p) => p.split.every((n, k) => n === cur[k]));
+    const next = MINE_PRESETS[(i + 1) % MINE_PRESETS.length];
+    setMineSplit(next.split);
+    ui().toast(`⛏️ ${next.label}: ${next.tip}`, 1800);
   }
 
   function toggleSpeed(): void {
@@ -200,7 +297,7 @@ export const useGame = defineStore('game', () => {
   function startCampaign(index: number, diff: Difficulty = settings().campDiff): void {
     const st = settings();
     if (diff !== st.campDiff) st.campDiff = diff;
-    const lv = campaignLevel(index, diff);
+    const lv = campaignLevel(index, diff, st.progress[diff].seed);
     const label = CAMPAIGN[diff].label;
     const enemyFaction = lv.enemyFaction ?? 'tribe';
     const world = new World([
@@ -226,6 +323,10 @@ export const useGame = defineStore('game', () => {
       title: lv.name,
       lines: [lv.intro],
       matchup: [st.faction, enemyFaction],
+      pickFaction: (id) => {
+        chooseFaction(id);
+        startCampaign(index, diff);
+      },
       newUnits: (lv.newUnits ?? []).map((a) => kindOf(st.faction, a)),
       buttons: [
         { label: '⚔️ Vào trận', primary: true, action: () => begin(s) },
@@ -234,11 +335,12 @@ export const useGame = defineStore('game', () => {
     });
   }
 
-  function startSkirmish(diff: Difficulty): void {
+  /** Đấu với máy: máy chọn tộc ngẫu nhiên (khác tộc mình); đổi tộc trước trận thì giữ nguyên tộc máy. */
+  function startSkirmish(diff: Difficulty, enemy?: FactionId): void {
     const st = settings();
     const cfg = SKIRMISH[diff];
     const pool = FACTION_ORDER.filter((f) => f !== st.faction);
-    const enemyFaction = pool[Math.floor(Math.random() * pool.length)];
+    const enemyFaction = enemy ?? pool[Math.floor(Math.random() * pool.length)];
     const world = new World([
       { ...cfg.player, faction: st.faction },
       { ...cfg.enemy, faction: enemyFaction },
@@ -250,6 +352,10 @@ export const useGame = defineStore('game', () => {
       title: 'Trận đấu tự do',
       lines: [`Hai bên cùng xuất phát với đủ ${ARCH_ORDER.length} loại quân của tộc mình. Phá tượng máy để thắng!`],
       matchup: [st.faction, enemyFaction],
+      pickFaction: (id) => {
+        chooseFaction(id);
+        startSkirmish(diff, enemyFaction);
+      },
       buttons: [
         { label: '⚔️ Vào trận', primary: true, action: () => begin(s) },
         { label: 'Về menu', action: toMenu },
@@ -385,9 +491,15 @@ export const useGame = defineStore('game', () => {
     train,
     trainSlot,
     setStance,
+    flagMode,
+    buildMode,
+    toggleFlagMode,
+    cancelPlacing,
+    placeAt,
     setFormation,
     cycleFormation,
-    toggleCenterMine,
+    setMineSplit,
+    cycleMinePreset,
     toggleSpeed,
     startCampaign,
     startSkirmish,

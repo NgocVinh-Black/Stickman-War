@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { getStats, listAccounts, logout, state, type AccountPage, type Sort, type Stats } from '../api';
-import AccountDrawer from './AccountDrawer.vue';
-import AccountsTable from './AccountsTable.vue';
-import Avatar from './Avatar.vue';
-import StatsCards from './StatsCards.vue';
+import { getStats, listAccounts, logout, state, type AccountPage, type Sort, type Stats } from '../lib/api';
+import AccountDrawer from '../components/AccountDrawer.vue';
+import AccountsTable from '../components/AccountsTable.vue';
+import Avatar from '../components/Avatar.vue';
+import StatsCards from '../components/StatsCards.vue';
 
 const SORTS: { id: Sort; label: string }[] = [
   { id: 'createdAt', label: 'Mới đăng ký' },

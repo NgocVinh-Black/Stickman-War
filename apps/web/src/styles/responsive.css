@@ -1,0 +1,77 @@
+/* Điện thoại: thu gọn thanh trên / dưới */
+
+/* Điện thoại: thu gọn thanh trên/dưới */
+@media (max-width: 720px) {
+  .topbar {
+    gap: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .level-name span {
+    display: none;
+  }
+  .stat {
+    padding: 4px 6px;
+  }
+  .stat b {
+    font-size: 15px;
+  }
+  .stat small {
+    display: none;
+  }
+  .controls {
+    gap: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .unit-btn {
+    width: 54px;
+    height: 62px;
+  }
+  .unit-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .stances {
+    gap: 4px;
+  }
+  .stance-btn {
+    width: 48px;
+  }
+  .stance-btn small {
+    display: none;
+  }
+}
+@media (max-height: 460px) {
+  .topbar {
+    padding-top: max(3px, env(safe-area-inset-top));
+    padding-bottom: 3px;
+  }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .controls {
+    padding-top: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+  .minimap {
+    height: 22px;
+  }
+  .unit-btn {
+    height: 56px;
+  }
+  .unit-icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

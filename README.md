@@ -36,9 +36,9 @@ Chuyển dữ liệu bản cũ (file `data/wallets.json`, `data/accounts.json`) 
 ```
 packages/core/src/      Lõi game (không DOM, không Node)
   units.ts              khung quân gốc, sinh 96 loại quân cho 8 tộc, bảng khắc chế, kỳ cựu
-  factions.ts           dữ liệu 8 tộc: nội tại, khắc tộc, tên / chỉ số / hình dáng từng quân
+  factions.ts           dữ liệu 8 tộc: nội tại, điểm yếu, cách đánh bại, tên / chỉ số / hình dáng từng quân
   world.ts              mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, tháp, triệu hồi
-  ai.ts, levels.ts      AI và 8 màn chiến dịch × 3 độ khó
+  ai.ts, levels.ts      AI và 16 màn chiến dịch × 3 độ khó
   protocol.ts           tin nhắn WebSocket, ảnh chụp trạng thái
 apps/web/src/
   views/                LoginView, LobbyView (+ lobby/*Tab.vue), GameView, RoomView
@@ -46,12 +46,23 @@ apps/web/src/
   stores/               Pinia: settings, ui, game (phiên chơi + HUD), online (kết nối, phòng, kèo)
   game/                 match (trận cục bộ / online), session (vòng lặp), camera, render/ (Canvas)
   net/                  account (đăng nhập Google), remote (client WebSocket), voice (WebRTC)
-apps/server/src/
-  game/                 lobby.service (phòng, ghép trận, chạy trận 30 tick/s, kèo, chat, thoại), game.gateway (WebSocket)
-  api/                  api.controller (config, auth/google, me, leaderboard, health), zod.pipe
-  accounts/, wallets/   tài khoản + Elo + lịch sử, ví xu (cache trong bộ nhớ, ghi dồn xuống DB)
-  store/                kho dữ liệu: Prisma (Postgres) và bộ nhớ (test)
+  lib/                  sound, storage, guide, faction (đổi tộc)
+  styles/               index.css import theo thứ tự: base, menu, game, dialog, responsive, … lobby, login
+apps/server/src/        mỗi tính năng một module Nest (*.module.ts), AppModule chỉ ghép lại
+  common/               tokens (DI + ServerOptions), zod.pipe, bearer
+  database/             DatabaseModule: kho Prisma (Postgres) hoặc kho bộ nhớ (test)
+  accounts/, wallets/   tài khoản + Elo + lịch sử + /api/leaderboard; ví xu (cache bộ nhớ, ghi dồn xuống DB)
+  auth/                 đăng nhập Google, /api/config, /api/me, /api/logout
+  game/                 lobby.service (phòng, ghép trận, chạy trận 30 tick/s, chat, thoại), room (kiểu + hằng số),
+                        bets (chia quỹ kèo), game.gateway (WebSocket)
+  admin/                API trang admin /api/admin/* (chỉ đọc)
+  health/               /health
   prisma/schema.prisma  bảng Account, Session, Wallet, MatchRecord
+apps/admin/src/
+  views/                LoginView, DashboardView
+  components/           StatsCards, AccountsTable, AccountDrawer, Avatar
+  lib/                  api (gọi /api/admin + phiên), google, format
+  styles/               admin.css
 ```
 
 Máy chủ chạy chính bộ mô phỏng `packages/core` (server-authoritative): client chỉ gửi lệnh và vẽ lại ảnh chụp trạng thái 15 lần/giây.
@@ -59,7 +70,7 @@ NestJS được đóng gói bằng esbuild (tsup / tsx) nên mọi phụ thuộc
 
 ## Chế độ chơi
 
-- **Chơi đơn**: chiến dịch 8 màn ở 3 mức Dễ / Thường / Khó (mỗi màn một tộc địch), đấu với máy (máy chọn tộc ngẫu nhiên).
+- **Chơi đơn**: chiến dịch 16 màn ở 3 mức Dễ / Thường / Khó (tộc địch mỗi màn xáo ngẫu nhiên, mỗi 8 màn gặp đủ 8 tộc), đấu với máy (máy chọn tộc ngẫu nhiên).
 - **Online 1v1**: tìm trận nhanh, hoặc tạo phòng gửi mã / link `?room=MÃ`. Phòng chờ có 2 ghế, người xem, luật phòng, chat, kèo.
 - **Đấu trường**: danh sách phòng đang mở (chơi / xem) và bảng xếp hạng Elo.
 - **Bắt kèo**: người xem cược xu ảo 🪙 (không phải tiền thật) trong 60 giây đầu trận.

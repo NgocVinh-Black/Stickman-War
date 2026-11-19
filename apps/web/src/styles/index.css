@@ -1,0 +1,13 @@
+/* Toàn bộ CSS của web, import đúng thứ tự (file sau ghi đè file trước khi trùng độ ưu tiên). */
+@import './base.css';
+@import './menu.css';
+@import './game.css';
+@import './dialog.css';
+@import './responsive.css';
+@import './lobby-tabs.css';
+@import './online.css';
+@import './room.css';
+@import './faction.css';
+@import './home.css';
+@import './lobby.css';
+@import './login.css';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CAMPAIGN, FACTIONS, LEVELS, counteredBy } from '@stickman-war/core';
+import { CAMPAIGN, FACTIONS, LEVELS } from '@stickman-war/core';
 import { computed } from 'vue';
 import { auth } from '../../net/account';
 import { useGame } from '../../stores/game';
@@ -12,7 +12,7 @@ const settings = useSettings();
 const game = useGame();
 const ui = useUi();
 const f = computed(() => FACTIONS[settings.faction]);
-const enemy = computed(() => FACTIONS[LEVELS[settings.nextLevel].enemyFaction ?? 'tribe']);
+const enemy = computed(() => FACTIONS[settings.enemyFactions[settings.nextLevel]]);
 const total = LEVELS.length * 3;
 </script>
 
@@ -40,12 +40,7 @@ const total = LEVELS.length * 3;
     <button class="lb-quest" @click="ui.show({ kind: 'faction' })">
       <span class="check">{{ f.icon }}</span>
       <span>
-        {{ f.name }}: khắc <b class="good">{{ f.counters.map((x) => FACTIONS[x].icon).join(' ') }}</b>, sợ
-        <b class="bad">{{
-          counteredBy(settings.faction)
-            .map((x) => FACTIONS[x].icon)
-            .join(' ')
-        }}</b>
+        Tộc của bạn: <b>{{ f.name }}</b>
       </span>
     </button>
     <button class="lb-quest" @click="emit('go', 'account')">

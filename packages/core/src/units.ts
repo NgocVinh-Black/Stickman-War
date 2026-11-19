@@ -6,7 +6,7 @@ export type Arch =
   'miner' | 'sword' | 'archer' | 'ninja' | 'spear' | 'cavalry' | 'healer' | 'banner' | 'mage' | 'catapult' | 'giant' | 'builder' | 'tower';
 /** Mã loại quân: Bộ Lạc dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
 export type UnitKind = string;
-export type Stance = 'defend' | 'attack' | 'garrison';
+export type Stance = 'defend' | 'attack' | 'garrison' | 'hold';
 export type Formation = 'free' | 'line' | 'spread' | 'wedge' | 'wall';
 
 /** Kiểu đòn đánh: quyết định hệ số sát thương lên từng kiểu giáp (bảng DAMAGE_TABLE). */

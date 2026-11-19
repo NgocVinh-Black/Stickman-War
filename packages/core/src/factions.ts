@@ -61,7 +61,8 @@ export type FactionDef = {
   color: string; // màu chủ đạo cho giao diện
   desc: string;
   passive: string;
-  counters: FactionId[]; // gây thêm sát thương lên các tộc này
+  weakness: string; // điểm yếu
+  beat: string; // cách đánh bại tộc này bằng quân và chiến thuật
   head: Head;
   ink?: string;
   // Chỉ số chung
@@ -83,9 +84,6 @@ export type FactionDef = {
   units: Record<Arch, UnitDef>;
 };
 
-/** Khắc tộc: +20% sát thương lên tộc bị khắc. Mỗi tộc khắc 2 tộc và bị 2 tộc khắc. */
-export const FACTION_COUNTER_MULT = 1.2;
-
 export const FACTIONS: Record<FactionId, FactionDef> = {
   tribe: {
     id: 'tribe',
@@ -94,10 +92,12 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     color: '#3e8bff',
     desc: 'Cân bằng, dễ chơi, đủ mọi loại quân.',
     passive: 'Kỷ luật: quân rẻ hơn 10%, lên sao kỳ cựu nhanh hơn (1 / 3 / 6 mạng).',
-    counters: ['orc', 'undead'],
+    weakness: 'Quân non: máu -5%. Chưa lên sao thì thua quân tinh nhuệ.',
+    beat: 'Đánh sớm bằng quân trâu (giáo binh, khổng lồ) trước khi lính họ lên sao; hạ lính lẻ, đừng để họ gom mạng.',
     head: 'tribe',
     rankKills: [1, 3, 6],
     costMult: 0.9,
+    hpMult: 0.95,
     units: {
       miner: { name: 'Thợ mỏ', desc: 'Đào vàng nuôi quân. Chết thì rơi túi vàng đang mang' },
       sword: { name: 'Kiếm sĩ', desc: 'Cận chiến nhanh, rẻ' },
@@ -121,13 +121,15 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     icon: '🧌',
     color: '#5f9e3a',
     desc: 'Quân to xác, rẻ, trâu bò nhưng chậm.',
-    passive: 'Da dày: +20% máu, +5% sát thương nhưng chậm hơn 10%.',
-    counters: ['elf', 'samurai'],
+    passive: 'Da dày: +20% máu, +5% sát thương.',
+    weakness: 'Chậm hơn 10%, quân bắn xa tầm ngắn hơn 10%: dễ bị thả diều.',
+    beat: 'Thả diều: cung thủ, pháp sư đứng sau tường khiên, cắm cờ lùi dần để bắn; giáo binh chặn kỵ sói.',
     head: 'orc',
     ink: '#2f4a22',
     hpMult: 1.2,
     damageMult: 1.05,
     speedMult: 0.9,
+    rangeMult: 0.9,
     units: {
       miner: {
         name: 'Goblin đào vàng',
@@ -179,8 +181,9 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     icon: '🌳',
     color: '#2fbf71',
     desc: 'Bắn xa, tự hồi máu, mỏng manh khi bị áp sát.',
-    passive: 'Sức sống rừng: hồi 2 máu/giây khi 4 giây không bị đánh. Quân bắn xa +8% tầm. Máu -15%.',
-    counters: ['undead', 'viking'],
+    passive: 'Sức sống rừng: hồi 2 máu/giây khi 4 giây không bị đánh. Quân bắn xa +8% tầm.',
+    weakness: 'Máu -15%: sợ phép nổ diện rộng và quân lao vào hàng sau.',
+    beat: 'Pháp sư, máy bắn đá đánh vào cụm; kỵ binh, ninja lao thẳng vào hàng cung; đánh liên tục, không cho họ nghỉ để hồi máu.',
     head: 'leafhood',
     hpMult: 0.85,
     regen: 2,
@@ -240,11 +243,13 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     icon: '💀',
     color: '#9a8fbf',
     desc: 'Quân rẻ, yếu, rất đông. Càng giết càng giàu.',
-    passive: 'Thu hồn: hạ quân địch nhận 25% giá của nó. Quân rẻ hơn 15% nhưng yếu hơn 15%.',
-    counters: ['samurai', 'desert'],
+    passive: 'Thu hồn: hạ quân địch nhận 25% giá của nó. Quân rẻ hơn 15%.',
+    weakness: 'Máu -15%, sát thương -10%: đánh tay đôi thua.',
+    beat: 'Tường khiên với quân trâu, đừng để quân mình chết lẻ (mỗi mạng là vàng cho họ); quân yếu thì rút về hồi máu.',
     head: 'skull',
     ink: '#3b3b44',
     hpMult: 0.85,
+    damageMult: 0.9,
     costMult: 0.85,
     bounty: 0.25,
     units: {
@@ -305,11 +310,13 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     color: '#e5484d',
     desc: 'Chiến binh tinh nhuệ, ra đòn nhanh và chí mạng.',
     passive: 'Nhất kích: nhát chém cận chiến đầu tiên vào mỗi mục tiêu mới gây ×2.6 sát thương. Đánh nhanh hơn 15%.',
-    counters: ['viking', 'steam'],
+    weakness: 'Quân đắt hơn 10%, máu -5%: ít quân, đòn mạnh chỉ có ở nhát đầu.',
+    beat: 'Cho quân giáp dày (giáo binh, khổng lồ) đỡ nhát đầu; dùng số đông quân rẻ và bắn xa để tiêu hao.',
     head: 'kabuto',
     firstStrike: 2.6,
     cooldownMult: 0.85,
     hpMult: 0.95,
+    costMult: 1.1,
     units: {
       miner: { name: 'Nông dân', desc: 'Đội nón lá đi đào vàng', look: { head: 'kasa', weapon: 'pick' } },
       sword: { name: 'Samurai', desc: 'Katana chém ngọt', look: { weapon: 'katana' } },
@@ -340,10 +347,12 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     color: '#38bdf8',
     desc: 'Cận chiến hung bạo, càng đau càng điên.',
     passive: 'Cuồng nộ: quân càng mất máu càng đánh đau, tới +80% sát thương.',
-    counters: ['desert', 'tribe'],
+    weakness: 'Giáp -10%: lúc còn khoẻ đánh yếu, dễ bị dồn sát thương hạ nhanh.',
+    beat: 'Dồn sát thương hạ dứt điểm từng con (pháp sư, ninja, nhiều cung); đừng để quân họ máu thấp đánh lâu.',
     head: 'horned',
     rage: 0.8,
     hpMult: 1.05,
+    armorAdd: -0.1,
     units: {
       miner: { name: 'Nô lệ Viking', desc: 'Biết cầm cuốc đánh trả', damage: 12, hp: 100, look: { weapon: 'pick' } },
       sword: { name: 'Chiến binh rìu', desc: 'Rìu chém xuyên giáp nhẹ', damage: 20, hp: 130, look: { weapon: 'axe' } },
@@ -398,10 +407,12 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     color: '#f2c230',
     desc: 'Giàu vàng, tượng vững, có chiến xa và tư tế mặt trời.',
     passive: 'Vàng sa mạc: thợ mỏ mang về +25% vàng. Tượng +25% máu.',
-    counters: ['steam', 'orc'],
+    weakness: 'Quân đánh yếu hơn 10%.',
+    beat: 'Tấn công sớm và quấy thợ mỏ (nhất là mỏ kim cương) trước khi họ giàu lên.',
     head: 'nemes',
     mineMult: 1.25,
     statueMult: 1.25,
+    damageMult: 0.9,
     units: {
       miner: { name: 'Thợ đá', desc: 'Mang về nhiều vàng', look: { weapon: 'pick' } },
       sword: { name: 'Lính Khopesh', desc: 'Đao cong móc khiên', look: { weapon: 'khopesh' } },
@@ -437,8 +448,9 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
     icon: '⚙️',
     color: '#9ca3af',
     desc: 'Giáp sắt, súng và đại bác. Đắt và chậm.',
-    passive: 'Thép: mọi quân +15% giáp. Đắt hơn 10%, chậm hơn 10%.',
-    counters: ['tribe', 'elf'],
+    passive: 'Thép: mọi quân +15% giáp.',
+    weakness: 'Đắt hơn 10%, chậm hơn 10%: ít quân, chậm bù quân.',
+    beat: 'Pháp sư (phép đốt giáp nặng), đông quân rẻ vây đánh; quấy thợ mỏ vì họ khó bù quân.',
     head: 'goggles',
     armorAdd: 0.15,
     costMult: 1.1,
@@ -487,5 +499,3 @@ export const FACTIONS: Record<FactionId, FactionDef> = {
 };
 
 export const FACTION_ORDER: FactionId[] = ['tribe', 'orc', 'elf', 'undead', 'samurai', 'viking', 'desert', 'steam'];
-
-export const counteredBy = (f: FactionId): FactionId[] => FACTION_ORDER.filter((x) => FACTIONS[x].counters.includes(f));

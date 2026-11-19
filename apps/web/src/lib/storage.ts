@@ -21,7 +21,8 @@ export function save(key: string, value: unknown): void {
   }
 }
 
-export type Progress = { unlocked: number; stars: number[]; completed?: boolean };
+/** seed: thứ tự tộc địch của chiến dịch ở mức khó này (xáo một lần, giữ cố định để chơi lại màn vẫn gặp đúng tộc đó). */
+export type Progress = { unlocked: number; stars: number[]; completed?: boolean; seed?: number };
 
 /** Mã ví xu bắt kèo: sinh một lần, máy chủ giữ số dư theo mã này. */
 export function walletId(): string {

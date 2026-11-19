@@ -15,10 +15,11 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import { accountWallet } from '../accounts/accounts.service';
-import { ZodPipe } from '../api/zod.pipe';
+import { bearer } from '../common/bearer';
+import { ZodPipe } from '../common/zod.pipe';
 import { LobbyService } from '../game/lobby.service';
-import { ACCOUNT_SORTS, type AccountStore } from '../store/types';
-import { ACCOUNT_STORE } from '../tokens';
+import { ACCOUNT_SORTS, type AccountStore } from '../database/store.types';
+import { ACCOUNT_STORE } from '../common/tokens';
 import { WalletsService } from '../wallets/wallets.service';
 import { AdminService, type AdminWho } from './admin.service';
 
@@ -29,8 +30,6 @@ const ListQuery = z.object({
   sort: z.enum(ACCOUNT_SORTS).optional().default('createdAt'),
   page: z.coerce.number().int().min(1).max(10_000).optional().default(1),
 });
-
-const bearer = (header?: string) => /^Bearer (\S+)$/.exec(header ?? '')?.[1] ?? '';
 
 /** API trang admin: chỉ đọc (danh sách tài khoản, chi tiết, thống kê). */
 @Controller('api/admin')

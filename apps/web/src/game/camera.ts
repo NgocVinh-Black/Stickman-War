@@ -1,20 +1,41 @@
 import { WORLD_WIDTH } from '@stickman-war/core';
 import type { Renderer } from './render/renderer';
 
-/** Kéo màn hình, lăn chuột, chạm bản đồ nhỏ để di chuyển góc nhìn. Trả về hàm gỡ sự kiện. */
-export function bindCamera(view: HTMLCanvasElement, mini: HTMLCanvasElement, renderer: () => Renderer | null): () => void {
-  let drag: { x: number; cam: number } | null = null;
+// Nhấc tay khi mới kéo chưa quá chừng này px thì tính là chạm (không phải kéo màn hình)
+const TAP_SLOP = 8;
+
+/**
+ * Kéo màn hình, lăn chuột, chạm bản đồ nhỏ để di chuyển góc nhìn. Trả về hàm gỡ sự kiện.
+ * onTap(x): chạm (không kéo) vào chiến trường hoặc bản đồ nhỏ tại toạ độ x; trả về true nếu đã xử lý
+ * (vd. cắm cờ), khi đó chạm bản đồ nhỏ không lia góc nhìn nữa.
+ */
+export function bindCamera(
+  view: HTMLCanvasElement,
+  mini: HTMLCanvasElement,
+  renderer: () => Renderer | null,
+  onTap: (x: number) => boolean = () => false,
+): () => void {
+  let drag: { x: number; cam: number; moved: number } | null = null;
   const down = (e: PointerEvent) => {
     const r = renderer();
     if (!r) return;
-    drag = { x: e.clientX, cam: r.camX };
+    drag = { x: e.clientX, cam: r.camX, moved: 0 };
     view.setPointerCapture(e.pointerId);
   };
   const move = (e: PointerEvent) => {
     const r = renderer();
-    if (drag && r) r.setCamera(drag.cam - (e.clientX - drag.x) / r.scale);
+    if (!drag || !r) return;
+    drag.moved = Math.max(drag.moved, Math.abs(e.clientX - drag.x));
+    r.setCamera(drag.cam - (e.clientX - drag.x) / r.scale);
   };
-  const up = () => (drag = null);
+  const up = (e: PointerEvent) => {
+    const r = renderer();
+    if (drag && r && e.type === 'pointerup' && drag.moved < TAP_SLOP) {
+      const rect = view.getBoundingClientRect();
+      onTap(r.camX + (e.clientX - rect.left) / r.scale);
+    }
+    drag = null;
+  };
   const wheel = (e: WheelEvent) => {
     const r = renderer();
     if (!r) return;
@@ -30,6 +51,8 @@ export function bindCamera(view: HTMLCanvasElement, mini: HTMLCanvasElement, ren
     r.centerOn(((e.clientX - rect.left) / rect.width) * WORLD_WIDTH);
   };
   const miniDown = (e: PointerEvent) => {
+    const rect = mini.getBoundingClientRect();
+    if (onTap(((e.clientX - rect.left) / rect.width) * WORLD_WIDTH)) return;
     miniDrag = true;
     mini.setPointerCapture(e.pointerId);
     jump(e);

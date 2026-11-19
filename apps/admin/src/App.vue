@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { restore, state } from './api';
-import Dashboard from './components/Dashboard.vue';
-import LoginScreen from './components/LoginScreen.vue';
+import { restore, state } from './lib/api';
+import DashboardView from './views/DashboardView.vue';
+import LoginView from './views/LoginView.vue';
 
 const ready = ref(false);
 onMounted(async () => {
@@ -13,7 +13,7 @@ onMounted(async () => {
 
 <template>
   <template v-if="ready">
-    <Dashboard v-if="state.who" />
-    <LoginScreen v-else />
+    <DashboardView v-if="state.who" />
+    <LoginView v-else />
   </template>
 </template>

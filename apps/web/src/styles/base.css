@@ -1,0 +1,87 @@
+/* Biến màu, nền, chữ, nút dùng chung */
+
+:root {
+  --bg: #1b1d24;
+  --panel: rgba(22, 25, 34, 0.86);
+  --panel-2: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.12);
+  --text: #f3f1ea;
+  --muted: #b3ad9f;
+  --gold: #ffcf3f;
+  --gold-ink: #3a2a00;
+  --ally: #3e8bff;
+  --enemy: #e5484d;
+  font-family:
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    Roboto,
+    sans-serif;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  user-select: none;
+  touch-action: none;
+}
+
+#app {
+  height: 100dvh;
+  position: relative;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+.btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  transition:
+    transform 0.1s,
+    background 0.15s;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--gold);
+  border-color: transparent;
+  color: var(--gold-ink);
+  box-shadow: 0 4px 0 #b88a00;
+}
+.btn-primary:hover {
+  background: #ffd95f;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+kbd {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-family: inherit;
+}

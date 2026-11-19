@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Stats } from '../api';
-import { fmtNum } from '../format';
+import type { Stats } from '../lib/api';
+import { fmtNum } from '../lib/format';
 
 const props = defineProps<{ stats: Stats | null }>();
 

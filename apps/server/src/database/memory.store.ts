@@ -1,6 +1,15 @@
 import type { FactionId, MatchRecord } from '@stickman-war/core';
 import type { GoogleProfile } from '../auth/google-auth';
-import type { AccountQuery, AccountRow, AccountStore, AdminAccountRow, AdminSession, AdminStats, MatchEntry, WalletStore } from './types';
+import type {
+  AccountQuery,
+  AccountRow,
+  AccountStore,
+  AdminAccountRow,
+  AdminSession,
+  AdminStats,
+  MatchEntry,
+  WalletStore,
+} from './store.types';
 
 const DAY = 86_400_000;
 

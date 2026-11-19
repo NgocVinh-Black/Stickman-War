@@ -5,7 +5,7 @@ import { WebSocket } from 'ws';
 import { AccountsService } from '../src/accounts/accounts.service';
 import { verifyGoogleIdToken } from '../src/auth/google-auth';
 import { startGameServer } from '../src/bootstrap';
-import { MemoryAccountStore, MemoryWalletStore } from '../src/store/memory.store';
+import { MemoryAccountStore, MemoryWalletStore } from '../src/database/memory.store';
 
 const CLIENT = 'test-client.apps.googleusercontent.com';
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });

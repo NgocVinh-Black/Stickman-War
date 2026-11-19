@@ -4,10 +4,13 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import BetPanel from '../components/BetPanel.vue';
 import BgBattle from '../components/BgBattle.vue';
+import FactionRow from '../components/FactionRow.vue';
+import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { useOnline } from '../stores/online';
+import { useSettings } from '../stores/settings';
 
-/** Phòng chờ: luật phòng, 2 ghế, người xem, kèo, chat; chủ phòng bấm Bắt đầu. */
+/** Phòng chờ: luật phòng, 2 ghế (mỗi người tự chọn tộc, không thấy tộc đối thủ), người xem, kèo, chat; chủ phòng bấm Bắt đầu. */
 const online = useOnline();
 const router = useRouter();
 const wait = computed(() => online.wait);
@@ -15,6 +18,12 @@ const you = computed(() => wait.value?.you);
 const full = computed(() => !!wait.value?.seats.every((x) => x));
 const allReady = computed(() => full.value && !!wait.value?.seats.every((x) => x!.ready));
 const players = computed<[string, string]>(() => [wait.value?.seats[0]?.name ?? '…', wait.value?.seats[1]?.name ?? '…']);
+const settings = useSettings();
+/** Tộc ở ghế t: máy chủ giấu tộc đối thủ với người chơi (chỉ người xem thấy cả hai). */
+const factionOf = (t: Team) => {
+  const f = wait.value?.seats[t]?.faction;
+  return f ? FACTIONS[f] : { icon: '❓', name: 'Tộc bí mật' };
+};
 const myReady = computed(() => (you.value?.seat != null ? !!wait.value?.seats[you.value.seat]?.ready : false));
 const chatText = ref('');
 const log = ref<HTMLElement>();
@@ -116,13 +125,12 @@ watch(wait, (w) => !w && void router.replace('/'));
             >
               ✕
             </button>
-            <span class="seat-name">
-              {{ FACTIONS[wait.seats[t]!.faction]?.icon }} {{ wait.seats[t]!.name }}<small v-if="you.seat === t"> (bạn)</small>
-            </span>
+            <span class="seat-name"> {{ factionOf(t).icon }} {{ wait.seats[t]!.name }}<small v-if="you.seat === t"> (bạn)</small> </span>
             <small>
-              {{ FACTIONS[wait.seats[t]!.faction]?.name }} ·
+              {{ factionOf(t).name }} ·
               {{ wait.seats[t]!.host ? '👑 Chủ phòng' : wait.seats[t]!.ready ? '✅ Sẵn sàng' : '⏳ Chưa sẵn sàng' }}
             </small>
+            <FactionRow v-if="you.seat === t" class="seat-factions" :model-value="settings.faction" @update:model-value="chooseFaction" />
           </div>
         </template>
       </div>

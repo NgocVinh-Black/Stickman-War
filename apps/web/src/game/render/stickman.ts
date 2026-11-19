@@ -10,6 +10,8 @@ export type StickPose = {
   carrying: boolean;
   /** Đang vác kim cương từ mỏ giữa (thay cho túi vàng). */
   gem?: boolean;
+  /** Đang vác quặng bạc từ mỏ bạc (túi màu bạc thay cho túi vàng). */
+  silver?: boolean;
   ink: string;
   accent: string;
   flash: boolean;
@@ -210,7 +212,7 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
     ctx.fill();
     ctx.fillStyle = ink;
   } else if (p.carrying) {
-    ctx.fillStyle = '#e8b830';
+    ctx.fillStyle = p.silver ? '#cfd6de' : '#e8b830';
     ctx.beginPath();
     ctx.arc(shoulder.x - 7, shoulder.y - 2, 5.5, 0, Math.PI * 2);
     ctx.fill();
