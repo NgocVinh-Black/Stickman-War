@@ -1,4 +1,5 @@
 import type { FactionId } from '@stickman-war/core';
+import { night } from './palette';
 
 /**
  * Tượng nhà của từng nền văn minh: một công trình đặc trưng (không phải lính mặc đồ tộc).
@@ -8,6 +9,9 @@ import type { FactionId } from '@stickman-war/core';
 export type MonumentColors = { stone: string; dark: string; glow: string };
 
 type Ctx = CanvasRenderingContext2D;
+
+/** Màu gốc của chi tiết công trình chìm vào bóng đêm (đốm sáng, lửa giữ nguyên để toả sáng). */
+const n = (c: string) => night(c, 0.58);
 
 function poly(ctx: Ctx, pts: [number, number][], fill: string): void {
   ctx.fillStyle = fill;
@@ -78,13 +82,13 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [0, -160],
         [-7, -150],
       ],
-      '#dfe4ea',
+      n('#dfe4ea'),
     );
-    ctx.fillStyle = '#aeb6c2';
+    ctx.fillStyle = n('#aeb6c2');
     ctx.fillRect(-1, -150, 2, 108);
-    ctx.fillStyle = '#7a5a2a';
+    ctx.fillStyle = n('#7a5a2a');
     ctx.fillRect(-30, -152, 60, 9);
-    ctx.fillStyle = '#5a3e1c';
+    ctx.fillStyle = n('#5a3e1c');
     ctx.fillRect(-4, -178, 8, 26);
     circle(ctx, 0, -182, 7, c.glow);
   },
@@ -106,7 +110,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
           [-10, y - 14],
           [-12, y - 2],
         ],
-        '#f5efe0',
+        n('#f5efe0'),
       );
       poly(
         ctx,
@@ -115,7 +119,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
           [14, y - 14],
           [12, y - 2],
         ],
-        '#f5efe0',
+        n('#f5efe0'),
       );
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(-12, y - 20, 24, 4);
@@ -128,7 +132,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [-40, -176],
         [-14, -150],
       ],
-      '#efe3c6',
+      n('#efe3c6'),
     );
     poly(
       ctx,
@@ -137,13 +141,13 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [40, -176],
         [14, -150],
       ],
-      '#efe3c6',
+      n('#efe3c6'),
     );
   },
 
   /** Forest Elves: cây thiêng tán xanh, đốm sáng bay. */
   elf(ctx, c, t) {
-    ctx.fillStyle = '#6b4a2b';
+    ctx.fillStyle = n('#6b4a2b');
     ctx.beginPath();
     ctx.moveTo(-26, 0);
     ctx.quadraticCurveTo(-8, -30, -10, -90);
@@ -152,11 +156,11 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.closePath();
     ctx.fill();
     for (const [x, y, r, col] of [
-      [-30, -110, 32, '#3f7a3a'],
-      [28, -112, 30, '#3f7a3a'],
-      [0, -140, 36, '#4f9a45'],
-      [-18, -160, 22, '#62b052'],
-      [20, -158, 22, '#62b052'],
+      [-30, -110, 32, n('#3f7a3a')],
+      [28, -112, 30, n('#3f7a3a')],
+      [0, -140, 36, n('#4f9a45')],
+      [-18, -160, 22, n('#62b052')],
+      [20, -158, 22, n('#62b052')],
     ] as [number, number, number, string][])
       circle(ctx, x, y, r, col);
     for (let i = 0; i < 6; i++) glowDot(ctx, -34 + i * 14, -120 - ((i * 23) % 50), 3, '#eaffb0', t, i * 1.3);
@@ -178,12 +182,12 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.fillRect(-4, -110, 8, 70);
     ctx.fillRect(-20, -92, 40, 8);
     // đầu lâu
-    circle(ctx, 0, -150, 22, '#eee8d8');
-    ctx.fillStyle = '#eee8d8';
+    circle(ctx, 0, -150, 22, n('#eee8d8'));
+    ctx.fillStyle = n('#eee8d8');
     ctx.fillRect(-12, -136, 24, 14);
     glowDot(ctx, -8, -152, 5, '#a855f7', t);
     glowDot(ctx, 8, -152, 5, '#a855f7', t, 1);
-    ctx.fillStyle = '#3a3030';
+    ctx.fillStyle = n('#3a3030');
     for (let i = -2; i <= 2; i++) ctx.fillRect(i * 5 - 1, -130, 2, 7);
   },
 
@@ -191,7 +195,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   samurai(ctx, c) {
     plinth(ctx, c, 40, 14);
     const roof = (y: number, w: number) => {
-      ctx.fillStyle = '#7a2b22';
+      ctx.fillStyle = n('#7a2b22');
       ctx.beginPath();
       ctx.moveTo(-w - 10, y + 4);
       ctx.quadraticCurveTo(-w * 0.5, y - 4, 0, y - 16);
@@ -213,9 +217,9 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
       ctx.fillRect(-6, y - 26, 12, 26);
       roof(y - 40, w);
     }
-    ctx.fillStyle = '#d4a017';
+    ctx.fillStyle = n('#d4a017');
     ctx.fillRect(-2, -190, 4, 34);
-    circle(ctx, 0, -192, 4, '#d4a017');
+    circle(ctx, 0, -192, 4, n('#d4a017'));
   },
 
   /** Storm Raiders: đá khắc rune, đội mũ sừng. */
@@ -246,14 +250,14 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.stroke();
     ctx.globalAlpha = 1;
     // mũ sừng
-    ctx.fillStyle = '#9aa3ad';
+    ctx.fillStyle = n('#9aa3ad');
     ctx.beginPath();
     ctx.arc(0, -132, 26, Math.PI, 0);
     ctx.fill();
-    ctx.fillStyle = '#6b7480';
+    ctx.fillStyle = n('#6b7480');
     ctx.fillRect(-28, -134, 56, 8);
     for (const s of [-1, 1]) {
-      ctx.strokeStyle = '#efe3c6';
+      ctx.strokeStyle = n('#efe3c6');
       ctx.lineWidth = 8;
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -310,24 +314,24 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.fillRect(-28, -104, 56, 8);
     ctx.fillRect(-28, -20, 56, 8);
     // ống khói + khói
-    ctx.fillStyle = '#3f444c';
+    ctx.fillStyle = n('#3f444c');
     ctx.fillRect(14, -160, 14, 52);
     for (let i = 0; i < 3; i++) {
       const k = (t * 0.5 + i / 3) % 1;
       ctx.globalAlpha = 0.45 * (1 - k);
-      circle(ctx, 21 + k * 18, -166 - k * 40, 7 + k * 10, '#8a8a8a');
+      circle(ctx, 21 + k * 18, -166 - k * 40, 7 + k * 10, n('#8a8a8a'));
     }
     ctx.globalAlpha = 1;
     // bánh răng
     ctx.save();
     ctx.translate(-4, -62);
     ctx.rotate(t * 0.8);
-    ctx.fillStyle = '#b08a3a';
+    ctx.fillStyle = n('#b08a3a');
     for (let i = 0; i < 8; i++) {
       ctx.rotate(Math.PI / 4);
       ctx.fillRect(-5, -30, 10, 10);
     }
-    circle(ctx, 0, 0, 22, '#c99a3e');
+    circle(ctx, 0, 0, 22, n('#c99a3e'));
     circle(ctx, 0, 0, 8, c.dark);
     ctx.restore();
   },
@@ -347,7 +351,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
       c.dark,
     );
     // đe
-    ctx.fillStyle = '#4b4f57';
+    ctx.fillStyle = n('#4b4f57');
     ctx.fillRect(-18, -80, 36, 26);
     poly(
       ctx,
@@ -357,7 +361,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [26, -82],
         [-28, -82],
       ],
-      '#5d626b',
+      n('#5d626b'),
     );
     poly(
       ctx,
@@ -366,12 +370,12 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [54, -98],
         [36, -92],
       ],
-      '#5d626b',
+      n('#5d626b'),
     );
     // búa dựng
-    ctx.fillStyle = '#6b4a2b';
+    ctx.fillStyle = n('#6b4a2b');
     ctx.fillRect(-4, -170, 8, 68);
-    ctx.fillStyle = '#7d828b';
+    ctx.fillStyle = n('#7d828b');
     ctx.fillRect(-20, -180, 40, 22);
     glowDot(ctx, -18, -30, 4, '#ffb347', t);
     glowDot(ctx, 4, -40, 4, '#ffb347', t, 1);
@@ -395,7 +399,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
       ctx.lineTo(i * 18, 0);
       ctx.stroke();
     }
-    ctx.fillStyle = '#d4a017';
+    ctx.fillStyle = n('#d4a017');
     ctx.fillRect(-3, -170, 6, 118);
     for (const x of [-18, 0, 18]) {
       poly(
@@ -405,7 +409,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
           [x, -184],
           [x + 4, -160],
         ],
-        '#d4a017',
+        n('#d4a017'),
       );
     }
     ctx.fillRect(-20, -164, 40, 6);
@@ -437,7 +441,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [-30, -178],
         [4, -142],
       ],
-      '#d9cbb0',
+      n('#d9cbb0'),
     );
     poly(
       ctx,
@@ -446,7 +450,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
         [-6, -184],
         [16, -140],
       ],
-      '#d9cbb0',
+      n('#d9cbb0'),
     );
     glowDot(ctx, 16, -124, 4, '#ffcc33', t);
     // lửa trong miệng

@@ -1,4 +1,5 @@
 import type { FactionId } from '@stickman-war/core';
+import { ENERGY, night, rgba } from './palette';
 
 /**
  * Tường thành có cổng của từng nền văn minh. Gốc (0, 0) ở chân tường, giữa bề dày; cao WALL_H, dày 2·HALF.
@@ -10,6 +11,9 @@ const GATE_W = 11;
 const GATE_H = 38;
 
 type Ctx = CanvasRenderingContext2D;
+
+/** Màu tường chìm vào bóng đêm; hoa văn phát sáng (lò rèn, san hô, dung nham…) giữ nguyên. */
+const n = (c: string) => night(c, 0.6);
 type Style = {
   body: string;
   dark: string;
@@ -64,18 +68,18 @@ function stakes(ctx: Ctx, color: string, tip: string): void {
 
 const STYLES: Record<FactionId, Style> = {
   tribe: {
-    body: '#9aa7b8',
-    dark: '#5d6a7c',
-    gate: '#7a5a2a',
+    body: n('#9aa7b8'),
+    dark: n('#5d6a7c'),
+    gate: n('#7a5a2a'),
     pattern: (ctx) => blocks(ctx, 6, 'rgba(0,0,0,0.18)'),
-    top: (ctx) => crenels(ctx, '#9aa7b8'),
+    top: (ctx) => crenels(ctx, n('#9aa7b8')),
   },
   orc: {
-    body: '#6b4a2b',
-    dark: '#3f2a18',
-    gate: '#4a2f18',
+    body: n('#6b4a2b'),
+    dark: n('#3f2a18'),
+    gate: n('#4a2f18'),
     pattern: (ctx) => {
-      ctx.fillStyle = '#efe3c6';
+      ctx.fillStyle = n('#efe3c6');
       for (let y = -60; y < -10; y += 16) {
         ctx.beginPath();
         ctx.moveTo(HALF, y);
@@ -84,14 +88,14 @@ const STYLES: Record<FactionId, Style> = {
         ctx.fill();
       }
     },
-    top: (ctx) => stakes(ctx, '#6b4a2b', '#d9cbb0'),
+    top: (ctx) => stakes(ctx, n('#6b4a2b'), n('#d9cbb0')),
   },
   elf: {
-    body: '#5b7f3a',
-    dark: '#3f5f28',
-    gate: '#6b4a2b',
+    body: n('#5b7f3a'),
+    dark: n('#3f5f28'),
+    gate: n('#6b4a2b'),
     pattern: (ctx) => {
-      ctx.strokeStyle = '#6b4a2b';
+      ctx.strokeStyle = n('#6b4a2b');
       ctx.lineWidth = 2;
       for (let x = -HALF + 4; x < HALF; x += 8) {
         ctx.beginPath();
@@ -101,7 +105,7 @@ const STYLES: Record<FactionId, Style> = {
       }
     },
     top: (ctx) => {
-      ctx.fillStyle = '#62b052';
+      ctx.fillStyle = n('#62b052');
       for (let x = -HALF; x <= HALF; x += 9) {
         ctx.beginPath();
         ctx.arc(x, -WALL_H, 7, 0, Math.PI * 2);
@@ -110,34 +114,34 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   undead: {
-    body: '#cfc8b4',
-    dark: '#8a8372',
-    gate: '#4a3f3a',
+    body: n('#cfc8b4'),
+    dark: n('#8a8372'),
+    gate: n('#4a3f3a'),
     pattern: (ctx) => {
-      ctx.fillStyle = '#efe9d6';
+      ctx.fillStyle = n('#efe9d6');
       for (let y = -64; y < -6; y += 18)
         for (let x = -HALF + 5; x < HALF; x += 14) {
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fill();
-          rect(ctx, x - 3, y + 3, 6, 3, '#efe9d6');
-          rect(ctx, x - 2.5, y - 1, 1.6, 1.6, '#3a3030');
-          rect(ctx, x + 1, y - 1, 1.6, 1.6, '#3a3030');
+          rect(ctx, x - 3, y + 3, 6, 3, n('#efe9d6'));
+          rect(ctx, x - 2.5, y - 1, 1.6, 1.6, n('#3a3030'));
+          rect(ctx, x + 1, y - 1, 1.6, 1.6, n('#3a3030'));
         }
     },
-    top: (ctx) => stakes(ctx, '#cfc8b4', '#efe9d6'),
+    top: (ctx) => stakes(ctx, n('#cfc8b4'), n('#efe9d6')),
   },
   samurai: {
-    body: '#f1ece2',
-    dark: '#a8443a',
-    gate: '#7a2b22',
+    body: n('#f1ece2'),
+    dark: n('#a8443a'),
+    gate: n('#7a2b22'),
     pattern: (ctx) => {
-      rect(ctx, -HALF, -WALL_H, 3, WALL_H, '#a8443a');
-      rect(ctx, HALF - 3, -WALL_H, 3, WALL_H, '#a8443a');
-      rect(ctx, -HALF, -WALL_H * 0.55, HALF * 2, 3, '#a8443a');
+      rect(ctx, -HALF, -WALL_H, 3, WALL_H, n('#a8443a'));
+      rect(ctx, HALF - 3, -WALL_H, 3, WALL_H, n('#a8443a'));
+      rect(ctx, -HALF, -WALL_H * 0.55, HALF * 2, 3, n('#a8443a'));
     },
     top: (ctx) => {
-      ctx.fillStyle = '#3a3a44';
+      ctx.fillStyle = n('#3a3a44');
       ctx.beginPath();
       ctx.moveTo(-HALF - 6, -WALL_H + 2);
       ctx.quadraticCurveTo(0, -WALL_H - 12, HALF + 6, -WALL_H + 2);
@@ -148,51 +152,51 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   viking: {
-    body: '#8b6a48',
-    dark: '#5e4732',
-    gate: '#5e4732',
+    body: n('#8b6a48'),
+    dark: n('#5e4732'),
+    gate: n('#5e4732'),
     pattern: (ctx) => {
-      rect(ctx, -HALF, -22, HALF * 2, 4, '#5e4732');
-      rect(ctx, -HALF, -54, HALF * 2, 4, '#5e4732');
+      rect(ctx, -HALF, -22, HALF * 2, 4, n('#5e4732'));
+      rect(ctx, -HALF, -54, HALF * 2, 4, n('#5e4732'));
     },
-    top: (ctx) => stakes(ctx, '#8b6a48', '#c9a77a'),
+    top: (ctx) => stakes(ctx, n('#8b6a48'), n('#c9a77a')),
   },
   desert: {
-    body: '#dfba72',
-    dark: '#a38040',
-    gate: '#8a5f2a',
+    body: n('#dfba72'),
+    dark: n('#a38040'),
+    gate: n('#8a5f2a'),
     pattern: (ctx) => blocks(ctx, 5, 'rgba(120,80,30,0.25)'),
-    top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 5, HALF * 2 + 6, 5, '#c99a52'),
+    top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 5, HALF * 2 + 6, 5, n('#c99a52')),
   },
   steam: {
-    body: '#7d8590',
-    dark: '#4b5260',
-    gate: '#3f444c',
+    body: n('#7d8590'),
+    dark: n('#4b5260'),
+    gate: n('#3f444c'),
     pattern: (ctx) => {
-      ctx.fillStyle = '#c8ccd2';
+      ctx.fillStyle = n('#c8ccd2');
       for (let y = -66; y < -4; y += 12) for (const x of [-HALF + 3, HALF - 3]) ctx.fillRect(x - 1, y, 2, 2);
       for (let i = 0; i < 6; i++) {
-        ctx.fillStyle = i % 2 ? '#1f2329' : '#f2c230';
+        ctx.fillStyle = i % 2 ? n('#1f2329') : '#f2c230';
         ctx.fillRect(-HALF + i * 5.4, -WALL_H, 5.4, 5);
       }
     },
-    top: (ctx) => rect(ctx, -HALF - 2, -WALL_H - 3, HALF * 2 + 4, 3, '#4b5260'),
+    top: (ctx) => rect(ctx, -HALF - 2, -WALL_H - 3, HALF * 2 + 4, 3, n('#4b5260')),
   },
   dwarf: {
-    body: '#8f8a84',
-    dark: '#5a5550',
-    gate: '#4b3a2a',
+    body: n('#8f8a84'),
+    dark: n('#5a5550'),
+    gate: n('#4b3a2a'),
     pattern: (ctx) => {
       blocks(ctx, 4, 'rgba(0,0,0,0.22)');
       ctx.fillStyle = '#ffb347';
       ctx.fillRect(-2, -64, 4, 8);
     },
-    top: (ctx) => crenels(ctx, '#8f8a84'),
+    top: (ctx) => crenels(ctx, n('#8f8a84')),
   },
   tide: {
-    body: '#2fa596',
-    dark: '#1d6b62',
-    gate: '#1d4b47',
+    body: n('#2fa596'),
+    dark: n('#1d6b62'),
+    gate: n('#1d4b47'),
     pattern: (ctx) => {
       for (const [x, y, r, c] of [
         [-8, -58, 6, '#f08a9a'],
@@ -207,7 +211,7 @@ const STYLES: Record<FactionId, Style> = {
       }
     },
     top: (ctx) => {
-      ctx.fillStyle = '#2fa596';
+      ctx.fillStyle = n('#2fa596');
       for (let x = -HALF; x <= HALF; x += 8) {
         ctx.beginPath();
         ctx.arc(x, -WALL_H, 5, Math.PI, 0);
@@ -216,9 +220,9 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   dragon: {
-    body: '#3a2a2a',
-    dark: '#1e1414',
-    gate: '#2a1a14',
+    body: n('#3a2a2a'),
+    dark: n('#1e1414'),
+    gate: n('#2a1a14'),
     pattern: (ctx, t) => {
       ctx.strokeStyle = `rgba(255, ${110 + Math.round(40 * Math.sin(t * 3))}, 30, 0.9)`;
       ctx.lineWidth = 2;
@@ -232,7 +236,7 @@ const STYLES: Record<FactionId, Style> = {
       ctx.stroke();
     },
     top: (ctx) => {
-      ctx.fillStyle = '#3a2a2a';
+      ctx.fillStyle = n('#3a2a2a');
       for (let x = -HALF; x < HALF; x += 8) {
         ctx.beginPath();
         ctx.moveTo(x, -WALL_H);
@@ -243,16 +247,16 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   frost: {
-    body: '#cfe3f5',
-    dark: '#8aa8c2',
-    gate: '#6f8fa8',
+    body: n('#cfe3f5'),
+    dark: n('#8aa8c2'),
+    gate: n('#6f8fa8'),
     pattern: (ctx) => {
       blocks(ctx, 5, 'rgba(255,255,255,0.7)');
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.fillRect(-HALF + 3, -WALL_H + 4, 4, WALL_H - 8);
     },
     top: (ctx) => {
-      ctx.fillStyle = '#e8f4ff';
+      ctx.fillStyle = n('#e8f4ff');
       for (let x = -HALF; x < HALF; x += 6) {
         ctx.beginPath();
         ctx.moveTo(x, -WALL_H);
@@ -289,6 +293,15 @@ export function drawWall(ctx: Ctx, faction: FactionId, gate: number, flash: bool
   ctx.fillRect(GATE_W - leaf, -GATE_H, leaf, GATE_H);
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   for (const x of [-GATE_W + leaf - 1.5, GATE_W - leaf]) ctx.fillRect(x, -GATE_H, 1.5, GATE_H);
+  if (!flash) {
+    // Viền năng lượng quanh thân tường + khe sáng giữa hai cánh cổng
+    const e = ENERGY[faction] ?? '#ffffff';
+    ctx.strokeStyle = rgba(e, 0.55);
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(-HALF, -WALL_H, HALF * 2, WALL_H);
+    ctx.fillStyle = rgba(e, 0.25 + gate * 0.5);
+    ctx.fillRect(-GATE_W + leaf, -GATE_H, Math.max(1, (GATE_W - leaf) * 2), GATE_H);
+  }
   ctx.restore();
 }
 

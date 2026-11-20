@@ -8,6 +8,7 @@ import { civBeat, civDesc, civPassive, civWeakness } from '@stickman-war/i18n/co
 import { ARMOR_TYPES, DMG_TYPES, GUIDE_PAGES, armorLabel, dmgLabel, type GuidePage } from '../../lib/guide';
 import { sound } from '../../lib/sound';
 import { useSettings } from '../../stores/settings';
+import CivEmblem from '../../components/CivEmblem.vue';
 
 /** Cẩm nang: cách chơi, bảng quân 12 nền văn minh, bảng khắc chế, điểm mạnh / yếu từng nền văn minh, chiến thuật. */
 const settings = useSettings();
@@ -42,7 +43,7 @@ const go = (p: GuidePage) => {
         </button>
       </div>
       <div class="guide-faction-head" :style="{ '--faction': fd.color }">
-        <span class="faction-icon">{{ fd.icon }}</span>
+        <CivEmblem :faction="faction" :size="56" />
         <div>
           <h3>{{ fd.name }}</h3>
           <p>{{ civDesc(faction) }}</p>

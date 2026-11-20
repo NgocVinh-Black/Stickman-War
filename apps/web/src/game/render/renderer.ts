@@ -1,7 +1,8 @@
 import { FACTIONS, UNITS, wallBlockOf, wallKind, type ProjectileKind, type Team } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
 import { prefs } from '../../lib/prefs';
-import { THEMES, type Deco, type Theme } from './themes';
+import { THEMES, type Theme } from './themes';
+import { ENERGY, GEAR, NIGHT, mix, rgba } from './palette';
 import { drawMonument } from './monuments';
 import { drawWallGhost } from './walls';
 import {
@@ -22,9 +23,10 @@ import { drawStickman } from './stickman';
 /** Màu quặng của từng loại mỏ. */
 const MINE_ORE = { silver: '#cfd6de', gold: '#f2c230', diamond: '#6fe7ff' } as const;
 
+/** Màu phe: thân bóng đen (ink), viền sáng / mắt / áo choàng / cờ (accent) — xanh phe mình, đỏ phe địch như ảnh nền. */
 export const TEAM_COLORS: Record<Team, { ink: string; accent: string; stone: string; dark: string }> = {
-  0: { ink: '#161a24', accent: '#3e8bff', stone: '#9aa7b8', dark: '#5d6a7c' },
-  1: { ink: '#24151a', accent: '#e5484d', stone: '#b89a94', dark: '#7c5a55' },
+  0: { ink: '#0a0811', accent: '#3d9bff', stone: '#4b4a6c', dark: '#25233c' },
+  1: { ink: '#0a0811', accent: '#ff3b52', stone: '#5a3a44', dark: '#2a1a20' },
 };
 
 const VIEW_HEIGHT = 340; // chiều cao thế giới nhìn thấy (đơn vị thế giới)
@@ -104,10 +106,11 @@ export class Renderer {
     for (const e of events) {
       switch (e.type) {
         case 'hit':
-          this.burst(e.x, e.lane, e.h, e.big ? 10 : 5, '#7a1020', e.big ? 3 : 2);
+          this.burst(e.x, e.lane, e.h, e.big ? 10 : 5, '#e01d3c', e.big ? 3 : 2);
           break;
         case 'death':
-          this.burst(e.x, e.lane, -20, 10, '#7a1020', 2.5);
+          this.burst(e.x, e.lane, -20, 10, '#b3122e', 2.5);
+          this.burst(e.x, e.lane, -25, 6, '#ffd2a0', 1.6, 60);
           break;
         case 'explode': {
           const [core, edge] = (e.kind && GLOW[e.kind]) || ['#ffe066', '#ff9a2e'];
@@ -120,11 +123,11 @@ export class Renderer {
           this.burst(e.x, e.lane, -15, 16, '#a78bfa', 3, 90);
           break;
         case 'built':
-          this.burst(e.x, 0.5, -30, 20, '#b8a07a', 3, 110);
+          this.burst(e.x, 0.5, -30, 20, '#8a7fb0', 3, 110);
           if (e.team === playerTeam) this.texts.push({ x: e.x, y: -110, text: t('game.towerBuilt'), life: 1.4, color: '#ffffff' });
           break;
         case 'statueHit':
-          this.burst(e.x + (Math.random() - 0.5) * 50, 0.2, -60 - Math.random() * 80, 3, '#8d8478', 2.5);
+          this.burst(e.x + (Math.random() - 0.5) * 50, 0.2, -60 - Math.random() * 80, 3, '#6a6080', 2.5);
           if (e.team === playerTeam) this.shake = Math.max(this.shake, 2);
           break;
         case 'gold':
@@ -135,8 +138,8 @@ export class Renderer {
           this.burst(e.x, e.lane, -30, 4, '#3ddc84', 2.2, 50);
           break;
         case 'blink':
-          this.burst(e.x0, e.lane, -25, 10, '#4a4f5c', 3, 70);
-          this.burst(e.x, e.lane, -25, 10, '#4a4f5c', 3, 70);
+          this.burst(e.x0, e.lane, -25, 10, '#7c5cff', 3, 70);
+          this.burst(e.x, e.lane, -25, 10, '#7c5cff', 3, 70);
           break;
         case 'promote':
           this.burst(e.x, e.lane, -45, 14, '#ffd23f', 2.5, 110);
@@ -290,12 +293,20 @@ export class Renderer {
     const b = THEMES[world.teams[1].faction] ?? THEMES.tribe;
     const same = a === b;
     const mid = this.blendAt(width / 2);
+    /** Màu chuyển theo chiều ngang từ nền văn minh bên trái sang bên phải. */
+    const across = (ca: string, cb: string): string | CanvasGradient => {
+      if (same || ca === cb) return ca;
+      const g = ctx.createLinearGradient(this.sx(WORLD_WIDTH / 2 - BLEND), 0, this.sx(WORLD_WIDTH / 2 + BLEND), 0);
+      g.addColorStop(0, ca);
+      g.addColorStop(1, cb);
+      return g;
+    };
 
-    // Trời
+    // Trời đêm: sẫm ở đỉnh, sáng dần về chân trời
     const sky = (th: Theme) => {
       const g = ctx.createLinearGradient(0, 0, 0, groundY);
       g.addColorStop(0, th.sky[0]);
-      g.addColorStop(0.6, th.sky[1]);
+      g.addColorStop(0.55, th.sky[1]);
       g.addColorStop(1, th.sky[2]);
       return g;
     };
@@ -307,42 +318,44 @@ export class Renderer {
         c.fillRect(0, 0, width, groundY + 2);
       });
 
-    // Mặt trời / trăng
+    this.drawStars();
+    // Trăng lớn có quầng, hai bên pha theo vị trí camera
     for (const [th, alpha] of same
       ? ([[a, 1]] as const)
       : ([
           [a, 1 - mid],
           [b, mid],
         ] as const)) {
-      if (alpha <= 0.01) continue;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = th.sun;
-      ctx.beginPath();
-      ctx.arc(width * 0.78, groundY * 0.28, 38 * scale, 0, Math.PI * 2);
-      ctx.fill();
+      if (alpha > 0.01) this.drawMoon(th, alpha);
     }
-    ctx.globalAlpha = 1;
 
-    // Núi: màu chuyển theo chiều ngang từ nền văn minh bên trái sang bên phải
+    // Núi đá ba lớp + lâu đài xa
     const amp = a.amp * (1 - mid) + b.amp * mid;
-    const ridge = (i: 0 | 1 | 2) => {
-      if (same) return a.ridges[i];
-      const g = ctx.createLinearGradient(this.sx(WORLD_WIDTH / 2 - BLEND), 0, this.sx(WORLD_WIDTH / 2 + BLEND), 0);
-      g.addColorStop(0, a.ridges[i]);
-      g.addColorStop(1, b.ridges[i]);
+    const edge = across(a.haze, b.haze);
+    this.drawRidge(0.15, 215, 75 * amp, across(a.ridges[0], b.ridges[0]), 0.0021, 11, edge, 0.35);
+    this.drawCastles(a, b, same);
+    this.drawRidge(0.35, 140, 55 * amp, across(a.ridges[1], b.ridges[1]), 0.004, 23, edge, 0.25);
+    // Sương chân trời
+    const fog = (th: Theme) => {
+      const g = ctx.createLinearGradient(0, groundY - 120 * scale, 0, groundY);
+      g.addColorStop(0, rgba(th.haze, 0));
+      g.addColorStop(1, rgba(th.haze, 0.22));
       return g;
     };
-    this.drawRidge(0.15, 210, 70 * amp, ridge(0), 0.0021, 11);
-    this.drawRidge(0.35, 140, 55 * amp, ridge(1), 0.004, 23);
-    this.drawRidge(0.6, 70, 30 * amp, ridge(2), 0.007, 37);
+    ctx.fillStyle = fog(a);
+    ctx.fillRect(0, groundY - 120 * scale, width, 120 * scale);
+    if (!same)
+      this.overlayRight((c) => {
+        c.fillStyle = fog(b);
+        c.fillRect(0, groundY - 120 * scale, width, 120 * scale);
+      });
+    this.drawRidge(0.6, 70, 30 * amp, across(a.ridges[2], b.ridges[2]), 0.007, 37, edge, 0.18);
 
-    // Đất
+    // Đất đá tối
     const ground = (th: Theme) => {
       const g = ctx.createLinearGradient(0, groundY - 8 * scale, 0, height);
-      g.addColorStop(0, th.grass[0]);
-      g.addColorStop(0.08, th.grass[1]);
-      g.addColorStop(0.1, th.dirt[0]);
-      g.addColorStop(1, th.dirt[1]);
+      g.addColorStop(0, th.ground[0]);
+      g.addColorStop(1, th.ground[1]);
       return g;
     };
     ctx.fillStyle = ground(a);
@@ -352,28 +365,221 @@ export class Renderer {
         c.fillStyle = ground(b);
         c.fillRect(0, groundY - 8 * scale, width, height);
       });
-    // Đường đất nơi quân đi
-    ctx.fillStyle = 'rgba(255, 240, 200, 0.12)';
-    ctx.fillRect(0, groundY + 4 * scale, width, LANE_DEPTH * scale);
+    // Mép đất hắt ánh trăng
+    ctx.fillStyle = edge;
+    ctx.globalAlpha = 0.45;
+    ctx.fillRect(0, groundY - 8 * scale, width, Math.max(1, 1.5 * scale));
+    ctx.globalAlpha = 1;
+    // Đường quân đi: sáng nhẹ hơn hai bên
+    const lane = ctx.createLinearGradient(0, groundY - 6 * scale, 0, groundY + (LANE_DEPTH + 12) * scale);
+    lane.addColorStop(0, 'rgba(190, 170, 255, 0.10)');
+    lane.addColorStop(1, 'rgba(190, 170, 255, 0)');
+    ctx.fillStyle = lane;
+    ctx.fillRect(0, groundY - 6 * scale, width, (LANE_DEPTH + 18) * scale);
+    this.drawCracks(a, b, same);
 
-    this.drawDeco(a.deco, (px) => 1 - this.blendAt(px), same);
-    if (!same) this.drawDeco(b.deco, (px) => this.blendAt(px), false);
+    this.drawDeco(a, (px) => 1 - this.blendAt(px), same);
+    if (!same) this.drawDeco(b, (px) => this.blendAt(px), false);
+  }
+
+  /** Số giả ngẫu nhiên ổn định theo (i, k): dùng cho trang trí nền mà không cần lưu trạng thái. */
+  private rnd(i: number, k: number): number {
+    const v = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
+  /** Sao lấp lánh ở nửa trên bầu trời (trôi rất chậm theo camera). */
+  private drawStars(): void {
+    const { ctx, width, groundY, scale, time } = this;
+    const span = width + 400;
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 70; i++) {
+      const x = ((((this.rnd(i, 7) * span - this.camX * scale * 0.03) % span) + span) % span) - 200;
+      const y = this.rnd(i, 8) * groundY * 0.6;
+      const tw = 0.35 + 0.65 * Math.abs(Math.sin(time * (0.6 + this.rnd(i, 9) * 1.4) + i));
+      ctx.globalAlpha = tw * (1 - y / (groundY * 0.75));
+      const r = (0.5 + this.rnd(i, 10) * 1.1) * Math.max(0.7, scale);
+      ctx.fillRect(x - r / 2, y - r / 2, r, r);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Trăng lớn: quầng sáng rộng, đĩa trăng có vân, mây mỏng vắt ngang. */
+  private drawMoon(th: Theme, alpha: number): void {
+    const { ctx, width, groundY, scale, time } = this;
+    const mx = width * 0.66 - this.camX * scale * 0.02;
+    const my = groundY * 0.36;
+    const r = Math.min(78 * scale, groundY * 0.3);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const halo = ctx.createRadialGradient(mx, my, r * 0.8, mx, my, r * 3.4);
+    halo.addColorStop(0, rgba(th.haze, 0.45));
+    halo.addColorStop(0.4, rgba(th.haze, 0.14));
+    halo.addColorStop(1, rgba(th.haze, 0));
+    ctx.fillStyle = halo;
+    ctx.fillRect(mx - r * 3.4, my - r * 3.4, r * 6.8, r * 6.8);
+    const disc = ctx.createRadialGradient(mx - r * 0.3, my - r * 0.3, r * 0.1, mx, my, r);
+    disc.addColorStop(0, '#ffffff');
+    disc.addColorStop(0.7, th.moon);
+    disc.addColorStop(1, rgba(th.haze, 0.9));
+    ctx.fillStyle = disc;
+    ctx.beginPath();
+    ctx.arc(mx, my, r, 0, Math.PI * 2);
+    ctx.fill();
+    // Vân trăng
+    ctx.fillStyle = rgba(th.sky[1], 0.16);
+    for (const [dx, dy, k] of [
+      [-0.3, -0.15, 0.22],
+      [0.25, 0.2, 0.3],
+      [0.05, -0.45, 0.14],
+      [-0.4, 0.35, 0.12],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(mx + dx * r, my + dy * r, k * r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Mây mỏng trôi ngang
+    ctx.fillStyle = rgba(th.sky[1], 0.55);
+    for (let i = 0; i < 3; i++) {
+      const cx = mx + (((time * 6 + i * 140) % 420) - 210) * scale;
+      const cy = my + (i - 1) * r * 0.55;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r * (0.9 + i * 0.2), r * 0.08, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /** Lâu đài bóng đen trên dãy núi xa, cửa sổ thắp đèn, cờ bay. */
+  private drawCastles(a: Theme, b: Theme, same: boolean): void {
+    const { ctx, width, groundY, scale, time } = this;
+    const parallax = 0.25;
+    const step = 820;
+    const offset = this.camX * parallax;
+    const first = Math.floor((offset - 200) / step);
+    const last = Math.ceil((offset + width / scale + 200) / step);
+    for (let i = first; i <= last; i++) {
+      if (this.rnd(i, 21) < 0.35) continue;
+      const wx = i * step + this.rnd(i, 22) * 300;
+      const px = (wx - offset) * scale;
+      const k = same ? 0 : this.blendAt(px);
+      const th = k > 0.5 ? b : a;
+      const body = mix(mix(a.ridges[1], b.ridges[1], k), NIGHT, 0.25);
+      const win = k > 0.5 ? b.window : a.window;
+      const s = scale * (0.75 + this.rnd(i, 23) * 0.5);
+      const base = groundY - (75 + this.rnd(i, 24) * 30) * scale;
+      ctx.save();
+      ctx.translate(px, base);
+      ctx.scale(s, s);
+      ctx.fillStyle = body;
+      // Tường thấp + 3 tháp, tháp giữa cao có chóp
+      ctx.fillRect(-60, -30, 120, 40);
+      for (let x = -60; x < 60; x += 10) ctx.fillRect(x, -36, 6, 6);
+      for (const [tx, tw, h, spire] of [
+        [-52, 18, 70, false],
+        [0, 26, 110, true],
+        [48, 16, 60, false],
+      ] as const) {
+        ctx.fillRect(tx - tw / 2, -h, tw, h + 10);
+        if (spire) {
+          ctx.beginPath();
+          ctx.moveTo(tx - tw / 2 - 4, -h);
+          ctx.lineTo(tx, -h - 38);
+          ctx.lineTo(tx + tw / 2 + 4, -h);
+          ctx.closePath();
+          ctx.fill();
+          // Cờ trên chóp
+          ctx.strokeStyle = body;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(tx, -h - 38);
+          ctx.lineTo(tx, -h - 54);
+          ctx.stroke();
+          const wv = Math.sin(time * 3 + i) * 2;
+          ctx.fillStyle = rgba(th.crack, 0.8);
+          ctx.beginPath();
+          ctx.moveTo(tx, -h - 54);
+          ctx.quadraticCurveTo(tx + 7, -h - 52 + wv, tx + 14, -h - 50);
+          ctx.lineTo(tx, -h - 46);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = body;
+        } else {
+          for (let x = tx - tw / 2; x < tx + tw / 2; x += 6) ctx.fillRect(x, -h - 5, 4, 5);
+        }
+        // Cửa sổ sáng (nhấp nháy rất nhẹ)
+        for (let wy = -h + 14; wy < -16; wy += 18) {
+          const on = this.rnd(i * 7 + tx, wy) > 0.3;
+          if (!on) continue;
+          ctx.globalAlpha = 0.75 + 0.25 * Math.sin(time * 2 + wy + tx);
+          ctx.fillStyle = rgba(win, 0.3);
+          ctx.fillRect(-3.5 + tx, wy - 2, 7, 10);
+          ctx.fillStyle = win;
+          ctx.fillRect(-1.5 + tx, wy, 3, 6);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = body;
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  /** Vết nứt toả sáng trên mặt đất (dưới đường quân đi), nhịp sáng chậm như dung nham thở. */
+  private drawCracks(a: Theme, b: Theme, same: boolean): void {
+    const { ctx, width, height, groundY, scale, time } = this;
+    const top = groundY + (LANE_DEPTH + 14) * scale;
+    if (top >= height) return;
+    const step = 140;
+    const first = Math.floor(this.camX / step) - 1;
+    const last = Math.ceil((this.camX + width / scale) / step) + 1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = first; i <= last; i++) {
+      if (this.rnd(i, 31) < 0.4) continue;
+      const wx = i * step + this.rnd(i, 32) * 90;
+      const px = this.sx(wx);
+      const k = same ? 0 : this.blendAt(px);
+      const color = k > 0.5 ? b.crack : a.crack;
+      const y0 = top + this.rnd(i, 33) * Math.max(4, height - top - 10);
+      const pts: [number, number][] = [[px, y0]];
+      let x = px;
+      let y = y0;
+      const n = 3 + Math.floor(this.rnd(i, 34) * 3);
+      for (let j = 0; j < n; j++) {
+        x += (12 + this.rnd(i, 40 + j) * 22) * scale;
+        y += (this.rnd(i, 50 + j) - 0.5) * 12 * scale;
+        pts.push([x, y]);
+      }
+      const pulse = 0.55 + 0.45 * Math.sin(time * 1.5 + i * 1.7);
+      for (const [w, al] of [
+        [4.5, 0.18],
+        [1.6, 0.9],
+      ] as const) {
+        ctx.globalAlpha = al * pulse;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = w * Math.max(0.6, scale);
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (const [qx, qy] of pts.slice(1)) ctx.lineTo(qx, qy);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Hạt trang trí nền (tuyết, tàn lửa, lá…): vị trí tính từ thời gian nên không cần lưu trạng thái. */
-  private drawDeco(deco: Deco, weight: (px: number) => number, full: boolean): void {
-    if (deco === 'none') return;
+  private drawDeco(th: Theme, weight: (px: number) => number, full: boolean): void {
+    const deco = th.deco;
     const { ctx, width, groundY, scale, time } = this;
+    // Tàn lửa màu năng lượng bay lên ở mọi bản đồ (như ảnh nền), cộng thêm hạt riêng của nền văn minh
+    this.drawEmbers(th.crack, deco === 'embers' ? 40 : 18, weight, full);
+    if (deco === 'none' || deco === 'embers') return;
     const n = deco === 'dust' || deco === 'smoke' ? 10 : deco === 'bubbles' ? 16 : 40;
-    const rnd = (i: number, k: number) => {
-      const v = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
-      return v - Math.floor(v);
-    };
     const wrap = (v: number, m: number) => ((v % m) + m) % m;
     for (let i = 0; i < n; i++) {
-      const r1 = rnd(i, 1);
-      const r2 = rnd(i, 2);
-      const r3 = rnd(i, 3);
+      const r1 = this.rnd(i, 1);
+      const r2 = this.rnd(i, 2);
+      const r3 = this.rnd(i, 3);
       let x = r1 * width;
       let y = r2 * groundY;
       let size = (1.5 + r3 * 1.8) * scale;
@@ -383,34 +589,30 @@ export class Renderer {
         case 'snow':
           x = wrap(x + Math.sin(time * 0.8 + r1 * 6) * 14 * scale - time * 8 * scale, width);
           y = wrap(y + time * (18 + r3 * 22) * scale, groundY + 20 * scale);
-          break;
-        case 'embers':
-          x = wrap(x + Math.sin(time * 1.3 + r1 * 6) * 10 * scale, width);
-          y = groundY - wrap(r2 * groundY + time * (22 + r3 * 26) * scale, groundY);
-          color = r3 > 0.5 ? '#ffb347' : '#ff6a1a';
-          alpha = 0.75;
-          size *= 0.9;
+          color = '#e6f3ff';
           break;
         case 'leaves':
         case 'petals':
           x = wrap(x + Math.sin(time * 1.1 + r1 * 6) * 22 * scale + time * 12 * scale, width);
           y = wrap(y + time * (14 + r3 * 14) * scale, groundY + 20 * scale);
-          color = deco === 'leaves' ? (r3 > 0.5 ? '#6fae4f' : '#a9c95a') : r3 > 0.5 ? '#ffb7c5' : '#ffd4dd';
+          color = deco === 'leaves' ? (r3 > 0.5 ? '#3dffa0' : '#1f8f5a') : r3 > 0.5 ? '#ff8aa0' : '#ffc4d0';
+          alpha = 0.7;
           size *= 1.4;
           break;
         case 'bubbles':
           x = wrap(x + Math.sin(time * 1.6 + r1 * 6) * 6 * scale, width);
           y = groundY - wrap(r2 * groundY * 0.45 + time * (16 + r3 * 18) * scale, groundY * 0.45);
+          color = th.crack;
           size *= 0.55;
-          alpha = 0.45;
+          alpha = 0.5;
           break;
         case 'dust':
         case 'smoke':
           x = wrap(x + time * (10 + r3 * 14) * scale, width + 200 * scale) - 100 * scale;
           y = groundY * (0.35 + r2 * 0.55);
           size = (40 + r3 * 60) * scale;
-          color = deco === 'smoke' ? '#5a5650' : '#c9a77a';
-          alpha = 0.1;
+          color = deco === 'smoke' ? '#3a3234' : th.haze;
+          alpha = deco === 'smoke' ? 0.2 : 0.1;
           break;
       }
       const w = full ? 1 : weight(x);
@@ -426,6 +628,10 @@ export class Renderer {
       } else if (deco === 'leaves' || deco === 'petals') {
         ctx.ellipse(x, y, size, size * 0.55, time * 2 + r1 * 6, 0, Math.PI * 2);
         ctx.fill();
+      } else if (deco === 'dust' || deco === 'smoke') {
+        // Dải sương / khói mỏng trôi ngang
+        ctx.ellipse(x, y, size * 1.6, size * 0.16, 0, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
@@ -434,23 +640,73 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  /** Dãy núi thị sai, sinh bằng tổng các sóng sin để không cần ảnh. */
-  private drawRidge(parallax: number, base: number, amp: number, color: string | CanvasGradient, freq: number, seed: number): void {
+  /** Tàn lửa phát sáng bay lên từ mặt đất. */
+  private drawEmbers(color: string, n: number, weight: (px: number) => number, full: boolean): void {
+    const { ctx, width, groundY, scale, time } = this;
+    const wrap = (v: number, m: number) => ((v % m) + m) % m;
+    for (let i = 0; i < n; i++) {
+      const r1 = this.rnd(i + 100, 1);
+      const r2 = this.rnd(i + 100, 2);
+      const r3 = this.rnd(i + 100, 3);
+      const x = wrap(r1 * width + Math.sin(time * 1.3 + r1 * 6) * 10 * scale, width);
+      const y = groundY + 20 * scale - wrap(r2 * groundY + time * (20 + r3 * 26) * scale, groundY);
+      const w = full ? 1 : weight(x);
+      if (w <= 0.02) continue;
+      const size = (0.5 + r3 * 0.9) * Math.max(0.6, scale);
+      const life = 1 - Math.max(0, (groundY - y) / groundY);
+      ctx.globalAlpha = 0.18 * w * life;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.9 * w * life;
+      ctx.fillStyle = r3 > 0.6 ? '#ffffff' : color;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Dãy núi đá thị sai (tổng các sóng sin, thêm sóng cao tần cho mép lởm chởm), viền sáng mép trên. */
+  private drawRidge(
+    parallax: number,
+    base: number,
+    amp: number,
+    color: string | CanvasGradient,
+    freq: number,
+    seed: number,
+    edge: string | CanvasGradient,
+    edgeAlpha: number,
+  ): void {
     const { ctx, width, groundY, scale } = this;
     const offset = this.camX * parallax;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
+    const pts: [number, number][] = [];
     for (let px = 0; px <= width + 8; px += 8) {
       const wx = px / scale + offset;
       const h =
         base +
-        amp * (Math.sin(wx * freq + seed) * 0.6 + Math.sin(wx * freq * 2.3 + seed * 2) * 0.3 + Math.sin(wx * freq * 5.1 + seed * 3) * 0.1);
-      ctx.lineTo(px, groundY - h * scale);
+        amp *
+          (Math.sin(wx * freq + seed) * 0.6 +
+            Math.sin(wx * freq * 2.3 + seed * 2) * 0.3 +
+            Math.sin(wx * freq * 5.1 + seed * 3) * 0.1 +
+            Math.abs(Math.sin(wx * freq * 13 + seed)) * 0.12);
+      pts.push([px, groundY - h * scale]);
     }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    for (const [x, y] of pts) ctx.lineTo(x, y);
     ctx.lineTo(width, groundY);
     ctx.closePath();
     ctx.fill();
+    ctx.globalAlpha = edgeAlpha;
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = Math.max(1, 1.4 * scale);
+    ctx.beginPath();
+    for (const [x, y] of pts) ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
   private drawDrop(d: Drop): void {
@@ -461,15 +717,24 @@ export class Renderer {
     ctx.save();
     ctx.translate(sx, this.sy(d.lane));
     ctx.scale(scale, scale);
-    ctx.fillStyle = '#c99a2e';
+    // Quầng vàng dưới túi
+    const glow = ctx.createRadialGradient(0, -6, 1, 0, -6, 16);
+    glow.addColorStop(0, 'rgba(255, 201, 58, 0.5)');
+    glow.addColorStop(1, 'rgba(255, 201, 58, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-16, -22, 32, 32);
+    ctx.fillStyle = GEAR;
+    ctx.strokeStyle = '#ffc93a';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.ellipse(0, -6 + bob, 7, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#f2c230';
+    ctx.stroke();
+    ctx.fillStyle = '#ffc93a';
     ctx.beginPath();
-    ctx.arc(-1.5, -8 + bob, 2.5, 0, Math.PI * 2);
+    ctx.arc(-1.5, -7 + bob, 2.2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#7a5a1c';
+    ctx.strokeStyle = '#ffe08a';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-3, -12 + bob);
@@ -479,22 +744,29 @@ export class Renderer {
   }
 
   private drawMine(x: number, size = 1, kind: 'silver' | 'gold' | 'diamond' = 'gold'): void {
-    const diamond = kind === 'diamond';
     const ore = MINE_ORE[kind];
-    const { ctx, scale } = this;
+    const { ctx, scale, time } = this;
     const sx = this.sx(x);
     if (sx < -80 * scale * size || sx > this.width + 80 * scale * size) return;
     const sy = this.sy(0.05);
     ctx.save();
     ctx.translate(sx, sy);
     ctx.scale(scale * size, scale * size);
+    // Quầng sáng quặng trên đất
+    const glow = ctx.createRadialGradient(0, -8, 4, 0, -8, 46);
+    glow.addColorStop(0, rgba(ore, 0.35));
+    glow.addColorStop(1, rgba(ore, 0));
+    ctx.fillStyle = glow;
+    ctx.fillRect(-46, -54, 92, 60);
     const rocks: [number, number, number][] = [
       [-22, -2, 16],
       [0, -6, 22],
       [22, -1, 14],
     ];
     for (const [rx, ry, r] of rocks) {
-      ctx.fillStyle = '#6f6458';
+      ctx.fillStyle = GEAR;
+      ctx.strokeStyle = rgba(ore, 0.45);
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(rx - r, ry + 4);
       ctx.lineTo(rx - r * 0.6, ry - r * 0.8);
@@ -503,22 +775,29 @@ export class Renderer {
       ctx.lineTo(rx + r * 0.9, ry + 4);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
+      // Tinh thể quặng phát sáng
+      const crystal = () => {
+        ctx.beginPath();
+        ctx.moveTo(rx - r * 0.3, ry - r * 0.3);
+        ctx.lineTo(rx, ry - r * 0.8);
+        ctx.lineTo(rx + r * 0.35, ry - r * 0.35);
+        ctx.lineTo(rx, ry - r * 0.05);
+        ctx.closePath();
+      };
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = ore;
+      ctx.lineWidth = 3;
+      crystal();
+      ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.fillStyle = ore;
-      ctx.beginPath();
-      ctx.moveTo(rx - r * 0.3, ry - r * 0.3);
-      ctx.lineTo(rx, ry - r * 0.75);
-      ctx.lineTo(rx + r * 0.35, ry - r * 0.35);
-      ctx.lineTo(rx, ry - r * 0.05);
-      ctx.closePath();
+      crystal();
       ctx.fill();
     }
     // Lấp lánh
-    const tw = (Math.sin(this.time * 3 + x) + 1) / 2;
-    ctx.fillStyle = diamond
-      ? `rgba(220, 250, 255, ${tw})`
-      : kind === 'silver'
-        ? `rgba(245, 248, 255, ${tw})`
-        : `rgba(255, 250, 200, ${tw})`;
+    const tw = (Math.sin(time * 3 + x) + 1) / 2;
+    ctx.fillStyle = `rgba(255, 255, 255, ${tw})`;
     ctx.beginPath();
     ctx.arc(4, -22, 2.2, 0, Math.PI * 2);
     ctx.fill();
@@ -541,15 +820,27 @@ export class Renderer {
 
     // Công trình đặc trưng của nền văn minh (bên phải lật gương để quay vào giữa bản đồ), viền màu phe dưới chân
     const th = THEMES[t.faction] ?? THEMES.tribe;
+    // Ánh sáng năng lượng hắt sau lưng công trình để bóng đen nổi lên trên nền đêm
+    const back = ctx.createRadialGradient(0, -100, 10, 0, -90, 140);
+    back.addColorStop(0, rgba(ENERGY[t.faction] ?? c.accent, 0.38));
+    back.addColorStop(1, rgba(ENERGY[t.faction] ?? c.accent, 0));
+    ctx.fillStyle = back;
+    ctx.fillRect(-140, -230, 280, 240);
     ctx.save();
     ctx.scale(f, 1);
     drawMonument(ctx, t.faction, { stone: th.stone, dark: th.stoneDark, glow: FACTIONS[t.faction]?.color ?? c.accent }, this.time);
     ctx.restore();
+    // Vòng sáng màu phe dưới chân công trình
+    const base = ctx.createRadialGradient(0, -2, 6, 0, -2, 70);
+    base.addColorStop(0, rgba(c.accent, 0.45));
+    base.addColorStop(1, rgba(c.accent, 0));
+    ctx.fillStyle = base;
+    ctx.fillRect(-70, -30, 140, 34);
     ctx.fillStyle = c.accent;
-    ctx.fillRect(-50, -4, 100, 4);
+    ctx.fillRect(-50, -3, 100, 2.5);
 
     // Cờ
-    ctx.strokeStyle = '#4b3a2a';
+    ctx.strokeStyle = GEAR;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(-f * 62, 0);
@@ -560,13 +851,20 @@ export class Renderer {
     ctx.beginPath();
     ctx.moveTo(-f * 62, -185);
     ctx.quadraticCurveTo(-f * 62 - f * 22, -178 + wave, -f * 62 - f * 44, -172);
+    ctx.lineTo(-f * 62 - f * 36, -166);
+    ctx.lineTo(-f * 62 - f * 40, -158 + wave * 0.5);
     ctx.lineTo(-f * 62, -158);
     ctx.closePath();
+    ctx.fill();
+    // Ấn năng lượng nền văn minh trên cờ
+    ctx.fillStyle = ENERGY[t.faction] ?? '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-f * 62 - f * 15, -172 + wave * 0.5, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
     // Vết nứt khi máu thấp
     if (ratio < 0.66) {
-      ctx.strokeStyle = 'rgba(40, 30, 25, 0.7)';
+      ctx.strokeStyle = rgba(ENERGY[t.faction] ?? '#ff5a1f', 0.8);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(-20, -34);
@@ -625,13 +923,26 @@ export class Renderer {
           ink: c.ink,
           accent: c.accent,
           flash: false,
+          time: this.time,
         });
         ctx.restore();
       }
     }
 
-    // Bóng
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    // Bóng + quầng màu phe dưới chân
+    ctx.fillStyle = rgba(c.accent, 0.16);
+    ctx.beginPath();
+    ctx.ellipse(
+      sx,
+      sy,
+      16 * scale * s.scale * (s.arch === 'cavalry' || s.arch === 'catapult' || s.arch === 'tower' ? 2.1 : 1),
+      4.5 * scale * s.scale,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.beginPath();
     const wide = s.arch === 'cavalry' || s.arch === 'catapult' || s.arch === 'tower' ? 2.1 : 1;
     // Quân tàng hình: mờ gần như trong suốt
@@ -684,9 +995,9 @@ export class Renderer {
     }
     if (!u.dying && u.hp < u.maxHp) {
       const w = 22 * scale * Math.min(s.scale, 1.6);
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(sx - w / 2, y, w, 3.5);
-      ctx.fillStyle = u.team === 0 ? '#4ade80' : '#f87171';
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(sx - w / 2 - 1, y - 1, w + 2, 5.5);
+      ctx.fillStyle = u.team === 0 ? '#4ade80' : '#ff4d63';
       ctx.fillRect(sx - w / 2, y, w * (u.hp / u.maxHp), 3.5);
     }
   }
@@ -699,17 +1010,28 @@ export class Renderer {
     const h = p.h0 + (hEnd - p.h0) * k - p.arc * 4 * k * (1 - k);
     const sx = this.sx(x);
     const sy = this.sy(p.lane, h);
+    // Màu năng lượng của quân bắn (đạn để lại vệt sáng màu nền văn minh)
+    const src = p.srcKind ? UNITS[p.srcKind] : null;
+    const e = src ? (src.look.tint ?? ENERGY[src.faction]) : '#ffffff';
+    const dirX = Math.sign(p.x1 - p.x0) || 1;
     if (p.kind === 'axe') {
       ctx.save();
       ctx.translate(sx, sy);
-      ctx.rotate(p.t * 14 * Math.sign(p.x1 - p.x0));
-      ctx.strokeStyle = '#7a5230';
+      ctx.rotate(p.t * 14 * dirX);
+      ctx.strokeStyle = GEAR;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(-6 * scale, 0);
       ctx.lineTo(6 * scale, 0);
       ctx.stroke();
-      ctx.fillStyle = '#d8dee8';
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = e;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 10 * scale, 0, Math.PI * 1.2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = e;
       ctx.beginPath();
       ctx.moveTo(6 * scale, 0);
       ctx.lineTo(9 * scale, -5 * scale);
@@ -717,15 +1039,18 @@ export class Renderer {
       ctx.fill();
       ctx.restore();
     } else if (p.kind === 'bullet') {
-      ctx.strokeStyle = 'rgba(255, 240, 200, 0.7)';
-      ctx.lineWidth = 1.5;
+      const g = ctx.createLinearGradient(sx - dirX * 22 * scale, sy, sx, sy);
+      g.addColorStop(0, 'rgba(255, 220, 150, 0)');
+      g.addColorStop(1, 'rgba(255, 220, 150, 0.9)');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(sx - Math.sign(p.x1 - p.x0) * 14 * scale, sy);
+      ctx.moveTo(sx - dirX * 22 * scale, sy);
       ctx.lineTo(sx, sy);
       ctx.stroke();
-      ctx.fillStyle = '#1f2937';
+      ctx.fillStyle = '#fff3c8';
       ctx.beginPath();
-      ctx.arc(sx, sy, 2 * scale, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 1.8 * scale, 0, Math.PI * 2);
       ctx.fill();
     } else if (p.kind === 'arrow' || p.kind === 'bolt') {
       const big = p.kind === 'bolt' ? 1.7 : 1;
@@ -736,32 +1061,58 @@ export class Renderer {
       ctx.translate(sx, sy);
       ctx.rotate(ang);
       ctx.scale(big, big);
-      ctx.strokeStyle = '#3b2a1a';
+      // Vệt sáng phía sau mũi tên
+      const g = ctx.createLinearGradient(-26 * scale, 0, 0, 0);
+      g.addColorStop(0, rgba(e, 0));
+      g.addColorStop(1, rgba(e, 0.55));
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-26 * scale, 0);
+      ctx.lineTo(0, 0);
+      ctx.stroke();
+      ctx.strokeStyle = GEAR;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(-9 * scale, 0);
       ctx.lineTo(9 * scale, 0);
       ctx.stroke();
-      ctx.fillStyle = '#cfd6df';
+      ctx.fillStyle = e;
       ctx.beginPath();
-      ctx.moveTo(12 * scale, 0);
-      ctx.lineTo(8 * scale, -2.5 * scale);
-      ctx.lineTo(8 * scale, 2.5 * scale);
+      ctx.moveTo(13 * scale, 0);
+      ctx.lineTo(8 * scale, -2.8 * scale);
+      ctx.lineTo(8 * scale, 2.8 * scale);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(10 * scale, 0, 0.9 * scale, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     } else if (p.kind === 'boulder' || p.kind === 'cannonball') {
       ctx.save();
       ctx.translate(sx, sy);
+      // Đuôi lửa
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = p.kind === 'cannonball' ? '#ffb070' : e;
+      ctx.beginPath();
+      ctx.arc(0, 0, 10 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
       ctx.rotate(p.t * 8);
-      ctx.fillStyle = p.kind === 'cannonball' ? '#1f2937' : '#7d756b';
+      ctx.fillStyle = GEAR;
       ctx.beginPath();
       ctx.arc(0, 0, 6.5 * scale, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#5c554c';
+      // Vết nứt sáng trên đá
+      ctx.strokeStyle = p.kind === 'cannonball' ? '#ffb070' : e;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.arc(2 * scale, -1.5 * scale, 2 * scale, 0, Math.PI * 2);
-      ctx.arc(-2.5 * scale, 2 * scale, 1.5 * scale, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(-4 * scale, -2 * scale);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(3 * scale, -3.5 * scale);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(1 * scale, 4 * scale);
+      ctx.stroke();
       ctx.restore();
     } else {
       const [core, edge] = GLOW[p.kind] ?? GLOW.fireball!;
@@ -867,9 +1218,9 @@ export class Renderer {
     const h = rect.height;
     const k = w / WORLD_WIDTH;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(20, 24, 32, 0.55)';
+    ctx.fillStyle = 'rgba(14, 10, 30, 0.7)';
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(124, 154, 74, 0.6)';
+    ctx.fillStyle = 'rgba(169, 156, 255, 0.35)';
     ctx.fillRect(0, h - 5, w, 5);
     for (const team of [0, 1] as Team[]) {
       ctx.fillStyle = TEAM_COLORS[team].accent;

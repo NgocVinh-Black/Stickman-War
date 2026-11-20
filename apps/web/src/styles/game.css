@@ -89,7 +89,7 @@
   width: 100%;
   height: 34px;
   cursor: pointer;
-  background: #232631;
+  background: #0e0a20;
 }
 .stage {
   position: relative;
@@ -134,7 +134,7 @@
   justify-content: flex-end;
   padding: 2px 2px 4px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #343a4b, #262a36);
+  background: linear-gradient(180deg, #2c2152, #120c28);
   border: 1px solid var(--line);
   overflow: hidden;
   transition:

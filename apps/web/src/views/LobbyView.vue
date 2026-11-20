@@ -16,6 +16,7 @@ import CampaignTab from './lobby/CampaignTab.vue';
 import GuideTab from './lobby/GuideTab.vue';
 import HomeTab from './lobby/HomeTab.vue';
 import OnlineTab from './lobby/OnlineTab.vue';
+import CivEmblem from '../components/CivEmblem.vue';
 
 /** Sảnh kiểu game di động: hồ sơ, tiền, tab gỗ, nút tròn, nút xanh "Bắt đầu chiến đấu", trận đánh làm nền. */
 const settings = useSettings();
@@ -79,7 +80,7 @@ onBeforeUnmount(() => clearInterval(timer));
             <i :style="{ width: `${Math.round((Math.min(settings.current.unlocked, LEVELS.length) / LEVELS.length) * 100)}%` }" />
           </span>
         </span>
-        <span class="lb-badge">{{ faction.icon }}</span>
+        <CivEmblem class="lb-badge" :faction="settings.faction" :size="30" />
       </button>
       <picture class="lb-title">
         <source :srcset="asset('logo.webp')" type="image/webp" />
@@ -103,7 +104,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <span>🏠</span><small>{{ t('lobby.home') }}</small>
       </button>
       <button class="lb-round" :style="{ '--faction': faction.color }" @click="(sound.click(), ui.show({ kind: 'faction' }))">
-        <span>{{ faction.icon }}</span><small>{{ t('civ.change') }}</small>
+        <span><CivEmblem :faction="settings.faction" :size="48" /></span><small>{{ t('civ.change') }}</small>
       </button>
       <button class="lb-round" :class="{ active: settings.tab === 'arena' }" @click="goTab('arena')">
         <span>🏆</span><small>{{ t('lobby.ranking') }}</small>

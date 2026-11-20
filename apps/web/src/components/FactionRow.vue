@@ -2,6 +2,7 @@
 import { FACTIONS, FACTION_ORDER, type FactionId } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
 import { sound } from '../lib/sound';
+import CivEmblem from './CivEmblem.vue';
 
 /** Hàng chọn nền văn minh gọn: 12 nút biểu tượng, dùng trước trận và trong phòng chờ. */
 const props = defineProps<{ modelValue: FactionId }>();
@@ -27,7 +28,7 @@ function pick(id: FactionId): void {
       :title="FACTIONS[id].name"
       @click="pick(id)"
     >
-      <span>{{ FACTIONS[id].icon }}</span><small>{{ FACTIONS[id].name }}</small>
+      <CivEmblem :faction="id" :size="30" /><small>{{ FACTIONS[id].name }}</small>
     </button>
   </div>
 </template>

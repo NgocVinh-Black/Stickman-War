@@ -1,25 +1,29 @@
 /* ==========================================================================
-   Giao diện sảnh kiểu game di động: khung gỗ, chữ viền đậm, nút to.
-   Toàn bộ vẽ bằng CSS (không ảnh), nền là trận đánh stickman chạy thật.
+   Giao diện sảnh kiểu game di động theo phong cách ảnh nền màn đăng nhập: khung tím đêm như kính tối,
+   viền vàng kim, quầng sáng tím; chữ viền đậm, nút to. Toàn bộ vẽ bằng CSS (không ảnh),
+   nền là trận đánh stickman chạy thật. (Tên lớp / biến "wood" giữ lại từ bản tông gỗ cũ.)
    ========================================================================== */
 
 :root {
-  --wood-hi: #9a6236;
-  --wood: #73442a;
-  --wood-lo: #4f2d17;
-  --wood-edge: #2b170a;
-  --wood-light: rgba(255, 214, 160, 0.38);
-  --cream: #fff3dc;
-  --parch: #f3e2bd;
-  --parch-ink: #4a2e14;
+  --wood-hi: #3d2f6c;
+  --wood: #261c4a;
+  --wood-lo: #130d29;
+  --wood-edge: #06030e;
+  --wood-light: rgba(196, 176, 255, 0.3);
+  --gold-line: #e9b94e;
+  --gold-hi: #fff1a8;
+  --glow: #8f7bff;
+  --cream: #f2edff;
+  --parch: #e4d9ff;
+  --parch-ink: #1d1338;
   --leaf: #4cb53f;
   --leaf-lo: #23741e;
-  --amber: #f29a3a;
-  --amber-lo: #c25f16;
+  --amber: #f2b632;
+  --amber-lo: #9a5d0c;
   --display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Viền chữ đen nâu như chữ trong game */
+/* Viền chữ tối như chữ trong game */
 .lobby {
   --outline:
     0 2px 0 var(--wood-edge), 1.5px 0 0 var(--wood-edge), -1.5px 0 0 var(--wood-edge), 0 -1.5px 0 var(--wood-edge),
@@ -29,16 +33,18 @@
 
 .wood {
   background:
-    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 11px),
-    linear-gradient(180deg, var(--wood-hi) 0%, var(--wood) 48%, var(--wood-lo) 100%);
-  border: 3px solid var(--wood-edge);
+    radial-gradient(120% 90% at 50% 0%, rgba(143, 123, 255, 0.28), transparent 60%),
+    linear-gradient(180deg, rgba(61, 47, 108, 0.94) 0%, rgba(38, 28, 74, 0.94) 48%, rgba(19, 13, 41, 0.96) 100%);
+  border: 2px solid color-mix(in srgb, var(--gold-line) 80%, transparent);
   border-radius: 12px;
   box-shadow:
-    inset 0 2px 0 var(--wood-light),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
-    0 4px 0 var(--wood-edge),
-    0 10px 18px rgba(0, 0, 0, 0.35);
+    inset 0 1px 0 var(--wood-light),
+    inset 0 0 0 1px rgba(6, 3, 14, 0.8),
+    inset 0 0 18px rgba(143, 123, 255, 0.22),
+    0 0 14px rgba(143, 123, 255, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.5);
   color: var(--cream);
+  backdrop-filter: blur(3px);
 }
 button.wood {
   cursor: pointer;
@@ -47,15 +53,16 @@ button.wood {
     filter 0.15s;
 }
 button.wood:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.15);
+  box-shadow:
+    inset 0 1px 0 var(--wood-light),
+    inset 0 0 0 1px rgba(6, 3, 14, 0.8),
+    inset 0 0 18px rgba(143, 123, 255, 0.3),
+    0 0 22px rgba(170, 150, 255, 0.55),
+    0 10px 20px rgba(0, 0, 0, 0.5);
 }
 button.wood:active {
-  transform: translateY(3px);
-  box-shadow:
-    inset 0 2px 0 var(--wood-light),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
-    0 1px 0 var(--wood-edge),
-    0 4px 10px rgba(0, 0, 0, 0.35);
+  transform: translateY(2px);
 }
 
 /* Lớp tối nhẹ trên/dưới để chữ nổi trên nền trận đánh */
@@ -64,8 +71,8 @@ button.wood:active {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(20, 12, 6, 0.55) 0%, transparent 22%, transparent 62%, rgba(20, 12, 6, 0.75) 100%),
-    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+    linear-gradient(180deg, rgba(8, 4, 20, 0.55) 0%, transparent 22%, transparent 62%, rgba(8, 4, 20, 0.8) 100%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(5, 2, 14, 0.5) 100%);
 }
 
 /* ---------- Khung sảnh ---------- */
@@ -121,9 +128,11 @@ button.wood:active {
   width: 62px;
   height: 62px;
   border-radius: 10px;
-  border: 3px solid var(--wood-edge);
-  background: linear-gradient(160deg, #3a5a7a, #1d2f42);
-  box-shadow: inset 0 0 0 2px rgba(255, 214, 160, 0.3);
+  border: 2px solid var(--gold-line);
+  background: radial-gradient(circle at 50% 30%, #4a3c8a, #140e2a 75%);
+  box-shadow:
+    inset 0 0 12px rgba(143, 123, 255, 0.5),
+    0 0 10px rgba(143, 123, 255, 0.4);
   overflow: hidden;
 }
 .lb-avatar .avatar {
@@ -143,9 +152,7 @@ button.wood:active {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  border: 3px solid var(--wood-edge);
-  background: var(--parch);
-  font-size: 15px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
 }
 .lb-profile-text {
   display: flex;
@@ -171,8 +178,10 @@ button.wood:active {
 .lb-chip {
   padding: 0 8px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: rgba(6, 3, 14, 0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(143, 123, 255, 0.25);
   font-size: 13.5px;
   font-weight: 600;
 }
@@ -192,8 +201,10 @@ button.wood:active {
   height: 100%;
   width: 0;
   border-radius: 6px;
-  background: linear-gradient(180deg, #8ee46a, #3c9a2c);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(90deg, #7c5cff, #c9a8ff 70%, #fff1a8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 8px rgba(170, 150, 255, 0.8);
   transition: width 0.4s;
 }
 
@@ -206,7 +217,7 @@ button.wood:active {
 .lb-title img {
   height: 76px;
   width: auto;
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 16px rgba(143, 123, 255, 0.55)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
 }
 .lb-title span {
   font-size: 16px;
@@ -302,7 +313,7 @@ button.wood:active {
   max-width: 100%;
   padding: 8px 22px 8px 8px;
   border-radius: 999px;
-  background: radial-gradient(closest-side, rgba(24, 14, 6, 0.5), rgba(24, 14, 6, 0.2) 70%, transparent);
+  background: radial-gradient(closest-side, rgba(10, 6, 24, 0.6), rgba(10, 6, 24, 0.25) 70%, transparent);
   pointer-events: none;
 }
 /* Cột giữa: sân khấu quân (đúng cỡ trong trận) ở trên, bảng nhiệm vụ ở dưới */
@@ -333,7 +344,7 @@ button.wood:active {
   inset: 0;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--faction) 50%, transparent));
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--faction) 55%, transparent));
 }
 .unit-stage-name {
   position: absolute;
@@ -343,7 +354,8 @@ button.wood:active {
   white-space: nowrap;
   padding: 2px 12px;
   border-radius: 999px;
-  background: rgba(20, 12, 6, 0.78);
+  background: rgba(10, 6, 24, 0.82);
+  border: 1px solid color-mix(in srgb, var(--gold-line) 60%, transparent);
   color: var(--cream);
   font-size: 14px;
 }
@@ -359,15 +371,12 @@ button.wood:active {
 .civ-show-icon {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  border: 3px solid var(--wood-edge);
-  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.4), transparent 60%), var(--faction);
   box-shadow:
-    0 4px 0 var(--wood-edge),
-    0 8px 14px rgba(0, 0, 0, 0.35);
-  font-size: 28px;
+    0 0 18px color-mix(in srgb, var(--faction) 70%, transparent),
+    0 8px 14px rgba(0, 0, 0, 0.45);
 }
 .civ-show-text h2 {
   margin: 6px 0 2px;
@@ -392,16 +401,19 @@ button.wood:active {
   width: 100%;
   padding: 8px 10px 10px;
   border-radius: 12px;
-  border: 2px solid rgba(43, 23, 10, 0.9);
-  background: rgba(30, 19, 10, 0.78);
-  backdrop-filter: blur(2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid color-mix(in srgb, var(--gold-line) 55%, transparent);
+  background: linear-gradient(180deg, rgba(38, 28, 74, 0.82), rgba(12, 8, 26, 0.86));
+  backdrop-filter: blur(3px);
+  box-shadow:
+    inset 0 0 16px rgba(143, 123, 255, 0.18),
+    0 0 16px rgba(143, 123, 255, 0.22),
+    0 10px 24px rgba(0, 0, 0, 0.45);
 }
 .lb-quests h3 {
   margin: 0 0 6px;
   text-align: center;
   font-size: 16px;
-  color: #ffd98a;
+  color: #ffe08a;
   text-shadow: var(--outline);
 }
 .lb-quest {
@@ -419,7 +431,7 @@ button.wood:active {
   text-shadow: 0 1px 0 var(--wood-edge);
 }
 .lb-quest:hover {
-  background: rgba(255, 214, 160, 0.1);
+  background: rgba(170, 150, 255, 0.14);
 }
 .lb-quest b {
   color: #ffe08a;
@@ -437,16 +449,19 @@ button.wood:active {
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  border: 2px solid var(--wood-edge);
-  background: var(--parch);
-  color: var(--parch-ink);
+  border: 1px solid rgba(143, 123, 255, 0.6);
+  background: rgba(6, 3, 14, 0.7);
+  color: var(--cream);
   font-size: 14px;
   text-shadow: none;
+  box-shadow: inset 0 0 6px rgba(143, 123, 255, 0.35);
 }
 .lb-quest .check.done {
-  background: linear-gradient(180deg, #8ee46a, #3c9a2c);
+  border-color: #6ee7a0;
+  background: linear-gradient(180deg, #6ee7a0, #1f8f5a);
   color: #fff;
   font-weight: 800;
+  box-shadow: 0 0 10px rgba(110, 231, 160, 0.7);
 }
 
 /* Bảng nội dung các mục (chơi đơn, online, cẩm nang…) */
@@ -478,13 +493,13 @@ button.wood:active {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 3px solid var(--wood-edge);
-  background: linear-gradient(180deg, #ef6b5b, #b3271a);
+  border: 2px solid var(--gold-line);
+  background: radial-gradient(circle at 50% 30%, #ff6b7d, #9b1328);
   color: #fff;
   font-weight: 800;
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.35),
-    0 3px 0 var(--wood-edge);
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    0 0 12px rgba(255, 59, 82, 0.6);
 }
 .lb-panel-body {
   flex: 1;
@@ -492,9 +507,11 @@ button.wood:active {
   overflow-y: auto;
   padding: 14px 16px;
   border-radius: 8px;
-  border: 2px solid var(--wood-edge);
-  background: rgba(26, 17, 10, 0.94);
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(143, 123, 255, 0.35);
+  background: linear-gradient(180deg, rgba(14, 9, 30, 0.95), rgba(8, 5, 18, 0.96));
+  box-shadow:
+    inset 0 2px 14px rgba(0, 0, 0, 0.6),
+    inset 0 0 24px rgba(143, 123, 255, 0.1);
   font-family: 'Segoe UI', system-ui, sans-serif;
 }
 .lb-panel-body .tab-body {
@@ -503,7 +520,7 @@ button.wood:active {
 }
 .lb-panel-body .section-title {
   font-family: var(--display);
-  color: #ffd98a;
+  color: #ffe08a;
 }
 
 /* ---------- Hàng nút tròn dưới khung tên ---------- */
@@ -529,29 +546,32 @@ button.wood:active {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 3px solid var(--wood-edge);
+  border: 2px solid var(--gold-line);
   background:
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.35), transparent 60%), linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
+    radial-gradient(circle at 50% 35%, rgba(170, 150, 255, 0.45), transparent 65%), linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
   box-shadow:
-    inset 0 0 0 3px color-mix(in srgb, var(--faction, #c8915a) 70%, transparent),
-    0 4px 0 var(--wood-edge),
-    0 8px 14px rgba(0, 0, 0, 0.35);
+    inset 0 0 0 2px color-mix(in srgb, var(--faction, #8f7bff) 60%, transparent),
+    inset 0 0 14px rgba(6, 3, 14, 0.8),
+    0 0 14px color-mix(in srgb, var(--faction, #8f7bff) 45%, transparent),
+    0 8px 14px rgba(0, 0, 0, 0.45);
   font-size: 27px;
-  transition: transform 0.1s;
+  overflow: hidden;
+  transition:
+    transform 0.1s,
+    box-shadow 0.15s;
 }
 .lb-round:hover span {
   transform: translateY(-2px) scale(1.04);
 }
 .lb-round.active span {
-  border-color: #4a1f04;
+  border-color: var(--gold-hi);
   background:
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.45), transparent 60%),
-    linear-gradient(180deg, #ffb45e 0%, var(--amber) 45%, var(--amber-lo) 100%);
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.5), transparent 60%),
+    linear-gradient(180deg, var(--gold-hi) 0%, var(--amber) 45%, var(--amber-lo) 100%);
   box-shadow:
-    inset 0 0 0 3px rgba(255, 230, 170, 0.6),
-    0 4px 0 #4a1f04,
-    0 0 0 3px rgba(255, 200, 120, 0.35),
-    0 8px 14px rgba(0, 0, 0, 0.35);
+    inset 0 0 0 2px rgba(255, 241, 168, 0.7),
+    0 0 18px rgba(255, 200, 80, 0.7),
+    0 8px 14px rgba(0, 0, 0, 0.45);
 }
 .lb-round small {
   font-size: 14px;
@@ -570,8 +590,9 @@ button.wood:active {
   max-width: min(640px, 100%);
   padding: 4px 18px;
   border-radius: 8px;
-  background: rgba(20, 12, 6, 0.75);
-  border: 1px solid rgba(255, 214, 160, 0.15);
+  background: rgba(10, 6, 24, 0.78);
+  border: 1px solid color-mix(in srgb, var(--gold-line) 40%, transparent);
+  box-shadow: 0 0 12px rgba(143, 123, 255, 0.2);
   font-size: 15px;
   text-align: center;
   white-space: nowrap;
@@ -582,7 +603,7 @@ button.wood:active {
   color: #ffd24a;
 }
 .lb-ticker-label {
-  color: #ffd98a;
+  color: #ffe08a;
   font-weight: 700;
 }
 .lb-ticker.fade {
@@ -608,7 +629,7 @@ button.wood:active {
 .lb-big span {
   font-size: 44px;
   line-height: 1.1;
-  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 0 8px rgba(170, 150, 255, 0.6)) drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35));
 }
 .lb-big b {
   font-size: 20px;
@@ -625,73 +646,113 @@ button.wood:active {
   font-weight: 700;
   text-shadow: var(--outline);
 }
+/* Nút chính: tấm biển vàng kim phát sáng như nút đăng nhập */
 .lb-big.orange {
   background:
-    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 11px),
-    linear-gradient(180deg, #ffb45e 0%, var(--amber) 45%, var(--amber-lo) 100%);
-  border-color: #4a1f04;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, transparent 40%),
+    linear-gradient(180deg, var(--gold-hi) 0%, #f7c948 40%, #c98612 78%, #7a4a06 100%);
+  border-color: var(--gold-hi);
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 74, 6, 0.8),
+    0 0 22px rgba(255, 190, 60, 0.6),
+    0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* ---------- Hộp thoại + thanh điều khiển trận: cùng tông gỗ ---------- */
+/* ---------- Hộp thoại + thanh điều khiển trận: cùng tông tím đêm viền vàng ---------- */
 
 .dialog {
-  border: 3px solid var(--wood-edge);
-  background: linear-gradient(180deg, rgba(255, 214, 160, 0.06), transparent 30%), #2a1b10;
+  border: 2px solid var(--gold-line);
+  background: radial-gradient(120% 60% at 50% 0%, rgba(143, 123, 255, 0.22), transparent 60%), linear-gradient(180deg, #1d1540, #0c0820);
   box-shadow:
-    inset 0 0 0 3px #6b4224,
-    inset 0 0 0 5px var(--wood-edge),
-    0 20px 60px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 1px rgba(6, 3, 14, 0.9),
+    inset 0 0 30px rgba(143, 123, 255, 0.15),
+    0 0 30px rgba(143, 123, 255, 0.3),
+    0 20px 60px rgba(0, 0, 0, 0.65);
 }
 .dialog h2 {
   font-family: var(--display);
-  text-shadow: var(--outline, 0 2px 0 #2b170a);
+  color: #fff;
+  text-shadow:
+    var(--outline, 0 2px 0 #06030e),
+    0 0 14px rgba(170, 150, 255, 0.7);
 }
 .dialog .btn:not(.btn-primary),
 .lb-panel-body .btn:not(.btn-primary):not(.diff) {
-  background: linear-gradient(180deg, #7a4b2a, #573219);
-  border: 2px solid var(--wood-edge);
+  background: linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
+  border: 1px solid color-mix(in srgb, var(--gold-line) 70%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 214, 160, 0.3),
-    0 3px 0 var(--wood-edge);
+    inset 0 1px 0 var(--wood-light),
+    0 0 10px rgba(143, 123, 255, 0.25);
   color: var(--cream);
+}
+.dialog .btn:not(.btn-primary):hover,
+.lb-panel-body .btn:not(.btn-primary):not(.diff):hover {
+  box-shadow:
+    inset 0 1px 0 var(--wood-light),
+    0 0 16px rgba(170, 150, 255, 0.55);
 }
 .dialog .btn-primary,
 .lb-panel-body .btn-primary {
-  border: 2px solid #7a5a00;
+  border: 1px solid var(--gold-hi);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 3px 0 #7a5a00;
+    0 0 16px rgba(255, 190, 60, 0.5);
 }
 
 .game .topbar,
 .game .controls {
-  background: repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 11px), linear-gradient(180deg, #5d3820, #3f2413);
-  border-color: var(--wood-edge);
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(143, 123, 255, 0.18), transparent 60%),
+    linear-gradient(180deg, rgba(29, 21, 64, 0.94), rgba(10, 6, 24, 0.96));
+  border-color: color-mix(in srgb, var(--gold-line) 60%, transparent);
 }
 .game .topbar {
-  border-bottom: 3px solid var(--wood-edge);
+  border-bottom: 1px solid color-mix(in srgb, var(--gold-line) 60%, transparent);
+  box-shadow: 0 0 16px rgba(143, 123, 255, 0.25);
 }
 .game .controls {
-  border-top: 3px solid var(--wood-edge);
-  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--faction) 55%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--gold-line) 60%, transparent);
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, var(--faction) 55%, transparent),
+    0 0 18px rgba(143, 123, 255, 0.25);
 }
 .game .unit-btn,
 .game .stance-btn,
 .game .icon-btn {
-  background: linear-gradient(180deg, #8a5a32, #5e3820);
-  border: 2px solid var(--wood-edge);
+  background:
+    radial-gradient(100% 80% at 50% 20%, rgba(143, 123, 255, 0.25), transparent 70%),
+    linear-gradient(180deg, var(--wood-hi), var(--wood-lo));
+  border: 1px solid color-mix(in srgb, var(--gold-line) 65%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 214, 160, 0.35),
-    0 3px 0 var(--wood-edge);
+    inset 0 1px 0 var(--wood-light),
+    inset 0 0 10px rgba(6, 3, 14, 0.6),
+    0 0 8px rgba(143, 123, 255, 0.25);
   color: var(--cream);
 }
+.game .unit-btn:hover:not(:disabled),
+.game .stance-btn:hover,
+.game .icon-btn:hover {
+  box-shadow:
+    inset 0 1px 0 var(--wood-light),
+    0 0 14px rgba(170, 150, 255, 0.6);
+}
 .game .stance-btn.active {
-  background: linear-gradient(180deg, #ffb45e, var(--amber-lo));
-  border-color: #4a1f04;
+  background: linear-gradient(180deg, var(--gold-hi), var(--amber) 45%, var(--amber-lo));
+  border-color: var(--gold-hi);
+  color: #1d1338;
+  box-shadow: 0 0 14px rgba(255, 200, 80, 0.7);
 }
 .game .stat {
-  background: rgba(0, 0, 0, 0.3);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: rgba(6, 3, 14, 0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(143, 123, 255, 0.25);
+}
+
+/* Huy hiệu nền văn minh trong nút tròn */
+.lb-round .civ-emblem {
+  display: block;
 }
 
 /* ---------- Màn hình nhỏ ---------- */

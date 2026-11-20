@@ -1,16 +1,16 @@
 /* Biến màu, nền, chữ, nút dùng chung */
 
 :root {
-  --bg: #1b1d24;
-  --panel: rgba(22, 25, 34, 0.86);
-  --panel-2: rgba(255, 255, 255, 0.08);
-  --line: rgba(255, 255, 255, 0.12);
-  --text: #f3f1ea;
-  --muted: #b3ad9f;
+  --bg: #0b0716;
+  --panel: rgba(20, 14, 42, 0.9);
+  --panel-2: rgba(170, 150, 255, 0.1);
+  --line: rgba(190, 170, 255, 0.18);
+  --text: #f2edff;
+  --muted: #b2a8d4;
   --gold: #ffcf3f;
-  --gold-ink: #3a2a00;
-  --ally: #3e8bff;
-  --enemy: #e5484d;
+  --gold-ink: #2a1a00;
+  --ally: #3d9bff;
+  --enemy: #ff3b52;
   font-family:
     'Segoe UI',
     system-ui,
@@ -58,19 +58,27 @@ button {
     background 0.15s;
 }
 .btn:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(170, 150, 255, 0.2);
+  box-shadow: 0 0 12px rgba(143, 123, 255, 0.35);
 }
 .btn:active {
   transform: scale(0.97);
 }
 .btn-primary {
-  background: var(--gold);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 45%), linear-gradient(180deg, #fff1a8 0%, #f7c948 40%, #c98612 100%);
   border-color: transparent;
   color: var(--gold-ink);
-  box-shadow: 0 4px 0 #b88a00;
+  box-shadow:
+    0 3px 0 #7a4a06,
+    0 0 14px rgba(255, 190, 60, 0.45);
 }
 .btn-primary:hover {
-  background: #ffd95f;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, transparent 45%), linear-gradient(180deg, #fff6c4 0%, #ffd65f 40%, #d99418 100%);
+  box-shadow:
+    0 3px 0 #7a4a06,
+    0 0 22px rgba(255, 210, 90, 0.75);
 }
 .btn-ghost {
   background: transparent;
