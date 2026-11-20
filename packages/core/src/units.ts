@@ -3,8 +3,21 @@ import { FACTIONS, FACTION_ORDER, type FactionId, type Look } from './factions';
 export type Team = 0 | 1; // 0 = người chơi, 1 = địch
 /** Khung quân: quyết định cách hành xử và dáng vẽ. Mỗi tộc có một bản riêng của từng khung. */
 export type Arch =
-  'miner' | 'sword' | 'archer' | 'ninja' | 'spear' | 'cavalry' | 'healer' | 'banner' | 'mage' | 'catapult' | 'giant' | 'builder' | 'tower';
-/** Mã loại quân: Bộ Lạc dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
+  | 'miner'
+  | 'sword'
+  | 'archer'
+  | 'ninja'
+  | 'spear'
+  | 'cavalry'
+  | 'healer'
+  | 'banner'
+  | 'mage'
+  | 'catapult'
+  | 'giant'
+  | 'builder'
+  | 'tower'
+  | 'wall';
+/** Mã loại quân: Blade Clan dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
 export type UnitKind = string;
 export type Stance = 'defend' | 'attack' | 'garrison' | 'hold';
 export type Formation = 'free' | 'line' | 'spread' | 'wedge' | 'wall';
@@ -65,6 +78,12 @@ export type UnitStats = {
   mineTime?: number; // thợ mỏ: thời gian đào một lần
   build?: UnitKind; // thợ xây: dựng thành loại này
   stationary?: boolean; // tháp: không di chuyển
+  /** Tường thành có cổng: chặn quân địch (phải phá mới qua), quân mình đi qua cổng; không tự đánh. */
+  wall?: boolean;
+  /** Giây thợ mỏ cần để dựng công trình này (tường). */
+  buildTime?: number;
+  /** Gai / lửa / băng trên tường: quân cận chiến đánh vào thì bị đâm lại, đốt hoặc làm chậm. */
+  thorns?: { dmg: number; burn?: number; slow?: number };
 };
 
 /** Thứ tự nút xây quân (phím 1–9, 0, -, =). Tháp không xây trực tiếp mà do thợ xây dựng. */
@@ -82,11 +101,11 @@ export const ARCH_ORDER: Arch[] = [
   'giant',
   'builder',
 ];
-export const ALL_ARCHS: Arch[] = [...ARCH_ORDER, 'tower'];
+export const ALL_ARCHS: Arch[] = [...ARCH_ORDER, 'tower', 'wall'];
 
 type Base = Omit<UnitStats, 'arch' | 'faction' | 'name' | 'desc' | 'counter' | 'look'>;
 
-/** Chỉ số gốc của từng khung (chính là quân Bộ Lạc trước khi áp nội tại tộc). */
+/** Chỉ số gốc của từng khung (chính là quân Blade Clan trước khi áp nội tại tộc). */
 const BASE: Record<Arch, Base> = {
   miner: {
     cost: 150,
@@ -291,6 +310,24 @@ const BASE: Record<Arch, Base> = {
     armorType: 'heavy',
     stationary: true,
   },
+  wall: {
+    cost: 300,
+    pop: 0,
+    trainTime: 0,
+    hp: 1600,
+    speed: 0,
+    damage: 0,
+    range: 0,
+    cooldown: 99,
+    windup: 0,
+    scale: 1,
+    armor: 0.25,
+    dmgType: 'none',
+    armorType: 'heavy',
+    stationary: true,
+    wall: true,
+    buildTime: 6,
+  },
 };
 
 /** Hệ số sát thương [kiểu đòn][kiểu giáp]. Thiếu thì coi là 1. */
@@ -348,6 +385,11 @@ function build(f: FactionId, a: Arch): UnitStats {
     counter: '',
     look: { head: fd.head, ink: fd.ink, ...look },
   };
+  // Tường: chỉ số chung + nét riêng ghi trong factions.ts, không áp hệ số chung của tộc
+  if (a === 'wall') {
+    s.counter = counterText(s);
+    return s;
+  }
   s.hp = Math.round(s.hp * (fd.hpMult ?? 1));
   s.damage *= fd.damageMult ?? 1;
   s.speed *= fd.speedMult ?? 1;
@@ -364,8 +406,16 @@ function build(f: FactionId, a: Arch): UnitStats {
 export const UNITS: Record<UnitKind, UnitStats> = {};
 for (const f of FACTION_ORDER) for (const a of ALL_ARCHS) UNITS[kindOf(f, a)] = build(f, a);
 
-/** Mọi loại quân của mọi tộc, thứ tự cố định (giao thức online gửi chỉ số trong danh sách này). */
-export const UNIT_ORDER: UnitKind[] = FACTION_ORDER.flatMap((f) => ALL_ARCHS.map((a) => kindOf(f, a)));
+/**
+ * Mọi loại quân của mọi tộc, thứ tự cố định (giao thức online gửi chỉ số trong danh sách này).
+ * Tường thêm sau nên nối vào cuối danh sách (không chèn giữa) để client cũ không lệch chỉ số.
+ */
+export const UNIT_ORDER: UnitKind[] = [
+  ...FACTION_ORDER.flatMap((f) => ALL_ARCHS.filter((a) => a !== 'wall').map((a) => kindOf(f, a))),
+  ...FACTION_ORDER.map((f) => kindOf(f, 'wall')),
+];
+/** Loại tường của một nền văn minh. */
+export const wallKind = (f: FactionId): UnitKind => kindOf(f, 'wall');
 
 /** Các quân xây được của một tộc, theo thứ tự nút. */
 export const roster = (f: FactionId): UnitKind[] => ARCH_ORDER.map((a) => kindOf(f, a));
@@ -382,4 +432,4 @@ export const RANK_BONUS = 0.15;
 
 export const POP_CAP = 40;
 export const MAX_QUEUE = 5;
-export const MAX_TOWERS = 3;
+export const MAX_TOWERS = 2;

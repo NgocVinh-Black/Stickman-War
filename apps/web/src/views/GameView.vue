@@ -6,6 +6,8 @@ import BetPanel from '../components/BetPanel.vue';
 import UnitIcon from '../components/UnitIcon.vue';
 import { bindCamera, panByKeys } from '../game/camera';
 import { isNet } from '../game/session';
+import { t } from '@stickman-war/i18n';
+import { unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
 import { FORMATION_CYCLE, FORMATION_INFO, MINE_INFO, MINE_PRESETS, STANCES, archIndex, useGame } from '../stores/game';
 import { MINES, MINE_KINDS, type MineSplit } from '@stickman-war/core';
@@ -120,6 +122,7 @@ const onKey = (e: KeyboardEvent) => {
   if (slot >= 0) game.trainSlot(slot);
   if (k === 'r') game.cycleMinePreset();
   if (k === 'f') game.cycleFormation();
+  if (k === 't') game.toggleWallMode();
   const st = STANCES.find((x) => x.key.toLowerCase() === k);
   if (st) game.setStance(st.id);
 };
@@ -143,6 +146,8 @@ onMounted(() => {
     mini.value,
     () => game.session?.renderer ?? null,
     (x) => game.placeAt(x),
+    () => game.wallMode,
+    (x) => game.hoverWall(x),
   );
   raf = requestAnimationFrame(frame);
   document.addEventListener('pointerdown', closeFormationMenu);
@@ -167,11 +172,11 @@ onBeforeUnmount(() => {
 <template>
   <main v-if="session" class="game" :style="{ '--faction': FACTIONS[game.hud.factions[0]].color }">
     <header class="topbar">
-      <button class="icon-btn" :title="netMode ? 'Menu' : 'Tạm dừng (Space)'" @click="openMenu">{{ netMode ? '☰' : '⏸' }}</button>
+      <button class="icon-btn" :title="netMode ? t('game.menu') : t('game.pause')" @click="openMenu">{{ netMode ? '☰' : '⏸' }}</button>
       <div class="level-name">
         <b>{{ game.meta.title }}</b><span>{{ game.meta.subtitle }}</span>
       </div>
-      <div class="faction-tag" title="Tộc hai bên">
+      <div class="faction-tag" :title="t('civ.bothSides')">
         {{ FACTIONS[game.hud.factions[0]].icon }} vs {{ FACTIONS[game.hud.factions[1]].icon }}
       </div>
       <template v-if="watching">
@@ -196,24 +201,22 @@ onBeforeUnmount(() => {
         <div class="statue-bar enemy"><i :style="{ transform: `scaleX(${game.hud.hpEnemy})` }" /></div>
       </div>
       <div v-if="netMode" class="ping">{{ online.ping }} ms{{ online.watchers ? ` · 👁 ${online.watchers}` : '' }}</div>
-      <button v-else class="icon-btn" title="Tốc độ" @click="toggleSpeed">×{{ speed }}</button>
+      <button v-else class="icon-btn" :title="t('game.speed')" @click="toggleSpeed">×{{ speed }}</button>
     </header>
     <canvas ref="mini" class="minimap" />
     <section class="stage">
-      <canvas ref="view" :class="{ 'flag-cursor': game.flagMode || game.buildMode }" />
-      <div v-if="game.flagMode" class="flag-hint">🚩 Chạm vào chiến trường hoặc bản đồ nhỏ để cắm cờ · Esc để huỷ</div>
-      <div v-else-if="game.buildMode" class="flag-hint">
-        🔨 Chạm chỗ muốn dựng tháp (trên sân nhà) · bấm thợ xây lần nữa để dựng chỗ mặc định · Esc để huỷ
-      </div>
+      <canvas ref="view" :class="{ 'flag-cursor': game.flagMode || game.wallMode }" />
+      <div v-if="game.flagMode" class="flag-hint">{{ t('game.flagHint') }}</div>
+      <div v-else-if="game.wallMode" class="flag-hint">{{ t('game.wallHint') }}</div>
       <div :key="game.hud.countdown" class="countdown" :class="{ pop: !!game.hud.countdown }">{{ game.hud.countdown }}</div>
     </section>
 
     <footer v-if="watching && online.watching" class="controls watch-bar">
       <span class="watch-label">
-        👁 Đang xem · <b class="ally-name">{{ online.watching[0] }}</b> vs <b class="enemy-name">{{ online.watching[1] }}</b>
+        {{ t('game.watching') }} <b class="ally-name">{{ online.watching[0] }}</b> vs <b class="enemy-name">{{ online.watching[1] }}</b>
       </span>
       <BetPanel :players="online.watching" :watcher="true" :time="time" />
-      <button class="btn" @click="leaveWatch">Rời phòng</button>
+      <button class="btn" @click="leaveWatch">{{ t('game.leaveRoom') }}</button>
     </footer>
     <footer v-else class="controls">
       <div class="units">
@@ -221,8 +224,8 @@ onBeforeUnmount(() => {
           v-for="k in kinds"
           :key="k"
           class="unit-btn"
-          :class="{ disabled: !game.hud.units[k]?.can, picking: game.buildMode === k }"
-          :title="`${UNITS[k].name}: ${UNITS[k].desc}\n${UNITS[k].counter}`"
+          :class="{ disabled: !game.hud.units[k]?.can }"
+          :title="`${unitName(k)}: ${unitDesc(k)}\n${unitCounter(k)}`"
           @click="game.train(k)"
         >
           <UnitIcon class="unit-icon" :kind="k" />
@@ -241,20 +244,32 @@ onBeforeUnmount(() => {
             active: st.id === 'hold' ? game.flagMode || game.hud.stance === 'hold' : game.hud.stance === st.id,
             picking: st.id === 'hold' && game.flagMode,
           }"
-          :title="
-            st.id === 'hold'
-              ? `Cắm cờ (${st.key}): bấm rồi chạm vào chiến trường hoặc bản đồ nhỏ, cả đội và quân mới xây ra đó đứng giữ`
-              : `${st.label} (${st.key})`
-          "
+          :title="st.id === 'hold' ? t('game.holdTip', { key: st.key }) : `${st.label} (${st.key})`"
           @click="game.setStance(st.id)"
         >
           <span>{{ st.icon }}</span><small>{{ st.label }}</small>
+        </button>
+        <button
+          class="stance-btn wall-btn"
+          :class="{ active: game.wallMode || game.hud.wall !== 'none', picking: game.wallMode }"
+          :title="`${t('game.wallTip')} · ${game.hud.wallCost} 💰`"
+          :disabled="game.hud.wall !== 'none'"
+          @click="game.toggleWallMode()"
+        >
+          <span>🧱</span
+          ><small>{{
+            game.hud.wall === 'building'
+              ? `${t('game.wallBuilding')} ${Math.round(game.hud.wallProgress * 100)}%`
+              : game.hud.wall === 'built'
+                ? t('game.wallBuilt')
+                : `${t('game.wall')} ${game.hud.wallCost}`
+          }}</small>
         </button>
         <div class="formation-wrap">
           <button
             class="stance-btn formation-btn"
             :class="{ active: game.hud.formation !== 'free' || formationMenu }"
-            title="Đội hình (F)"
+            :title="t('game.formation')"
             @click="formationMenu = !formationMenu"
           >
             <span>{{ FORMATION_INFO[game.hud.formation].icon }}</span><small>{{ FORMATION_INFO[game.hud.formation].label }}</small>
@@ -280,25 +295,27 @@ onBeforeUnmount(() => {
           <button
             class="stance-btn center-btn"
             :class="{ active: mineMenu || game.hud.centerMine }"
-            title="Chia thợ mỏ (R đổi nhanh): bạc sát nhà, vàng xa hơn, kim cương giữa bản đồ"
+            :title="t('game.mineTip')"
             @click="mineMenu = !mineMenu"
           >
             <span>⛏️</span><small>{{ game.hud.miners.join(' · ') }}</small>
           </button>
-          <div v-if="mineMenu" class="formation-menu mine-menu" role="dialog" aria-label="Chia thợ mỏ">
-            <b class="mine-title">Chia thợ mỏ</b>
-            <div v-for="(m, i) in MINE_INFO" :key="m.label" class="mine-row">
+          <div v-if="mineMenu" class="formation-menu mine-menu" role="dialog" :aria-label="t('game.mineTitle')">
+            <b class="mine-title">{{ t('game.mineTitle') }}</b>
+            <div v-for="(m, i) in MINE_INFO" :key="m.icon" class="mine-row">
               <span class="fm-icon">{{ m.icon }}</span>
               <span class="fm-text"
                 ><b>{{ m.label }}</b
                 ><small>{{ m.tip }}</small></span
               >
               <span class="mine-step">
-                <button :aria-label="`Bớt 1 thợ ${m.label}`" :disabled="!canRemoveMiner(i)" @click="bumpMine(i, -1)">−</button>
-                <b :aria-label="`${game.hud.miners[i]} thợ`"
+                <button :aria-label="t('game.mineLess', { name: m.label })" :disabled="!canRemoveMiner(i)" @click="bumpMine(i, -1)">
+                  −
+                </button>
+                <b :aria-label="t('game.mineCount', { n: game.hud.miners[i] })"
                   >{{ game.hud.miners[i] }}<small v-if="Number.isFinite(mineCap(i))">/{{ mineCap(i) }}</small></b
                 >
-                <button :aria-label="`Thêm 1 thợ ${m.label}`" :disabled="!canAddMiner(i)" @click="bumpMine(i, 1)">+</button>
+                <button :aria-label="t('game.mineMore', { name: m.label })" :disabled="!canAddMiner(i)" @click="bumpMine(i, 1)">+</button>
               </span>
             </div>
             <div class="mine-presets">

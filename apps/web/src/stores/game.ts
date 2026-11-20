@@ -1,11 +1,10 @@
 import {
   ARCH_ORDER,
-  CAMPAIGN,
-  DIFFS,
   EnemyAI,
   FACTIONS,
   FACTION_ORDER,
   LEVELS,
+  PVP_XU_MIN_SECONDS,
   SKIRMISH,
   UNITS,
   World,
@@ -17,6 +16,9 @@ import {
   type MineSplit,
   type Stance,
   type UnitKind,
+  WALL_MIN,
+  statueX,
+  wallKind,
 } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { reactive, ref, shallowRef } from 'vue';
@@ -25,46 +27,64 @@ import { GameSession, isNet, starsFor, statsOf, type Mode } from '../game/sessio
 import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { router } from '../router';
+import { t } from '@stickman-war/i18n';
+import { civPassive, levelIntro, levelName } from '@stickman-war/i18n/content';
+import { useOnline } from './online';
 import { useSettings } from './settings';
 import { useUi, type DialogButton } from './ui';
 
-export const STANCES: { id: Stance; icon: string; label: string; key: string }[] = [
-  { id: 'garrison', icon: '🏰', label: 'Rút về', key: 'Q' },
-  { id: 'defend', icon: '🛡️', label: 'Phòng thủ', key: 'W' },
-  { id: 'hold', icon: '🚩', label: 'Cắm cờ', key: 'S' },
-  { id: 'attack', icon: '⚔️', label: 'Tấn công', key: 'E' },
-];
+/** Nhãn đọc qua getter để đổi ngôn ngữ là đổi theo (template đọc `label` / `tip` mỗi lần vẽ). */
+const stance = (id: Stance, icon: string, key: string) => ({
+  id,
+  icon,
+  key,
+  get label() {
+    return t(`game.stance.${id}`);
+  },
+});
+export const STANCES = [stance('garrison', '🏰', 'Q'), stance('defend', '🛡️', 'W'), stance('hold', '🚩', 'S'), stance('attack', '⚔️', 'E')];
 /** Ba loại mỏ: biểu tượng, tên, mô tả ngắn. */
-export const MINE_INFO = [
-  { icon: '🥈', label: 'Bạc', tip: 'Sát nhà, an toàn, có vàng nhanh. Không giới hạn thợ' },
-  { icon: '🥇', label: 'Vàng', tip: 'Hơn bạc ~20%, vẫn trong vùng lính giữ. Tối đa 4 thợ' },
-  {
-    icon: '💎',
-    label: 'Kim cương',
-    tip: 'Hơn bạc ~50% nhưng đi xa, gần 1 phút mới về lần đầu, dễ bị đánh. Tối đa 6 thợ. Lính Phòng thủ ra chắn trước mỏ',
+const mine = (id: 'silver' | 'gold' | 'diamond', icon: string) => ({
+  icon,
+  get label() {
+    return t(`game.mine.${id}`);
   },
-] as const;
+  get tip() {
+    return t(`game.mine.${id}Tip`);
+  },
+});
+export const MINE_INFO = [mine('silver', '🥈'), mine('gold', '🥇'), mine('diamond', '💎')] as const;
 /** Kiểu chia thợ mỏ có sẵn [bạc, vàng, kim cương]. */
-export const MINE_PRESETS: { label: string; tip: string; split: MineSplit }[] = [
-  { label: 'Cân bằng', tip: 'nửa bạc, nửa vàng', split: [1, 1, 0] },
-  { label: 'An toàn', tip: 'chỉ đào bạc sát nhà', split: [1, 0, 0] },
-  { label: 'Đào vàng', tip: 'phần lớn ra mỏ vàng', split: [1, 3, 0] },
-  { label: 'Làm giàu', tip: 'một nửa sang mỏ kim cương', split: [1, 1, 2] },
+const preset = (id: 'balanced' | 'safe' | 'gold' | 'rich', split: MineSplit) => ({
+  split,
+  get label() {
+    return t(`game.split.${id}`);
+  },
+  get tip() {
+    return t(`game.split.${id}Tip`);
+  },
+});
+export const MINE_PRESETS = [
+  preset('balanced', [1, 1, 0]),
+  preset('safe', [1, 0, 0]),
+  preset('gold', [1, 3, 0]),
+  preset('rich', [1, 1, 2]),
 ];
+const form = (id: Formation, icon: string) => ({
+  icon,
+  get label() {
+    return t(`game.form.${id}`);
+  },
+  get tip() {
+    return t(`game.form.${id}Tip`);
+  },
+});
 export const FORMATION_INFO: Record<Formation, { icon: string; label: string; tip: string }> = {
-  free: { icon: '🌀', label: 'Tự do', tip: 'Mỗi quân tự lao lên theo tốc độ riêng' },
-  line: { icon: '🧱', label: 'Hàng lối', tip: 'Cả đội đi cùng tốc độ quân chậm nhất: khiên trước, cận chiến, bắn xa, hỗ trợ sau cùng' },
-  spread: { icon: '↔️', label: 'Tản rộng', tip: 'Như hàng lối nhưng giãn cách xa, ít bị phép nổ trúng cả đám' },
-  wedge: {
-    icon: '🔺',
-    label: 'Mũi nhọn',
-    tip: 'Kỵ binh, ninja, khổng lồ mở đường; cận chiến bám sát; bắn xa theo sau. Đội hình gọn để chọc thủng',
-  },
-  wall: {
-    icon: '🛡️',
-    label: 'Tường khiên',
-    tip: 'Mọi quân cận chiến đứng chung một hàng đầu, bắn xa núp sát ngay sau. Chắc chắn nhưng dễ dính phép nổ',
-  },
+  free: form('free', '🌀'),
+  line: form('line', '🧱'),
+  spread: form('spread', '↔️'),
+  wedge: form('wedge', '🔺'),
+  wall: form('wall', '🛡️'),
 };
 export const FORMATION_CYCLE: Formation[] = ['free', 'line', 'spread', 'wedge', 'wall'];
 export const archIndex = (k: UnitKind) => ARCH_ORDER.indexOf(UNITS[k].arch);
@@ -85,6 +105,10 @@ type Hud = {
   factions: [FactionId, FactionId];
   units: Record<UnitKind, { can: boolean; queued: number; progress: number }>;
   countdown: string;
+  /** Tường thành của mình: chưa có / đang dựng (tiến độ 0..1) / đã có; giá tường. */
+  wall: 'none' | 'building' | 'built';
+  wallProgress: number;
+  wallCost: number;
 };
 
 export const useGame = defineStore('game', () => {
@@ -104,6 +128,9 @@ export const useGame = defineStore('game', () => {
     factions: ['tribe', 'tribe'],
     units: {},
     countdown: '',
+    wall: 'none',
+    wallProgress: 0,
+    wallCost: 0,
   });
 
   const ui = () => useUi();
@@ -147,6 +174,12 @@ export const useGame = defineStore('game', () => {
     for (const u of v.units) if (u.team === 0 && !u.dying && UNITS[u.kind].arch === 'miner') miners[u.mine] = (miners[u.mine] ?? 0) + 1;
     if (miners.some((n, i) => n !== hud.miners[i])) hud.miners = miners;
     if (hud.factions[0] !== t.faction || hud.factions[1] !== v.teams[1].faction) hud.factions = [t.faction, v.teams[1].faction];
+    const wk = wallKind(t.faction);
+    hud.wallCost = UNITS[wk].cost;
+    if (!Number.isNaN(t.wallPlan)) {
+      hud.wall = 'building';
+      hud.wallProgress = Math.min(1, t.wallT / (UNITS[wk].buildTime ?? 6));
+    } else hud.wall = v.units.some((u) => u.team === 0 && !u.dying && UNITS[u.kind].wall) ? 'built' : 'none';
     const head = t.queue[0];
     for (const k of s.match.unlocked) {
       const u = hud.units[k];
@@ -167,18 +200,6 @@ export const useGame = defineStore('game', () => {
   function train(kind: UnitKind): void {
     const s = canCommand();
     if (!s) return;
-    // Thợ xây: chọn chỗ dựng tháp trước (bấm lại lần nữa thì dựng ở chỗ mặc định)
-    if (UNITS[kind].build && s.match.canTrain(kind)) {
-      if (buildMode.value === kind) {
-        buildMode.value = null;
-        if (s.match.train(kind)) sound.click();
-        return;
-      }
-      flagMode.value = false;
-      buildMode.value = kind;
-      sound.click();
-      return;
-    }
     if (s.match.train(kind)) sound.click();
     else ui().toast(s.match.whyNot(kind), 1200);
   }
@@ -195,7 +216,6 @@ export const useGame = defineStore('game', () => {
       toggleFlagMode();
       return;
     }
-    buildMode.value = null;
     flagMode.value = false;
     s.match.setStance(stance);
     sound.click();
@@ -204,22 +224,41 @@ export const useGame = defineStore('game', () => {
 
   /** Đang chờ người chơi chạm chiến trường / bản đồ nhỏ để cắm cờ tập hợp. */
   const flagMode = ref(false);
-  /** Đang chờ người chơi chạm chiến trường để chọn chỗ dựng tháp cho thợ xây loại này. */
-  const buildMode = ref<UnitKind | null>(null);
   function toggleFlagMode(): void {
     if (!canCommand()) return;
     flagMode.value = !flagMode.value;
-    buildMode.value = null;
+    wallMode.value = false;
     sound.click();
   }
-  function cancelPlacing(): boolean {
-    if (!flagMode.value && !buildMode.value) return false;
+  /** Đang đặt tường thành: bóng tường đi theo chuột / ngón tay, chạm hoặc thả tay để đặt. */
+  const wallMode = ref(false);
+  function toggleWallMode(): void {
+    const s = canCommand();
+    if (!s) return;
+    if (!wallMode.value) {
+      const why = s.match.wallBlock(statueX(0) + WALL_MIN);
+      // Lý do không phụ thuộc chỗ đặt thì báo luôn, khỏi vào chế độ đặt
+      if (why) return void ui().toast(t(`game.wallWhy.${why}`), 1600);
+    }
+    wallMode.value = !wallMode.value;
     flagMode.value = false;
-    buildMode.value = null;
+    if (!wallMode.value) hoverWall(null);
+    sound.click();
+  }
+  /** Dời bóng tường tới x (null = ẩn). */
+  function hoverWall(x: number | null): void {
+    const r = session.value?.renderer;
+    if (r) r.wallGhost = x;
+  }
+  function cancelPlacing(): boolean {
+    if (!flagMode.value && !wallMode.value) return false;
+    flagMode.value = false;
+    wallMode.value = false;
+    hoverWall(null);
     return true;
   }
   /**
-   * Chạm chiến trường tại x: cắm cờ tập hợp, hoặc xây thợ xây ra dựng tháp ở đó.
+   * Chạm chiến trường tại x: cắm cờ tập hợp.
    * Trả về true nếu đã xử lý (không thì chạm chỉ để lia góc nhìn).
    */
   function placeAt(x: number): boolean {
@@ -231,11 +270,17 @@ export const useGame = defineStore('game', () => {
       sound.click();
       return true;
     }
-    const kind = buildMode.value;
-    if (kind) {
-      buildMode.value = null;
-      if (s.match.train(kind, x)) sound.click();
-      else ui().toast(s.match.whyNot(kind), 1200);
+    if (wallMode.value) {
+      const why = s.match.wallBlock(x);
+      if (why) {
+        ui().toast(t(`game.wallWhy.${why}`), 1400);
+        return true;
+      }
+      s.match.orderWall(x);
+      wallMode.value = false;
+      hoverWall(null);
+      sound.click();
+      ui().toast(t('game.wallOrdered'), 1600);
       return true;
     }
     return false;
@@ -294,43 +339,41 @@ export const useGame = defineStore('game', () => {
     void router.push('/');
   };
 
-  function startCampaign(index: number, diff: Difficulty = settings().campDiff): void {
+  /** Màn `index` trong chiến dịch của tộc `faction`: người chơi cầm đúng tộc đó, không đổi tộc trước trận. */
+  function startCampaign(index: number, faction: FactionId = settings().campFaction): void {
     const st = settings();
-    if (diff !== st.campDiff) st.campDiff = diff;
-    const lv = campaignLevel(index, diff, st.progress[diff].seed);
-    const label = CAMPAIGN[diff].label;
+    if (faction !== st.campFaction) st.campFaction = faction;
+    const lv = campaignLevel(index, faction, st.progress[faction].seed);
+    const f = FACTIONS[faction];
     const enemyFaction = lv.enemyFaction ?? 'tribe';
     const world = new World([
-      { ...lv.player, faction: st.faction },
+      { ...lv.player, faction },
       { ...lv.enemy, faction: enemyFaction },
     ]);
     const s = mount(
-      { type: 'campaign', level: index, diff },
+      { type: 'campaign', level: index, faction },
       localMatch(world, [new EnemyAI(lv.ai)]),
-      `Màn ${index + 1} · ${label}`,
-      lv.name,
+      t('campaign.levelTag', { n: index + 1, icon: f.icon, name: f.name }),
+      levelName(index),
     );
-    if (index === 0 && diff === 'easy') {
+    if (index === 0 && st.tips) {
       s.tips = [
-        { at: 1, text: '💡 Bấm Thợ mỏ để có thêm vàng' },
-        { at: 12, text: '💡 Xây thêm Kiếm sĩ để bảo vệ nhà' },
-        { at: 45, text: '💡 Đủ quân thì bấm ⚔️ Tấn công!' },
+        { at: 1, text: t('campaign.tip1') },
+        { at: 12, text: t('campaign.tip2') },
+        { at: 45, text: t('campaign.tip3') },
       ];
     }
+    const intro = levelIntro(index);
     ui().show({
       kind: 'generic',
-      eyebrow: `Màn ${index + 1}/${LEVELS.length} · ${label}`,
-      title: lv.name,
-      lines: [lv.intro],
-      matchup: [st.faction, enemyFaction],
-      pickFaction: (id) => {
-        chooseFaction(id);
-        startCampaign(index, diff);
-      },
-      newUnits: (lv.newUnits ?? []).map((a) => kindOf(st.faction, a)),
+      eyebrow: t('campaign.eyebrow', { icon: f.icon, name: f.name, n: index + 1, total: LEVELS.length }),
+      title: levelName(index),
+      lines: index === 0 ? [intro, t('campaign.passive', { icon: f.icon, passive: civPassive(faction) })] : [intro],
+      matchup: [faction, enemyFaction],
+      newUnits: (lv.newUnits ?? []).map((a) => kindOf(faction, a)),
       buttons: [
-        { label: '⚔️ Vào trận', primary: true, action: () => begin(s) },
-        { label: 'Về menu', action: toMenu },
+        { label: t('common.enter'), primary: true, action: () => begin(s) },
+        { label: t('common.toMenu'), action: toMenu },
       ],
     });
   }
@@ -345,26 +388,32 @@ export const useGame = defineStore('game', () => {
       { ...cfg.player, faction: st.faction },
       { ...cfg.enemy, faction: enemyFaction },
     ]);
-    const s = mount({ type: 'skirmish', diff }, localMatch(world, [new EnemyAI(cfg.ai)]), 'Đấu với máy', `Độ khó: ${cfg.label}`);
+    const label = t(`skirmish.${diff}`);
+    const s = mount(
+      { type: 'skirmish', diff },
+      localMatch(world, [new EnemyAI(cfg.ai)]),
+      t('skirmish.title'),
+      t('skirmish.sub', { label }),
+    );
     ui().show({
       kind: 'generic',
-      eyebrow: `Đấu với máy · ${cfg.label}`,
-      title: 'Trận đấu tự do',
-      lines: [`Hai bên cùng xuất phát với đủ ${ARCH_ORDER.length} loại quân của tộc mình. Phá tượng máy để thắng!`],
+      eyebrow: t('skirmish.eyebrow', { label }),
+      title: t('skirmish.free'),
+      lines: [t('skirmish.intro', { n: ARCH_ORDER.length })],
       matchup: [st.faction, enemyFaction],
       pickFaction: (id) => {
         chooseFaction(id);
         startSkirmish(diff, enemyFaction);
       },
       buttons: [
-        { label: '⚔️ Vào trận', primary: true, action: () => begin(s) },
-        { label: 'Về menu', action: toMenu },
+        { label: t('common.enter'), primary: true, action: () => begin(s) },
+        { label: t('common.toMenu'), action: toMenu },
       ],
     });
   }
 
   function restartLocal(s: GameSession): void {
-    if (s.mode.type === 'campaign') startCampaign(s.mode.level, s.mode.diff);
+    if (s.mode.type === 'campaign') startCampaign(s.mode.level, s.mode.faction);
     else if (s.mode.type === 'skirmish') startSkirmish(s.mode.diff);
   }
 
@@ -376,36 +425,46 @@ export const useGame = defineStore('game', () => {
       ui().show({
         kind: 'generic',
         emoji: '🏆',
-        title: `Thắng máy (${SKIRMISH[diff].label})!`,
+        title: t('skirmish.won', { label: t(`skirmish.${diff}`) }),
         stats: statsOf(v),
         buttons: [
-          { label: 'Đấu lại', primary: true, action: () => startSkirmish(diff) },
-          { label: 'Về menu', action: toMenu },
+          { label: t('skirmish.again'), primary: true, action: () => startSkirmish(diff) },
+          { label: t('common.toMenu'), action: toMenu },
         ],
       });
       return;
     }
     if (s.mode.type !== 'campaign') return;
-    const { level: i, diff } = s.mode;
+    const { level: i, faction } = s.mode;
     const stars = starsFor(v);
-    const { wasDone } = settings().recordWin(diff, i, stars);
+    const st = settings();
+    const { wasDone } = st.recordWin(faction, i, stars);
+    // Máy chủ giữ ví xu: cộng xu cho sao mới của màn này (mất mạng thì gửi lại lần sau)
+    useOnline().claimCampaign(faction, i, stars);
     if (i === LEVELS.length - 1) {
-      const harder = DIFFS[DIFFS.indexOf(diff) + 1];
-      const label = CAMPAIGN[diff].label;
-      const buttons: DialogButton[] = harder
+      const f = FACTIONS[faction];
+      // Gợi ý tộc tiếp theo chưa phá đảo, theo thứ tự sau tộc vừa chơi
+      const k = FACTION_ORDER.indexOf(faction);
+      const order = FACTION_ORDER.map((_, j) => FACTION_ORDER[(k + 1 + j) % FACTION_ORDER.length]);
+      const next = order.find((id) => !st.progress[id].completed);
+      const buttons: DialogButton[] = next
         ? [
-            { label: `▶ Chơi mức ${CAMPAIGN[harder].label}`, primary: true, action: () => startCampaign(0, harder) },
-            { label: 'Về menu', action: toMenu },
+            {
+              label: t('campaign.playCiv', { icon: FACTIONS[next].icon, name: FACTIONS[next].name }),
+              primary: true,
+              action: () => startCampaign(Math.min(st.progress[next].unlocked, LEVELS.length - 1), next),
+            },
+            { label: t('common.toMenu'), action: toMenu },
           ]
-        : [{ label: 'Về menu', primary: true, action: toMenu }];
-      buttons.push({ label: 'Chơi lại màn này', action: () => startCampaign(i, diff) });
+        : [{ label: t('common.toMenu'), primary: true, action: toMenu }];
+      buttons.push({ label: t('campaign.replayLevel'), action: () => startCampaign(i, faction) });
       ui().show({
         kind: 'generic',
         emoji: '👑',
-        title: harder ? `Chinh phục mức ${label}!` : 'Bạn là Vua Stickman!',
+        title: next ? t('campaign.mastered', { icon: f.icon, name: f.name }) : t('campaign.king'),
         lines: [
-          `Đã thắng cả ${LEVELS.length} màn chiến dịch mức ${label}.`,
-          ...(harder && !wasDone ? [`🔓 Đã mở khoá mức ${CAMPAIGN[harder].label}: máy giàu hơn, đông hơn, đánh sớm hơn.`] : []),
+          t('campaign.masteredLine', { n: LEVELS.length, name: f.name, others: FACTION_ORDER.length - 1 }),
+          ...(next ? [] : wasDone ? [] : [t('campaign.allDone', { n: FACTION_ORDER.length })]),
         ],
         stats: statsOf(v),
         buttons,
@@ -415,27 +474,29 @@ export const useGame = defineStore('game', () => {
     ui().show({
       kind: 'generic',
       stars,
-      title: 'Chiến thắng!',
-      lines: ['Tượng địch đã sụp đổ.'],
+      title: t('campaign.win'),
+      lines: [t('campaign.winLine')],
       stats: statsOf(v),
       buttons: [
-        { label: `Màn ${i + 2} ▶`, primary: true, action: () => startCampaign(i + 1, diff) },
-        { label: 'Chơi lại', action: () => startCampaign(i, diff) },
-        { label: 'Về menu', action: toMenu },
+        { label: t('campaign.next', { n: i + 2 }), primary: true, action: () => startCampaign(i + 1, faction) },
+        { label: t('common.replay'), action: () => startCampaign(i, faction) },
+        { label: t('common.toMenu'), action: toMenu },
       ],
     });
   }
 
   function onLocalLose(s: GameSession): void {
     sound.lose();
+    // Thua trận đủ dài (chiến dịch / đấu với máy) vẫn được chút xu an ủi
+    if (s.view.time >= PVP_XU_MIN_SECONDS) useOnline().claimSoloLose();
     ui().show({
       kind: 'generic',
       emoji: '💀',
-      title: 'Thất bại',
-      lines: ['Tượng của bạn đã bị phá. Thử nuôi thêm thợ mỏ và phòng thủ gần tượng để có lợi thế.'],
+      title: t('campaign.lose'),
+      lines: [t('campaign.loseLine')],
       buttons: [
-        { label: 'Chơi lại', primary: true, action: () => restartLocal(s) },
-        { label: 'Về menu', action: toMenu },
+        { label: t('common.replay'), primary: true, action: () => restartLocal(s) },
+        { label: t('common.toMenu'), action: toMenu },
       ],
     });
   }
@@ -452,23 +513,16 @@ export const useGame = defineStore('game', () => {
   function showPause(): void {
     const s = session.value;
     if (!s) return;
-    const st = settings();
     ui().show({
       kind: 'generic',
       emoji: '⏸',
-      title: 'Tạm dừng',
+      title: t('pause.title'),
       buttons: [
-        { label: 'Tiếp tục', primary: true, action: resume },
-        { label: 'Chơi lại', action: () => restartLocal(s) },
-        {
-          label: st.muted ? '🔇 Bật âm thanh' : '🔊 Tắt âm thanh',
-          action: () => {
-            st.toggleSound();
-            showPause();
-          },
-        },
-        { label: 'Cách chơi', action: () => ui().show({ kind: 'howto', back: showPause }) },
-        { label: 'Về menu', action: toMenu },
+        { label: t('common.resume'), primary: true, action: resume },
+        { label: t('common.replay'), action: () => restartLocal(s) },
+        { label: `⚙️ ${t('settings.title')}`, action: () => ui().show({ kind: 'settings', back: showPause }) },
+        { label: t('common.howto'), action: () => ui().show({ kind: 'howto', back: showPause }) },
+        { label: t('common.toMenu'), action: toMenu },
       ],
     });
   }
@@ -492,7 +546,9 @@ export const useGame = defineStore('game', () => {
     trainSlot,
     setStance,
     flagMode,
-    buildMode,
+    wallMode,
+    toggleWallMode,
+    hoverWall,
     toggleFlagMode,
     cancelPlacing,
     placeAt,

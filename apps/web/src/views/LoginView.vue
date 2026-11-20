@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { lang, t } from '@stickman-war/i18n';
 import { sound } from '../lib/sound';
 import { auth, renderGoogleButton } from '../net/account';
 import { useSettings } from '../stores/settings';
@@ -23,7 +24,7 @@ function needAgree(): boolean {
   if (settings.agree) return false;
   shake.value = false;
   void nextTick(() => (shake.value = true));
-  ui.toast('Hãy tích ô đồng ý Điều khoản dịch vụ và Chính sách bảo mật trước', 2200);
+  ui.toast(t('login.agreeFirst'), 2200);
   return true;
 }
 
@@ -48,9 +49,7 @@ async function paintGoogle(): Promise<void> {
 function onPlaque(): void {
   if (needAgree()) return;
   if (!auth.clientId) {
-    note.value = !auth.reachable
-      ? 'Không kết nối được máy chủ online. Bạn vẫn có thể chơi với tư cách khách.'
-      : 'Máy chủ chưa bật đăng nhập Google (thiếu GOOGLE_CLIENT_ID). Tạm thời hãy chơi với tư cách khách.';
+    note.value = !auth.reachable ? t('login.noServer') : t('login.noGoogle');
   }
 }
 
@@ -88,14 +87,14 @@ onBeforeUnmount(() => window.removeEventListener('resize', fitGis));
   <main class="login-art">
     <div class="la-bg" />
     <div class="la-vignette" />
-    <button class="la-gear" aria-label="Cài đặt" @click="(sound.click(), ui.show({ kind: 'settings' }))">⚙</button>
+    <button class="la-gear" :aria-label="t('lobby.settings')" @click="(sound.click(), ui.show({ kind: 'settings' }))">⚙</button>
     <div class="la-center">
       <picture class="la-logo">
         <source :srcset="asset('logo.webp')" type="image/webp" />
         <img :src="asset('logo.png')" alt="Stickman War" />
       </picture>
       <div class="la-actions">
-        <button ref="plaque" class="la-google" aria-label="Đăng nhập bằng Google" @click="onPlaque">
+        <button ref="plaque" class="la-google" :aria-label="t('login.google')" @click="onPlaque">
           <span class="la-google-face">
             <svg viewBox="0 0 48 48" aria-hidden="true">
               <path
@@ -109,14 +108,18 @@ onBeforeUnmount(() => window.removeEventListener('resize', fitGis));
                 d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"
               />
             </svg>
-            <b>Đăng nhập bằng Google</b>
+            <b>{{ t('login.google') }}</b>
           </span>
           <span class="la-glow" />
           <span ref="gis" class="la-gis" />
         </button>
         <p v-if="note" class="la-note">{{ note }}</p>
-        <div class="la-or"><span>Hoặc</span></div>
-        <button class="la-guest" @click="playGuest"><span>Chơi với tư cách khách</span></button>
+        <div class="la-or">
+          <span>{{ t('login.or') }}</span>
+        </div>
+        <button class="la-guest" @click="playGuest">
+          <span>{{ t('login.guest') }}</span>
+        </button>
       </div>
     </div>
     <div class="la-agree">
@@ -125,19 +128,22 @@ onBeforeUnmount(() => window.removeEventListener('resize', fitGis));
         :class="{ on: settings.agree, shake }"
         role="checkbox"
         :aria-checked="settings.agree"
-        aria-label="Đồng ý điều khoản"
+        :aria-label="t('login.agree')"
         @click="toggleAgree"
       />
       <span>
-        Tôi đồng ý với <button class="la-a" @click="ui.show({ kind: 'legal', which: 'terms' })">Điều khoản dịch vụ</button> và
-        <button class="la-a" @click="ui.show({ kind: 'legal', which: 'privacy' })">Chính sách bảo mật</button>
+        {{ t('login.agreeA') }}
+        <button class="la-a" @click="ui.show({ kind: 'legal', which: 'terms' })">{{ t('login.terms') }}</button>
+        {{ t('login.and') }}
+        <button class="la-a" @click="ui.show({ kind: 'legal', which: 'privacy' })">{{ t('login.privacy') }}</button>
       </span>
     </div>
-    <picture class="la-slogan la-slogan-fight">
+    <!-- Khẩu hiệu là ảnh chữ tiếng Việt: chỉ hiện khi chọn tiếng Việt -->
+    <picture v-if="lang === 'vi'" class="la-slogan la-slogan-fight">
       <source :srcset="asset('chien-dau-khong-gioi-han.webp')" type="image/webp" />
       <img :src="asset('chien-dau-khong-gioi-han.png')" alt="Chiến Đấu Không Giới Hạn" />
     </picture>
-    <picture class="la-slogan la-slogan-legend">
+    <picture v-if="lang === 'vi'" class="la-slogan la-slogan-legend">
       <source :srcset="asset('tro-thanh-huyen-thoai.webp')" type="image/webp" />
       <img :src="asset('tro-thanh-huyen-thoai.png')" alt="Trở thành Huyền Thoại!" />
     </picture>

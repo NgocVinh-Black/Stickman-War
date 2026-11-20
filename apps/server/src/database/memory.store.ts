@@ -7,6 +7,7 @@ import type {
   AdminAccountRow,
   AdminSession,
   AdminStats,
+  CampaignStarRow,
   MatchEntry,
   WalletStore,
 } from './store.types';
@@ -172,5 +173,16 @@ export class MemoryWalletStore implements WalletStore {
 
   async saveMany(entries: [string, number][]): Promise<void> {
     for (const [id, xu] of entries) this.data.set(id, xu);
+  }
+
+  readonly stars = new Map<string, CampaignStarRow[]>();
+
+  async campaignStars(id: string): Promise<CampaignStarRow[]> {
+    return [...(this.stars.get(id) ?? [])];
+  }
+
+  async setCampaignStars(id: string, row: CampaignStarRow): Promise<void> {
+    const rows = (this.stars.get(id) ?? []).filter((r) => r.faction !== row.faction || r.level !== row.level);
+    this.stars.set(id, [...rows, row]);
   }
 }

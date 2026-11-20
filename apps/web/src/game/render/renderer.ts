@@ -1,4 +1,9 @@
-import { UNITS, kindOf, type ProjectileKind, type Team } from '@stickman-war/core';
+import { FACTIONS, UNITS, wallBlockOf, wallKind, type ProjectileKind, type Team } from '@stickman-war/core';
+import { t } from '@stickman-war/i18n';
+import { prefs } from '../../lib/prefs';
+import { THEMES, type Deco, type Theme } from './themes';
+import { drawMonument } from './monuments';
+import { drawWallGhost } from './walls';
 import {
   CENTER_MINE_X,
   LANE_DEPTH,
@@ -25,8 +30,10 @@ export const TEAM_COLORS: Record<Team, { ink: string; accent: string; stone: str
 const VIEW_HEIGHT = 340; // chiều cao thế giới nhìn thấy (đơn vị thế giới)
 const GROUND_BELOW = 100; // phần đất dưới đường chân (đủ cho các hàng quân)
 const RECOVERY = 0.25;
+/** Nửa bề rộng vùng chuyển phong cảnh giữa hai nền văn minh (đơn vị thế giới). */
+export const BLEND = 650;
 /** Chiều cao đỉnh đầu theo loại quân (để đặt thanh máu, sao kỳ cựu). */
-const TOP: Partial<Record<string, number>> = { cavalry: 82, catapult: 50, tower: 100 };
+const TOP: Partial<Record<string, number>> = { cavalry: 82, catapult: 50, tower: 100, wall: 92 };
 /** Màu quả cầu phép / nổ theo loại đạn. */
 const GLOW: Partial<Record<ProjectileKind, [string, string]>> = {
   fireball: ['#ffb347', '#ff7b00'],
@@ -38,6 +45,9 @@ const GLOW: Partial<Record<ProjectileKind, [string, string]>> = {
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number };
 type FloatText = { x: number; y: number; text: string; life: number; color: string };
+
+/** Tỉ lệ vẽ chiến trường theo kích thước khung (dùng chung để ô giới thiệu quân ở sảnh vẽ đúng cỡ trong trận). */
+export const viewScale = (width: number, height: number) => Math.max(0.35, Math.min(height / VIEW_HEIGHT, width / 520));
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -68,7 +78,7 @@ export class Renderer {
     this.canvas.width = Math.round(rect.width * dpr);
     this.canvas.height = Math.round(rect.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.scale = Math.max(0.35, Math.min(rect.height / VIEW_HEIGHT, rect.width / 520));
+    this.scale = viewScale(rect.width, rect.height);
     this.groundY = rect.height - GROUND_BELOW * this.scale;
     this.setCamera(this.camX);
   }
@@ -111,7 +121,7 @@ export class Renderer {
           break;
         case 'built':
           this.burst(e.x, 0.5, -30, 20, '#b8a07a', 3, 110);
-          if (e.team === playerTeam) this.texts.push({ x: e.x, y: -110, text: '🏰 Tháp xây xong', life: 1.4, color: '#ffffff' });
+          if (e.team === playerTeam) this.texts.push({ x: e.x, y: -110, text: t('game.towerBuilt'), life: 1.4, color: '#ffffff' });
           break;
         case 'statueHit':
           this.burst(e.x + (Math.random() - 0.5) * 50, 0.2, -60 - Math.random() * 80, 3, '#8d8478', 2.5);
@@ -163,11 +173,12 @@ export class Renderer {
     this.time += dt;
     const ctx = this.ctx;
     ctx.save();
+    if (this.shake > 0 && !prefs.shake) this.shake = 0;
     if (this.shake > 0) {
       ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
       this.shake = Math.max(0, this.shake - dt * 20);
     }
-    this.drawBackground();
+    this.drawBackground(world);
     for (const team of [0, 1] as Team[]) {
       this.drawMine(mineX(team, 0), 0.9, 'silver');
       this.drawMine(mineX(team, 1), 1.15, 'gold');
@@ -176,7 +187,9 @@ export class Renderer {
     for (const d of world.drops) this.drawDrop(d);
     for (const team of [0, 1] as Team[]) this.drawStatue(world, team);
     for (const team of [0, 1] as Team[]) if (world.teams[team].stance === 'hold') this.drawRallyFlag(world.teams[team].holdX, team);
+    this.drawWallPlans(world);
 
+    this.updateGates(world, dt);
     const units = world.units.filter((u) => !u.inside).sort((a, b) => a.lane - b.lane);
     for (const u of units) this.drawUnit(u);
     for (const p of world.projectiles) this.drawProjectile(p);
@@ -184,40 +197,245 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawBackground(): void {
+  /** Bóng tường người chơi đang chọn chỗ đặt (toạ độ thế giới, null = không đặt). */
+  wallGhost: number | null = null;
+  /** Độ mở cổng (0..1) của từng tường, theo id. */
+  private gates = new Map<number, number>();
+
+  /** Cổng mở dần khi quân nhà ở sát tường, đóng lại khi không còn ai đi qua. */
+  private updateGates(world: WorldView, dt: number): void {
+    for (const w of world.units) {
+      if (w.dying || !UNITS[w.kind].wall) continue;
+      const near = world.units.some(
+        (u) => u.team === w.team && u !== w && !u.dying && !u.inside && !UNITS[u.kind].stationary && Math.abs(u.x - w.x) < 34,
+      );
+      const g = this.gates.get(w.id) ?? 0;
+      this.gates.set(w.id, Math.max(0, Math.min(1, g + (near ? 4 : -2) * dt)));
+    }
+  }
+
+  /** Tường đang chờ dựng (khung nét đứt + tiến độ) và bóng tường lúc chọn chỗ đặt. */
+  private drawWallPlans(world: WorldView): void {
+    const { ctx, scale } = this;
+    const at = (x: number, draw: () => void) => {
+      ctx.save();
+      ctx.translate(this.sx(x), this.sy(0.5));
+      ctx.scale(scale, scale);
+      draw();
+      ctx.restore();
+    };
+    for (const team of [0, 1] as Team[]) {
+      const t = world.teams[team];
+      if (Number.isNaN(t.wallPlan)) continue;
+      const build = UNITS[wallKind(t.faction)].buildTime ?? 6;
+      at(t.wallPlan, () => drawWallGhost(ctx, true, Math.min(1, t.wallT / build)));
+    }
+    if (this.wallGhost !== null) {
+      const ok = wallBlockOf(world, 0, this.wallGhost) === null;
+      at(this.wallGhost, () => drawWallGhost(ctx, ok));
+    }
+  }
+
+  /** Phần theme bên phải (team 1) tại điểm màn hình px: 0 = hẳn bên trái, 1 = hẳn bên phải, chuyển dần quanh giữa bản đồ. */
+  private blendAt(px: number): number {
+    const wx = px / this.scale + this.camX;
+    const k = Math.min(1, Math.max(0, (wx - (WORLD_WIDTH / 2 - BLEND)) / (2 * BLEND)));
+    return k * k * (3 - 2 * k);
+  }
+
+  /** Canvas phụ để vẽ lớp phong cảnh bên phải rồi làm mờ dần bằng gradient (không lộ vạch như chia dải). */
+  private overlay: HTMLCanvasElement | null = null;
+
+  /**
+   * Vẽ `paint(ctx)` (tô theo theme bên phải) lên canvas phụ, xoá dần phần bên trái bằng mặt nạ gradient ngang
+   * quanh giữa bản đồ, rồi đè lên khung hình chính.
+   */
+  private overlayRight(paint: (c: CanvasRenderingContext2D) => void): void {
+    const { width, height } = this;
+    const left = this.sx(WORLD_WIDTH / 2 - BLEND);
+    const right = this.sx(WORLD_WIDTH / 2 + BLEND);
+    if (left >= width) return;
+    if (right <= 0) {
+      paint(this.ctx);
+      return;
+    }
+    const dpr = this.canvas.width / Math.max(1, width);
+    this.overlay ??= document.createElement('canvas');
+    const o = this.overlay;
+    if (o.width !== this.canvas.width || o.height !== this.canvas.height) {
+      o.width = this.canvas.width;
+      o.height = this.canvas.height;
+    }
+    const c = o.getContext('2d')!;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.globalCompositeOperation = 'source-over';
+    c.clearRect(0, 0, width, height);
+    paint(c);
+    // Mặt nạ: trong suốt bên trái, đậm dần (gần smoothstep) tới hẳn bên phải
+    const mask = c.createLinearGradient(left, 0, right, 0);
+    for (let i = 0; i <= 8; i++) {
+      const k = i / 8;
+      mask.addColorStop(k, `rgba(0,0,0,${k * k * (3 - 2 * k)})`);
+    }
+    c.globalCompositeOperation = 'destination-in';
+    c.fillStyle = mask;
+    c.fillRect(0, 0, width, height);
+    c.globalCompositeOperation = 'source-over';
+    this.ctx.drawImage(o, 0, 0, width, height);
+  }
+
+  private drawBackground(world: WorldView): void {
     const { ctx, width, height, groundY, scale } = this;
-    const sky = ctx.createLinearGradient(0, 0, 0, groundY);
-    sky.addColorStop(0, '#f7d9a8');
-    sky.addColorStop(0.6, '#f3e5c6');
-    sky.addColorStop(1, '#e8dcc0');
-    ctx.fillStyle = sky;
+    const a = THEMES[world.teams[0].faction] ?? THEMES.tribe;
+    const b = THEMES[world.teams[1].faction] ?? THEMES.tribe;
+    const same = a === b;
+    const mid = this.blendAt(width / 2);
+
+    // Trời
+    const sky = (th: Theme) => {
+      const g = ctx.createLinearGradient(0, 0, 0, groundY);
+      g.addColorStop(0, th.sky[0]);
+      g.addColorStop(0.6, th.sky[1]);
+      g.addColorStop(1, th.sky[2]);
+      return g;
+    };
+    ctx.fillStyle = sky(a);
     ctx.fillRect(0, 0, width, groundY + 2);
+    if (!same)
+      this.overlayRight((c) => {
+        c.fillStyle = sky(b);
+        c.fillRect(0, 0, width, groundY + 2);
+      });
 
-    // Mặt trời
-    ctx.fillStyle = 'rgba(255, 196, 92, 0.75)';
-    ctx.beginPath();
-    ctx.arc(width * 0.78, groundY * 0.28, 38 * scale, 0, Math.PI * 2);
-    ctx.fill();
+    // Mặt trời / trăng
+    for (const [th, alpha] of same
+      ? ([[a, 1]] as const)
+      : ([
+          [a, 1 - mid],
+          [b, mid],
+        ] as const)) {
+      if (alpha <= 0.01) continue;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = th.sun;
+      ctx.beginPath();
+      ctx.arc(width * 0.78, groundY * 0.28, 38 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 
-    this.drawRidge(0.15, 210, 70, '#cdb79b', 0.0021, 11);
-    this.drawRidge(0.35, 140, 55, '#b39b7e', 0.004, 23);
-    this.drawRidge(0.6, 70, 30, '#8f8a5c', 0.007, 37);
+    // Núi: màu chuyển theo chiều ngang từ nền văn minh bên trái sang bên phải
+    const amp = a.amp * (1 - mid) + b.amp * mid;
+    const ridge = (i: 0 | 1 | 2) => {
+      if (same) return a.ridges[i];
+      const g = ctx.createLinearGradient(this.sx(WORLD_WIDTH / 2 - BLEND), 0, this.sx(WORLD_WIDTH / 2 + BLEND), 0);
+      g.addColorStop(0, a.ridges[i]);
+      g.addColorStop(1, b.ridges[i]);
+      return g;
+    };
+    this.drawRidge(0.15, 210, 70 * amp, ridge(0), 0.0021, 11);
+    this.drawRidge(0.35, 140, 55 * amp, ridge(1), 0.004, 23);
+    this.drawRidge(0.6, 70, 30 * amp, ridge(2), 0.007, 37);
 
     // Đất
-    const ground = ctx.createLinearGradient(0, groundY - 8 * scale, 0, height);
-    ground.addColorStop(0, '#7c9a4a');
-    ground.addColorStop(0.08, '#6b8740');
-    ground.addColorStop(0.1, '#a88b5f');
-    ground.addColorStop(1, '#7d6443');
-    ctx.fillStyle = ground;
+    const ground = (th: Theme) => {
+      const g = ctx.createLinearGradient(0, groundY - 8 * scale, 0, height);
+      g.addColorStop(0, th.grass[0]);
+      g.addColorStop(0.08, th.grass[1]);
+      g.addColorStop(0.1, th.dirt[0]);
+      g.addColorStop(1, th.dirt[1]);
+      return g;
+    };
+    ctx.fillStyle = ground(a);
     ctx.fillRect(0, groundY - 8 * scale, width, height);
+    if (!same)
+      this.overlayRight((c) => {
+        c.fillStyle = ground(b);
+        c.fillRect(0, groundY - 8 * scale, width, height);
+      });
     // Đường đất nơi quân đi
     ctx.fillStyle = 'rgba(255, 240, 200, 0.12)';
     ctx.fillRect(0, groundY + 4 * scale, width, LANE_DEPTH * scale);
+
+    this.drawDeco(a.deco, (px) => 1 - this.blendAt(px), same);
+    if (!same) this.drawDeco(b.deco, (px) => this.blendAt(px), false);
+  }
+
+  /** Hạt trang trí nền (tuyết, tàn lửa, lá…): vị trí tính từ thời gian nên không cần lưu trạng thái. */
+  private drawDeco(deco: Deco, weight: (px: number) => number, full: boolean): void {
+    if (deco === 'none') return;
+    const { ctx, width, groundY, scale, time } = this;
+    const n = deco === 'dust' || deco === 'smoke' ? 10 : deco === 'bubbles' ? 16 : 40;
+    const rnd = (i: number, k: number) => {
+      const v = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    const wrap = (v: number, m: number) => ((v % m) + m) % m;
+    for (let i = 0; i < n; i++) {
+      const r1 = rnd(i, 1);
+      const r2 = rnd(i, 2);
+      const r3 = rnd(i, 3);
+      let x = r1 * width;
+      let y = r2 * groundY;
+      let size = (1.5 + r3 * 1.8) * scale;
+      let color = '#ffffff';
+      let alpha = 0.8;
+      switch (deco) {
+        case 'snow':
+          x = wrap(x + Math.sin(time * 0.8 + r1 * 6) * 14 * scale - time * 8 * scale, width);
+          y = wrap(y + time * (18 + r3 * 22) * scale, groundY + 20 * scale);
+          break;
+        case 'embers':
+          x = wrap(x + Math.sin(time * 1.3 + r1 * 6) * 10 * scale, width);
+          y = groundY - wrap(r2 * groundY + time * (22 + r3 * 26) * scale, groundY);
+          color = r3 > 0.5 ? '#ffb347' : '#ff6a1a';
+          alpha = 0.75;
+          size *= 0.9;
+          break;
+        case 'leaves':
+        case 'petals':
+          x = wrap(x + Math.sin(time * 1.1 + r1 * 6) * 22 * scale + time * 12 * scale, width);
+          y = wrap(y + time * (14 + r3 * 14) * scale, groundY + 20 * scale);
+          color = deco === 'leaves' ? (r3 > 0.5 ? '#6fae4f' : '#a9c95a') : r3 > 0.5 ? '#ffb7c5' : '#ffd4dd';
+          size *= 1.4;
+          break;
+        case 'bubbles':
+          x = wrap(x + Math.sin(time * 1.6 + r1 * 6) * 6 * scale, width);
+          y = groundY - wrap(r2 * groundY * 0.45 + time * (16 + r3 * 18) * scale, groundY * 0.45);
+          size *= 0.55;
+          alpha = 0.45;
+          break;
+        case 'dust':
+        case 'smoke':
+          x = wrap(x + time * (10 + r3 * 14) * scale, width + 200 * scale) - 100 * scale;
+          y = groundY * (0.35 + r2 * 0.55);
+          size = (40 + r3 * 60) * scale;
+          color = deco === 'smoke' ? '#5a5650' : '#c9a77a';
+          alpha = 0.1;
+          break;
+      }
+      const w = full ? 1 : weight(x);
+      if (w <= 0.02) continue;
+      ctx.globalAlpha = alpha * w;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (deco === 'bubbles') {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(1, scale);
+        ctx.arc(x, y, size * 1.3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (deco === 'leaves' || deco === 'petals') {
+        ctx.ellipse(x, y, size, size * 0.55, time * 2 + r1 * 6, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Dãy núi thị sai, sinh bằng tổng các sóng sin để không cần ảnh. */
-  private drawRidge(parallax: number, base: number, amp: number, color: string, freq: number, seed: number): void {
+  private drawRidge(parallax: number, base: number, amp: number, color: string | CanvasGradient, freq: number, seed: number): void {
     const { ctx, width, groundY, scale } = this;
     const offset = this.camX * parallax;
     ctx.fillStyle = color;
@@ -321,43 +539,28 @@ export class Renderer {
     ctx.translate(sx, this.sy(0.1));
     ctx.scale(scale, scale);
 
-    // Bệ
-    ctx.fillStyle = c.dark;
-    ctx.fillRect(-48, -34, 96, 34);
-    ctx.fillStyle = c.stone;
-    ctx.fillRect(-42, -40, 84, 8);
-
-    // Tượng chiến binh đá cầm kiếm giơ cao
+    // Công trình đặc trưng của nền văn minh (bên phải lật gương để quay vào giữa bản đồ), viền màu phe dưới chân
+    const th = THEMES[t.faction] ?? THEMES.tribe;
     ctx.save();
-    ctx.translate(0, -40);
-    ctx.scale(3.2 * f, 3.2);
-    drawStickman(ctx, {
-      kind: kindOf(t.faction, 'sword'),
-      walk: 0,
-      moving: false,
-      attack: 0.85,
-      mining: -1,
-      carrying: false,
-      ink: c.stone,
-      accent: c.accent,
-      flash: false,
-      stone: true,
-    });
+    ctx.scale(f, 1);
+    drawMonument(ctx, t.faction, { stone: th.stone, dark: th.stoneDark, glow: FACTIONS[t.faction]?.color ?? c.accent }, this.time);
     ctx.restore();
+    ctx.fillStyle = c.accent;
+    ctx.fillRect(-50, -4, 100, 4);
 
     // Cờ
     ctx.strokeStyle = '#4b3a2a';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(-f * 40, -40);
-    ctx.lineTo(-f * 40, -185);
+    ctx.moveTo(-f * 62, 0);
+    ctx.lineTo(-f * 62, -185);
     ctx.stroke();
     const wave = Math.sin(this.time * 4) * 4;
     ctx.fillStyle = c.accent;
     ctx.beginPath();
-    ctx.moveTo(-f * 40, -185);
-    ctx.quadraticCurveTo(-f * 40 + f * 22, -178 + wave, -f * 40 + f * 44, -172);
-    ctx.lineTo(-f * 40, -158);
+    ctx.moveTo(-f * 62, -185);
+    ctx.quadraticCurveTo(-f * 62 - f * 22, -178 + wave, -f * 62 - f * 44, -172);
+    ctx.lineTo(-f * 62, -158);
     ctx.closePath();
     ctx.fill();
 
@@ -459,6 +662,8 @@ export class Renderer {
       ink: c.ink,
       accent: c.accent,
       flash: u.hitFlash > 0,
+      gate: this.gates.get(u.id) ?? 0,
+      time: this.time,
     });
     ctx.restore();
 

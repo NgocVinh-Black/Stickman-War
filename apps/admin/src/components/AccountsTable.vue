@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@stickman-war/i18n';
 import type { AdminAccount } from '../lib/api';
 import { ago, faction, fmtDate, fmtNum } from '../lib/format';
 import Avatar from './Avatar.vue';
@@ -12,14 +13,14 @@ const emit = defineEmits<{ open: [id: string] }>();
     <table class="accounts">
       <thead>
         <tr>
-          <th>Người chơi</th>
-          <th>Tộc</th>
+          <th>{{ t('admin.col.player') }}</th>
+          <th>{{ t('admin.col.civ') }}</th>
           <th class="num">Elo</th>
-          <th class="num">Thắng / Thua / Hoà</th>
-          <th class="num">Xu</th>
-          <th>Đăng ký</th>
-          <th>Lần cuối vào</th>
-          <th class="num">Phiên</th>
+          <th class="num">{{ t('admin.col.wld') }}</th>
+          <th class="num">{{ t('admin.col.xu') }}</th>
+          <th>{{ t('admin.col.created') }}</th>
+          <th>{{ t('admin.col.lastSeen') }}</th>
+          <th class="num">{{ t('admin.col.sessions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -58,7 +59,7 @@ const emit = defineEmits<{ open: [id: string] }>();
           <td class="num">{{ a.sessions }}</td>
         </tr>
         <tr v-if="!accounts.length && !loading">
-          <td colspan="8" class="empty">Không có tài khoản nào khớp.</td>
+          <td colspan="8" class="empty">{{ t('admin.col.empty') }}</td>
         </tr>
       </tbody>
     </table>

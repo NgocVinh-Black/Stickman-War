@@ -1,11 +1,14 @@
-import { UNITS, WORLD_WIDTH, type Difficulty, type Team, type WorldEvent, type WorldView } from '@stickman-war/core';
+import { UNITS, WORLD_WIDTH, type Difficulty, type FactionId, type Team, type WorldEvent, type WorldView } from '@stickman-war/core';
 import { sound } from '../lib/sound';
 import type { Match } from './match';
-import { Renderer } from './render/renderer';
+import { BLEND, Renderer } from './render/renderer';
+
+/** Tốc độ lia camera nền sảnh (đơn vị thế giới / giây). */
+const MENU_PAN = 300;
 
 export type Mode =
   | { type: 'menu' }
-  | { type: 'campaign'; level: number; diff: Difficulty }
+  | { type: 'campaign'; level: number; faction: FactionId }
   | { type: 'skirmish'; diff: Difficulty }
   | { type: 'online'; opponent: string }
   | { type: 'watch'; players: [string, string] };
@@ -35,7 +38,9 @@ export class GameSession {
 
   attach(canvas: HTMLCanvasElement): Renderer {
     this.renderer = new Renderer(canvas);
-    if (this.mode.type === 'menu' || this.mode.type === 'watch') this.renderer.centerOn(WORLD_WIDTH / 2);
+    // Nền sảnh bắt đầu ở phía địch (bên phải) rồi lia dần về phía nền văn minh người chơi
+    if (this.mode.type === 'menu') this.renderer.setCamera(WORLD_WIDTH);
+    else if (this.mode.type === 'watch') this.renderer.centerOn(WORLD_WIDTH / 2);
     else this.renderer.centerOn(170 + 450);
     return this.renderer;
   }
@@ -67,14 +72,25 @@ export class GameSession {
     }
   }
 
-  /** Camera nền sảnh trôi theo điểm giao tranh. */
+  /** Đã lia về tới tượng nhà chưa (sau đó camera mới theo giao tranh). */
+  private arrived = false;
+
+  /**
+   * Camera nền sảnh: lia từ phải sang trái với tốc độ đều (MENU_PAN đơn vị / giây) về sát tượng nhà bên trái,
+   * rồi trôi theo giao tranh nhưng chỉ trong nửa bản đồ nhà (dừng trước vùng chuyển sang phong cảnh địch).
+   */
   private followAction(dt: number): void {
     const r = this.renderer!;
-    const fighters = this.view.units.filter((u) => !u.dying && UNITS[u.kind].arch !== 'miner');
-    if (!fighters.length) return;
-    const xs = fighters.map((u) => u.x).sort((a, b) => a - b);
-    const target = xs[Math.floor(xs.length / 2)] - r.viewW / 2;
-    r.setCamera(r.camX + (target - r.camX) * Math.min(1, dt * 0.8));
+    let target = 0;
+    if (this.arrived) {
+      const fighters = this.view.units.filter((u) => !u.dying && UNITS[u.kind].arch !== 'miner');
+      const xs = fighters.map((u) => u.x).sort((a, b) => a - b);
+      const fight = xs.length ? xs[Math.floor(xs.length / 2)] - r.viewW / 2 : 0;
+      target = Math.max(0, Math.min(WORLD_WIDTH / 2 - BLEND - r.viewW, fight));
+    }
+    const step = (this.arrived ? MENU_PAN * 0.5 : MENU_PAN) * dt;
+    r.setCamera(r.camX + Math.max(-step, Math.min(step, target - r.camX)));
+    if (r.camX <= 1) this.arrived = true;
   }
 
   private playSounds(events: WorldEvent[]): void {

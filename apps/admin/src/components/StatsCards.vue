@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@stickman-war/i18n';
 import { computed } from 'vue';
 import type { Stats } from '../lib/api';
 import { fmtNum } from '../lib/format';
@@ -9,17 +10,17 @@ const cards = computed(() => {
   const s = props.stats;
   if (!s) return [];
   return [
-    { label: 'Tài khoản Google', value: s.accounts, sub: `${fmtNum(s.admins)} quản trị viên` },
-    { label: 'Mới hôm nay', value: s.newToday, sub: `${fmtNum(s.new7d)} trong 7 ngày` },
-    { label: 'Hoạt động 7 ngày', value: s.active7d, sub: `${fmtNum(s.activeSessions)} phiên còn hạn` },
-    { label: 'Đang online', value: s.online.players, sub: `${fmtNum(s.online.rooms)} phòng đang mở` },
-    { label: 'Lượt trận đã ghi', value: s.matches, sub: 'tính theo từng tài khoản' },
+    { label: t('admin.stats.accounts'), value: s.accounts, sub: t('admin.stats.admins', { n: fmtNum(s.admins) }) },
+    { label: t('admin.stats.newToday'), value: s.newToday, sub: t('admin.stats.new7d', { n: fmtNum(s.new7d) }) },
+    { label: t('admin.stats.active7d'), value: s.active7d, sub: t('admin.stats.sessions', { n: fmtNum(s.activeSessions) }) },
+    { label: t('admin.stats.online'), value: s.online.players, sub: t('admin.stats.rooms', { n: fmtNum(s.online.rooms) }) },
+    { label: t('admin.stats.matches'), value: s.matches, sub: t('admin.stats.perAccount') },
   ];
 });
 </script>
 
 <template>
-  <section class="stats" aria-label="Thống kê">
+  <section class="stats" :aria-label="t('admin.statsLabel')">
     <article v-for="c in cards" :key="c.label" class="stat">
       <span class="stat-label">{{ c.label }}</span>
       <strong class="stat-value">{{ fmtNum(c.value) }}</strong>

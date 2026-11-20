@@ -1,4 +1,4 @@
-import { UNITS, type Arch, type Formation, type Team } from './units';
+import { MAX_TOWERS, UNITS, type Arch, type Formation, type Team } from './units';
 import { dirOf, statueX, type World } from './world';
 
 export type AIConfig = {
@@ -9,6 +9,8 @@ export type AIConfig = {
   retreatRatio: number; // rút về khi quân còn dưới attackAt * ratio
   centerMine?: boolean; // khi đang tấn công thì cho thợ mỏ sang mỏ giữa
   formation?: Formation; // kiểu hành quân
+  /** Xây tường thành: từ giây `at`, cách tượng nhà `dist`; tường đổ thì xây lại. Không có = không xây tường. */
+  wall?: { at: number; dist: number };
 };
 
 const THINK_EVERY = 0.5;
@@ -33,6 +35,14 @@ export class EnemyAI {
 
   private build(world: World): void {
     const t = world.teams[this.team];
+    // Tới giờ xây tường: để dành vàng cho tường trước, đủ thì đặt (thợ mỏ tự đi dựng)
+    const w = this.cfg.wall;
+    if (w && world.time >= w.at && !world.wallOf(this.team) && Number.isNaN(t.wallPlan)) {
+      const x = statueX(this.team) + dirOf(this.team) * w.dist;
+      const why = world.wallBlock(this.team, x);
+      if (why === null) world.orderWall(this.team, x);
+      if (why === null || why === 'gold') return;
+    }
     if (world.count(this.team, 'miner', true) < this.cfg.miners) {
       world.train(this.team, 'miner');
       return;
@@ -42,7 +52,7 @@ export class EnemyAI {
     let lowest = Infinity;
     for (const [kind, weight] of Object.entries(this.cfg.mix) as [Arch, number][]) {
       if (!weight || !t.unlocked.includes(world.kindFor(this.team, kind))) continue;
-      if (UNITS[world.kindFor(this.team, kind)].build && world.towerCount(this.team) >= 3) continue;
+      if (UNITS[world.kindFor(this.team, kind)].build && world.towerCount(this.team) >= MAX_TOWERS) continue;
       const ratio = world.count(this.team, kind, true) / weight;
       if (ratio < lowest) {
         lowest = ratio;
@@ -77,7 +87,7 @@ export class EnemyAI {
     for (const u of world.units) {
       if (u.team !== team || u.dying) continue;
       const s = UNITS[u.kind];
-      if (s.arch !== 'miner' && s.arch !== 'tower' && s.arch !== 'builder') v += s.cost;
+      if (s.arch !== 'miner' && !s.stationary && s.arch !== 'builder') v += s.cost;
     }
     return v;
   }

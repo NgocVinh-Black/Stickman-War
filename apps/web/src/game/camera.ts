@@ -8,34 +8,43 @@ const TAP_SLOP = 8;
  * Kéo màn hình, lăn chuột, chạm bản đồ nhỏ để di chuyển góc nhìn. Trả về hàm gỡ sự kiện.
  * onTap(x): chạm (không kéo) vào chiến trường hoặc bản đồ nhỏ tại toạ độ x; trả về true nếu đã xử lý
  * (vd. cắm cờ), khi đó chạm bản đồ nhỏ không lia góc nhìn nữa.
+ * placing(): đang đặt công trình (tường) thì rê / kéo không lia màn hình mà dời bóng công trình (onHover),
+ * thả tay ra là đặt (onTap) dù đã kéo bao xa.
  */
 export function bindCamera(
   view: HTMLCanvasElement,
   mini: HTMLCanvasElement,
   renderer: () => Renderer | null,
   onTap: (x: number) => boolean = () => false,
+  placing: () => boolean = () => false,
+  onHover: (x: number | null) => void = () => {},
 ): () => void {
   let drag: { x: number; cam: number; moved: number } | null = null;
+  const worldX = (e: PointerEvent, r: Renderer) => r.camX + (e.clientX - view.getBoundingClientRect().left) / r.scale;
   const down = (e: PointerEvent) => {
     const r = renderer();
     if (!r) return;
     drag = { x: e.clientX, cam: r.camX, moved: 0 };
     view.setPointerCapture(e.pointerId);
+    if (placing()) onHover(worldX(e, r));
   };
   const move = (e: PointerEvent) => {
     const r = renderer();
-    if (!drag || !r) return;
+    if (!r) return;
+    if (placing()) {
+      onHover(worldX(e, r));
+      return;
+    }
+    if (!drag) return;
     drag.moved = Math.max(drag.moved, Math.abs(e.clientX - drag.x));
     r.setCamera(drag.cam - (e.clientX - drag.x) / r.scale);
   };
   const up = (e: PointerEvent) => {
     const r = renderer();
-    if (drag && r && e.type === 'pointerup' && drag.moved < TAP_SLOP) {
-      const rect = view.getBoundingClientRect();
-      onTap(r.camX + (e.clientX - rect.left) / r.scale);
-    }
+    if (drag && r && e.type === 'pointerup' && (drag.moved < TAP_SLOP || placing())) onTap(worldX(e, r));
     drag = null;
   };
+  const leave = () => placing() && !drag && onHover(null);
   const wheel = (e: WheelEvent) => {
     const r = renderer();
     if (!r) return;
@@ -64,6 +73,7 @@ export function bindCamera(
   view.addEventListener('pointermove', move);
   view.addEventListener('pointerup', up);
   view.addEventListener('pointercancel', up);
+  view.addEventListener('pointerleave', leave);
   view.addEventListener('wheel', wheel, { passive: false });
   mini.addEventListener('pointerdown', miniDown);
   mini.addEventListener('pointermove', miniMove);
@@ -73,6 +83,7 @@ export function bindCamera(
     view.removeEventListener('pointermove', move);
     view.removeEventListener('pointerup', up);
     view.removeEventListener('pointercancel', up);
+    view.removeEventListener('pointerleave', leave);
     view.removeEventListener('wheel', wheel);
     mini.removeEventListener('pointerdown', miniDown);
     mini.removeEventListener('pointermove', miniMove);

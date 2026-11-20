@@ -10,6 +10,8 @@ import {
   MIN_BET,
   PVP_MAX_SECONDS,
   PVP_SETUP,
+  PVP_XU,
+  PVP_XU_MIN_SECONDS,
   ROOM_GOLD,
   ROOM_MINUTES,
   SIGNAL_MAX_BYTES,
@@ -539,7 +541,12 @@ export class LobbyService implements OnModuleDestroy {
     this.stopTimer(room);
     room.state = 'ended';
     room.lastEnd = { winner, reason };
-    for (const p of room.players) this.send(p, this.endFor(room, p.team)!);
+    const rewards = this.matchRewards(room, winner);
+    for (const p of room.players) {
+      const reward = rewards.get(p);
+      this.send(p, { ...this.endFor(room, p.team)!, ...(reward ? { reward } : {}) } as ServerMsg);
+    }
+    for (const [p, gain] of rewards) this.sendWallet(p.wallet, gain);
     for (const w of room.watchers) this.send(w, this.endFor(room, 0)!);
     room.betsClosed = true;
     this.sendPool(room);
@@ -561,6 +568,29 @@ export class LobbyService implements OnModuleDestroy {
       this.sendRoom(room);
       this.sendPool(room);
     }
+  }
+
+  /**
+   * Xu thưởng sau trận online: thắng / hoà theo PVP_XU (thua không có). Không thưởng khi trận ngắn hơn
+   * PVP_XU_MIN_SECONDS hoặc hai bên cùng một ví (tự đánh với mình).
+   */
+  private matchRewards(room: Room, winner: Team | null): Map<Player, number> {
+    const out = new Map<Player, number>();
+    const [a, b] = room.players;
+    if (!a || !b || a.wallet === b.wallet || (room.world?.time ?? 0) < (this.opts.pvpXuMinSeconds ?? PVP_XU_MIN_SECONDS)) return out;
+    for (const p of room.players) {
+      const gain = PVP_XU[winner === null ? 'draw' : winner === p.team ? 'win' : 'lose'];
+      if (!gain) continue;
+      out.set(p, gain);
+      this.wallets.add(p.wallet, gain);
+    }
+    return out;
+  }
+
+  /** Báo số dư mới (kèm số xu vừa thưởng) cho mọi kết nối dùng ví này. */
+  private sendWallet(wallet: string, gain: number): void {
+    const xu = this.wallets.get(wallet);
+    for (const x of this.players) if (x.wallet === wallet) this.send(x, { t: 'wallet', xu, gain });
   }
 
   /** Đóng phòng: người xem còn lại được báo về sảnh. */
@@ -747,6 +777,17 @@ export class LobbyService implements OnModuleDestroy {
       case 'bet':
         this.placeBet(p, room, msg.side, msg.amount);
         break;
+      case 'campaignWin': {
+        await this.wallets.ensure(p.wallet);
+        const gain = await this.wallets.claimCampaign(p.wallet, msg.faction, msg.level, msg.stars);
+        if (gain > 0) this.sendWallet(p.wallet, gain);
+        break;
+      }
+      case 'soloLose': {
+        const gain = await this.wallets.claimSoloLose(p.wallet);
+        if (gain > 0) this.sendWallet(p.wallet, gain);
+        break;
+      }
       case 'voice':
         this.setVoice(p, !!msg.on);
         break;
@@ -767,8 +808,7 @@ export class LobbyService implements OnModuleDestroy {
         break;
       case 'train':
         if (p.role === 'player' && room?.state === 'playing' && UNIT_ORDER.includes(msg.kind as UnitKind)) {
-          const x = typeof msg.x === 'number' && Number.isFinite(msg.x) ? (p.team === 1 ? WORLD_WIDTH - msg.x : msg.x) : undefined;
-          room.world!.train(p.team, msg.kind, x);
+          room.world!.train(p.team, msg.kind);
         }
         break;
       case 'stance':
@@ -780,6 +820,12 @@ export class LobbyService implements OnModuleDestroy {
         if (p.role === 'player' && room?.state === 'playing' && typeof msg.x === 'number' && Number.isFinite(msg.x)) {
           // Ảnh chụp của team 1 bị lật gương, nên toạ độ người gửi cũng phải lật lại
           room.world!.setHold(p.team, p.team === 1 ? WORLD_WIDTH - msg.x : msg.x);
+        }
+        break;
+      case 'wall':
+        if (p.role === 'player' && room?.state === 'playing' && typeof msg.x === 'number' && Number.isFinite(msg.x)) {
+          // Toạ độ người gửi team 1 bị lật gương như cắm cờ
+          room.world!.orderWall(p.team, p.team === 1 ? WORLD_WIDTH - msg.x : msg.x);
         }
         break;
       case 'faction':

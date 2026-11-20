@@ -1,4 +1,5 @@
 import type { AccountInfo, FactionId } from '@stickman-war/core';
+import { t } from '@stickman-war/i18n';
 import { reactive } from 'vue';
 import { load, save } from '../lib/storage';
 
@@ -159,6 +160,6 @@ export async function renderGoogleButton(el: HTMLElement, onError: (msg: string)
       width: 280,
     });
   } catch {
-    onError('Không tải được nút đăng nhập Google (mạng chặn accounts.google.com?)');
+    onError(t('account.googleLoadFail'));
   }
 }

@@ -1,4 +1,5 @@
 import type { ClientMsg, SignalData, VoicePeer } from '@stickman-war/core';
+import { t } from '@stickman-war/i18n';
 import { load, save } from '../lib/storage';
 
 const ICE: RTCConfiguration = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
@@ -80,9 +81,7 @@ export class Voice {
         this.localLevel = this.meter(stream);
         for (const peer of this.conns.values()) void this.attachMic(peer.pc);
       } catch {
-        this.onError(
-          window.isSecureContext ? 'Không mở được mic: hãy cho phép trình duyệt dùng micro' : 'Mic chỉ dùng được trên trang https',
-        );
+        this.onError(window.isSecureContext ? t('voice.noMic') : t('voice.httpsOnly'));
         return;
       }
     }

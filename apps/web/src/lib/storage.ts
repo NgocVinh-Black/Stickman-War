@@ -1,4 +1,4 @@
-import type { Difficulty } from '@stickman-war/core';
+import type { FactionId } from '@stickman-war/core';
 
 const PREFIX = 'stickman-war:';
 /** Tiền tố trước khi đổi tên game: vẫn đọc để không mất tên, tiến độ, ví xu đã lưu. */
@@ -21,7 +21,7 @@ export function save(key: string, value: unknown): void {
   }
 }
 
-/** seed: thứ tự tộc địch của chiến dịch ở mức khó này (xáo một lần, giữ cố định để chơi lại màn vẫn gặp đúng tộc đó). */
+/** seed: thứ tự tộc địch trong chiến dịch của tộc này (xáo một lần, giữ cố định để chơi lại màn vẫn gặp đúng tộc đó). */
 export type Progress = { unlocked: number; stars: number[]; completed?: boolean; seed?: number };
 
 /** Mã ví xu bắt kèo: sinh một lần, máy chủ giữ số dư theo mã này. */
@@ -37,8 +37,8 @@ export function walletId(): string {
   return id;
 }
 
-// Mức Dễ giữ khoá cũ để không mất tiến độ đã lưu
-const PROGRESS_KEY: Record<Difficulty, string> = { easy: 'progress', normal: 'progress-normal', hard: 'progress-hard' };
+// Mỗi tộc một chiến dịch riêng (khoá cũ `progress`, `progress-normal`, `progress-hard` của 3 mức khó không dùng nữa)
+const progressKey = (f: FactionId) => `camp-${f}`;
 
-export const loadProgress = (d: Difficulty): Progress => load<Progress>(PROGRESS_KEY[d], { unlocked: 0, stars: [] });
-export const saveProgress = (d: Difficulty, p: Progress) => save(PROGRESS_KEY[d], p);
+export const loadProgress = (f: FactionId): Progress => load<Progress>(progressKey(f), { unlocked: 0, stars: [] });
+export const saveProgress = (f: FactionId, p: Progress) => save(progressKey(f), p);

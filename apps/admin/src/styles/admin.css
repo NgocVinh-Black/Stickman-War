@@ -529,3 +529,22 @@ th {
     gap: 0;
   }
 }
+
+/* ---------- Đổi ngôn ngữ ---------- */
+
+.lang-switch {
+  display: inline-flex;
+  gap: 4px;
+}
+.lang-switch .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.lang-switch .btn.active {
+  opacity: 1;
+  outline: 1px solid currentColor;
+}
+.login-lang {
+  align-self: flex-end;
+}

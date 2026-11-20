@@ -34,7 +34,7 @@ export type Dialog =
   | { kind: 'faction'; onPick?: () => void }
   | { kind: 'legal'; which: 'terms' | 'privacy' }
   | { kind: 'howto'; back?: () => void }
-  | { kind: 'settings' };
+  | { kind: 'settings'; back?: () => void };
 
 export const useUi = defineStore('ui', () => {
   const dialog = ref<Dialog | null>(null);

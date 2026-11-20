@@ -48,6 +48,16 @@ model Wallet {
   updatedAt DateTime @updatedAt
 }
 
+/// Sao chiến dịch đã được thưởng xu: mỗi ví, mỗi tộc, mỗi màn giữ số sao cao nhất (chơi lại không nhận lại).
+model CampaignStar {
+  walletId String
+  faction  String
+  level    Int
+  stars    Int
+
+  @@id([walletId, faction, level])
+}
+
 /// Một trận online nhìn từ phía một tài khoản (lịch sử trận, thay đổi điểm Elo).
 model MatchRecord {
   id        Int      @id @default(autoincrement())

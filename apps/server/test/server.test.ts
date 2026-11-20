@@ -1,4 +1,4 @@
-import { WORLD_WIDTH, type ClientMsg, type ServerMsg } from '@stickman-war/core';
+import { LEVELS, PVP_XU, SOLO_LOSE_XU, WORLD_WIDTH, XU_PERFECT_TAB, XU_PER_STAR, type ClientMsg, type ServerMsg } from '@stickman-war/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { startGameServer as start, type GameServer } from '../src/bootstrap';
@@ -108,6 +108,26 @@ describe('Máy chủ online', () => {
     expect(st.s.teams[0].gold).toBeLessThan(500);
   }, 15000);
 
+  it('đặt xây tường: người chơi bên phải gửi toạ độ đã lật gương, hai bên thấy đúng chỗ, trừ vàng', async () => {
+    const a = await connect('A');
+    const b = await connect('B');
+    a.send({ t: 'quick' });
+    await a.waitFor('room');
+    b.send({ t: 'quick' });
+    await b.waitFor('start');
+    await b.waitFor('state', (m) => m.s.time > 0.2, 8000);
+    b.send({ t: 'wall', x: 400 });
+    const mine = await b.waitFor('state', (m) => m.s.teams[0].wp !== undefined);
+    expect(mine.s.teams[0].wp).toBe(400);
+    expect(mine.s.teams[0].gold).toBeLessThan(500 - 250);
+    const theirs = await a.waitFor('state', (m) => m.s.teams[1].wp !== undefined);
+    expect(theirs.s.teams[1].wp).toBe(WORLD_WIDTH - 400);
+    // Chỗ không hợp lệ (sát tượng địch) bị bỏ qua
+    a.send({ t: 'wall', x: WORLD_WIDTH - 300 });
+    await a.waitFor('state', (m) => m.s.time > mine.s.time + 0.5);
+    expect(a.msgs.filter((m) => m.t === 'state').at(-1)!.s.teams[0].wp).toBeUndefined();
+  }, 15000);
+
   it('đầu hàng thì đối thủ thắng', async () => {
     const a = await connect('A');
     const b = await connect('B');
@@ -180,6 +200,23 @@ describe('Máy chủ online', () => {
     expect(rw.you.role).toBe('watcher');
     // Vào trận thì mỗi bên dùng đúng tộc đã chọn
     expect((await begin(a, b)).factions).toEqual(['elf', 'orc']);
+  }, 15000);
+
+  it('chọn được tộc mới (Frost Kin, Mountain Dwarves); lệnh xây thợ xây kèm chỗ (client cũ) vẫn được nhận', async () => {
+    const a = await connect('Chủ');
+    const b = await connect('Khách');
+    a.send({ t: 'create' });
+    const { code } = await a.waitFor('waitroom');
+    b.send({ t: 'join', code, as: 'play' });
+    a.send({ t: 'faction', id: 'frost' });
+    b.send({ t: 'faction', id: 'dwarf' });
+    await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'frost');
+    await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'dwarf');
+    expect((await begin(a, b)).factions).toEqual(['dwarf', 'frost']);
+    await b.waitFor('state', (m) => m.s.time > 0.2, 8000);
+    // Client cũ còn gửi x (chỗ dựng tháp): server bỏ qua, vẫn xây thợ xây
+    (b as unknown as { send: (m: unknown) => void }).send({ t: 'train', kind: 'dwarf-builder', x: 3000 });
+    await b.waitFor('state', (m) => m.s.teams[0].queue.length === 1);
   }, 15000);
 
   it('làm sạch tên và bỏ qua tin nhắn rác', async () => {
@@ -274,6 +311,71 @@ describe('Máy chủ online', () => {
     // Ở trong phòng thì không nhận danh sách nữa
     expect(a.msgs.some((m) => m.t === 'lobby')).toBe(false);
   }, 15000);
+  describe('Thưởng xu', () => {
+    const WALLET = 'wallet-thuong-xu-0001';
+
+    it('thắng màn chiến dịch: sao mới được xu, chơi lại không nhận lại, phải thắng màn trước, đủ 99 sao thêm thưởng', async () => {
+      const a = await connect('A', WALLET);
+      const start = (await a.waitFor('wallet')).xu;
+      const gains = () => a.msgs.filter((m) => m.t === 'wallet' && m.gain).map((m) => (m as { gain: number }).gain);
+      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 2 });
+      expect((await a.waitFor('wallet', (m) => !!m.gain)).xu).toBe(start + 2 * XU_PER_STAR);
+      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 2 }); // chơi lại, không thêm sao
+      a.send({ t: 'campaignWin', faction: 'dragon', level: 5, stars: 3 }); // nhảy cóc màn
+      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 3 }); // thêm 1 sao
+      await a.waitFor('wallet', () => gains().length === 2);
+      expect(gains()).toEqual([2 * XU_PER_STAR, XU_PER_STAR]);
+      for (let i = 1; i < LEVELS.length; i++) a.send({ t: 'campaignWin', faction: 'dragon', level: i, stars: 3 });
+      const last = await a.waitFor('wallet', () => gains().length === LEVELS.length + 1);
+      expect(last.gain).toBe(3 * XU_PER_STAR + XU_PERFECT_TAB);
+      expect(last.xu).toBe(start + LEVELS.length * 3 * XU_PER_STAR + XU_PERFECT_TAB);
+      // Dữ liệu rác bị bỏ qua
+      a.send({ t: 'campaignWin', faction: 'nope' as never, level: 0, stars: 3 });
+      a.send({ t: 'campaignWin', faction: 'elf', level: 0, stars: 9 });
+      a.send({ t: 'ping', c: 1 });
+      await a.waitFor('pong');
+      expect(gains()).toHaveLength(LEVELS.length + 1);
+    }, 15000);
+
+    it('trận online quá ngắn thì không thưởng xu', async () => {
+      const a = await connect('A', 'wallet-thuong-xu-000a');
+      const b = await connect('B', 'wallet-thuong-xu-000b');
+      a.send({ t: 'quick' });
+      await a.waitFor('room');
+      b.send({ t: 'quick' });
+      await b.waitFor('start');
+      a.send({ t: 'surrender' });
+      expect((await b.waitFor('end')).reward).toBeUndefined();
+    }, 15000);
+
+    it('thua chơi đơn được xu an ủi, tối đa một lần mỗi phút', async () => {
+      const a = await connect('A', WALLET);
+      const start = (await a.waitFor('wallet')).xu;
+      a.send({ t: 'soloLose' });
+      expect((await a.waitFor('wallet', (m) => !!m.gain)).xu).toBe(start + SOLO_LOSE_XU);
+      a.send({ t: 'soloLose' }); // ngay sau: không nhận
+      a.send({ t: 'ping', c: 2 });
+      await a.waitFor('pong');
+      expect(a.msgs.filter((m) => m.t === 'wallet' && m.gain)).toHaveLength(1);
+    }, 15000);
+
+    it('trận online đủ dài: người thắng nhận xu, người thua không nhận', async () => {
+      await server.close();
+      server = await startGameServer({ pvpXuMinSeconds: 0 });
+      const a = await connect('A', 'wallet-thuong-xu-000a');
+      const b = await connect('B', 'wallet-thuong-xu-000b');
+      const before = (await b.waitFor('wallet')).xu;
+      a.send({ t: 'quick' });
+      await a.waitFor('room');
+      b.send({ t: 'quick' });
+      await b.waitFor('start');
+      a.send({ t: 'surrender' });
+      expect((await b.waitFor('end')).reward).toBe(PVP_XU.win);
+      expect((await b.waitFor('wallet', (m) => !!m.gain)).xu).toBe(before + PVP_XU.win);
+      expect((await a.waitFor('end')).reward).toBeUndefined();
+    }, 15000);
+  });
+
   describe('Bắt kèo', () => {
     const W = (n: number) => `test-wallet-${String(n).padStart(8, '0')}`;
 

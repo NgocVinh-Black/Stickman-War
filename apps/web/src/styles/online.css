@@ -1,4 +1,4 @@
-/* Online: ghép trận, đấu trường, xem trận, độ khó chiến dịch, bắt kèo */
+/* Online: ghép trận, đấu trường, xem trận, tab tộc chiến dịch, bắt kèo */
 
 /* ---------- Phòng chờ online ---------- */
 
@@ -62,7 +62,6 @@
 .flag-cursor {
   cursor: crosshair;
 }
-.unit-btn.picking,
 .stance-btn.picking {
   animation: flag-pulse 0.8s ease-in-out infinite alternate;
 }
@@ -206,19 +205,53 @@
   box-shadow: inset 0 -2px 0 var(--enemy);
 }
 
-/* ---------- Chọn độ khó chiến dịch ---------- */
+/* ---------- Chiến dịch: 12 tab tộc ---------- */
 
-.camp-diff .diff {
-  opacity: 0.55;
+.camp-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
 }
-.camp-diff .diff.active {
+.camp-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 6px 2px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 -3px 0 var(--faction);
+  opacity: 0.6;
+  transition:
+    opacity 0.15s,
+    transform 0.1s;
+}
+.camp-tab:hover {
+  opacity: 0.9;
+}
+.camp-tab.active {
   opacity: 1;
   outline: 2px solid var(--gold);
   outline-offset: 1px;
 }
-.camp-diff .diff.locked {
-  opacity: 0.35;
-  filter: grayscale(1);
+.camp-tab-icon {
+  font-size: 20px;
+  line-height: 1.1;
+}
+.camp-tab-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+.camp-tab small {
+  font-size: 10px;
+  color: var(--gold);
 }
 
 /* ---------- Bắt kèo khi xem trận ---------- */

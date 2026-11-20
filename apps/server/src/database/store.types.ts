@@ -70,8 +70,14 @@ export interface AccountStore {
   sessionsOf(id: string): Promise<AdminSession[]>;
 }
 
+/** Sao chiến dịch đã thưởng xu của một ví ở một màn. */
+export type CampaignStarRow = { faction: string; level: number; stars: number };
+
 /** Kho ví xu ảo. */
 export interface WalletStore {
   load(id: string): Promise<number | null>;
   saveMany(entries: [string, number][]): Promise<void>;
+  /** Sao chiến dịch đã thưởng của ví. */
+  campaignStars(id: string): Promise<CampaignStarRow[]>;
+  setCampaignStars(id: string, row: CampaignStarRow): Promise<void>;
 }

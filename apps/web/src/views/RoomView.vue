@@ -5,12 +5,14 @@ import { useRouter } from 'vue-router';
 import BetPanel from '../components/BetPanel.vue';
 import BgBattle from '../components/BgBattle.vue';
 import FactionRow from '../components/FactionRow.vue';
+import { t } from '@stickman-war/i18n';
+import { serverText } from '@stickman-war/i18n/server';
 import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { useOnline } from '../stores/online';
 import { useSettings } from '../stores/settings';
 
-/** Phòng chờ: luật phòng, 2 ghế (mỗi người tự chọn tộc, không thấy tộc đối thủ), người xem, kèo, chat; chủ phòng bấm Bắt đầu. */
+/** Phòng chờ: luật phòng, 2 ghế (mỗi người tự chọn nền văn minh, không thấy của đối thủ), người xem, kèo, chat; chủ phòng bấm Bắt đầu. */
 const online = useOnline();
 const router = useRouter();
 const wait = computed(() => online.wait);
@@ -19,19 +21,18 @@ const full = computed(() => !!wait.value?.seats.every((x) => x));
 const allReady = computed(() => full.value && !!wait.value?.seats.every((x) => x!.ready));
 const players = computed<[string, string]>(() => [wait.value?.seats[0]?.name ?? '…', wait.value?.seats[1]?.name ?? '…']);
 const settings = useSettings();
-/** Tộc ở ghế t: máy chủ giấu tộc đối thủ với người chơi (chỉ người xem thấy cả hai). */
-const factionOf = (t: Team) => {
-  const f = wait.value?.seats[t]?.faction;
-  return f ? FACTIONS[f] : { icon: '❓', name: 'Tộc bí mật' };
+/** Nền văn minh ở ghế: máy chủ giấu tộc đối thủ với người chơi (chỉ người xem thấy cả hai). */
+const factionOf = (seat: Team) => {
+  const f = wait.value?.seats[seat]?.faction;
+  return f ? FACTIONS[f] : { icon: '❓', name: t('civ.secret') };
 };
 const myReady = computed(() => (you.value?.seat != null ? !!wait.value?.seats[you.value.seat]?.ready : false));
 const chatText = ref('');
 const log = ref<HTMLElement>();
 const hint = computed(() => {
   if (!you.value) return '';
-  if (you.value.host)
-    return !full.value ? 'Chờ đủ 2 người chơi' : allReady.value ? 'Mọi người đã sẵn sàng, bấm Bắt đầu!' : 'Chờ người chơi bấm Sẵn sàng';
-  return you.value.role === 'player' ? 'Bấm Sẵn sàng rồi chờ chủ phòng bắt đầu' : 'Chủ phòng bắt đầu thì bạn được xem trận ngay';
+  if (you.value.host) return !full.value ? t('room.waitTwo') : allReady.value ? t('room.allReady') : t('room.waitReady');
+  return you.value.role === 'player' ? t('room.pressReady') : t('room.hostStarts');
 });
 
 function send(m: ClientMsg): void {
@@ -75,74 +76,79 @@ watch(wait, (w) => !w && void router.replace('/'));
     <div class="menu-card room-card">
       <header class="room-head">
         <div class="room-title">
-          <small>Phòng chờ</small><b>{{ wait.code }}</b>
+          <small>{{ t('room.waitroom') }}</small><b>{{ wait.code }}</b>
         </div>
-        <button class="btn" @click="online.copyInvite(wait.code)">📋 Mời bạn</button>
+        <button class="btn" @click="online.copyInvite(wait.code)">{{ t('room.invite') }}</button>
       </header>
       <div class="room-rules">
         <template v-if="you.host">
-          <label title="Số vàng mỗi người có khi bắt đầu trận">
-            💰 Vàng ban đầu
+          <label :title="t('room.goldTip')">
+            {{ t('room.startGold') }}
             <select
               :value="wait.settings.gold"
               @change="setRules(Number(($event.target as HTMLSelectElement).value), wait.settings.minutes)"
             >
-              <option v-for="v in ROOM_GOLD" :key="v" :value="v">{{ v }} vàng</option>
+              <option v-for="v in ROOM_GOLD" :key="v" :value="v">{{ t('common.gold', { n: v }) }}</option>
             </select>
           </label>
-          <label title="Hết giờ mà chưa phá được tượng thì bên còn nhiều máu tượng hơn thắng">
-            ⏱ Thời gian trận
+          <label :title="t('room.timeTip')">
+            {{ t('room.matchTime') }}
             <select
               :value="wait.settings.minutes"
               @change="setRules(wait.settings.gold, Number(($event.target as HTMLSelectElement).value))"
             >
-              <option v-for="v in ROOM_MINUTES" :key="v" :value="v">{{ v }} phút</option>
+              <option v-for="v in ROOM_MINUTES" :key="v" :value="v">{{ t('common.minutes', { n: v }) }}</option>
             </select>
           </label>
         </template>
         <template v-else>
-          <span
-            >💰 Vàng ban đầu: <b>{{ wait.settings.gold }}</b></span
-          ><span
-            >⏱ Thời gian trận: <b>{{ wait.settings.minutes }} phút</b></span
-          >
+          <span>
+            {{ t('room.startGold') }}: <b>{{ wait.settings.gold }}</b>
+          </span>
+          <span>
+            {{ t('room.matchTime') }}: <b>{{ t('common.minutes', { n: wait.settings.minutes }) }}</b>
+          </span>
         </template>
       </div>
 
       <div class="seats">
-        <template v-for="t in [0, 1] as Team[]" :key="t">
-          <div v-if="t === 1" class="vs">VS</div>
-          <div v-if="!wait.seats[t]" class="seat empty" :class="t ? 'enemy' : 'ally'">
-            <span class="seat-name">Ghế trống</span><small>Chờ người chơi…</small>
-            <button v-if="you.role === 'watcher'" class="btn btn-primary" @click="send({ t: 'seat', as: 'play' })">Ngồi vào</button>
+        <template v-for="seat in [0, 1] as Team[]" :key="seat">
+          <div v-if="seat === 1" class="vs">VS</div>
+          <div v-if="!wait.seats[seat]" class="seat empty" :class="seat ? 'enemy' : 'ally'">
+            <span class="seat-name">{{ t('room.emptySeat') }}</span><small>{{ t('room.waitPlayer') }}</small>
+            <button v-if="you.role === 'watcher'" class="btn btn-primary" @click="send({ t: 'seat', as: 'play' })">
+              {{ t('room.sit') }}
+            </button>
           </div>
-          <div v-else class="seat" :class="[t ? 'enemy' : 'ally', { ready: wait.seats[t]!.ready, mine: you.seat === t }]">
-            <button
-              v-if="you.host && !wait.seats[t]!.host"
-              class="seat-kick"
-              title="Mời ra khỏi phòng"
-              @click="send({ t: 'kick', seat: t })"
-            >
+          <div v-else class="seat" :class="[seat ? 'enemy' : 'ally', { ready: wait.seats[seat]!.ready, mine: you.seat === seat }]">
+            <button v-if="you.host && !wait.seats[seat]!.host" class="seat-kick" :title="t('room.kick')" @click="send({ t: 'kick', seat })">
               ✕
             </button>
-            <span class="seat-name"> {{ factionOf(t).icon }} {{ wait.seats[t]!.name }}<small v-if="you.seat === t"> (bạn)</small> </span>
+            <span class="seat-name">
+              {{ factionOf(seat).icon }} {{ wait.seats[seat]!.name }}<small v-if="you.seat === seat"> ({{ t('common.you') }})</small>
+            </span>
             <small>
-              {{ factionOf(t).name }} ·
-              {{ wait.seats[t]!.host ? '👑 Chủ phòng' : wait.seats[t]!.ready ? '✅ Sẵn sàng' : '⏳ Chưa sẵn sàng' }}
+              {{ factionOf(seat).name }} ·
+              {{ wait.seats[seat]!.host ? t('room.host') : wait.seats[seat]!.ready ? t('room.ready') : t('room.notReady') }}
             </small>
-            <FactionRow v-if="you.seat === t" class="seat-factions" :model-value="settings.faction" @update:model-value="chooseFaction" />
+            <FactionRow
+              v-if="you.seat === seat"
+              class="seat-factions"
+              :model-value="settings.faction"
+              @update:model-value="chooseFaction"
+            />
           </div>
         </template>
       </div>
 
       <div class="room-watchers">
         <template v-if="wait.watchers.length">
-          👁 {{ wait.watchers.length }} người xem:
+          {{ t('room.watchers', { n: wait.watchers.length }) }}
           <template v-for="(n, i) in wait.watchers" :key="i"
             ><template v-if="i">, </template><b>{{ n }}{{ n === wait.host ? ' 👑' : '' }}</b></template
           >
         </template>
-        <template v-else>👁 Chưa có người xem · gửi mã phòng để bạn bè vào xem và bắt kèo</template>
+        <template v-else>{{ t('room.noWatchers') }}</template>
       </div>
 
       <BetPanel v-if="full" class="room-bet" :players="players" :watcher="you.role === 'watcher'" :in-room="true" />
@@ -150,27 +156,27 @@ watch(wait, (w) => !w && void router.replace('/'));
       <section class="chat">
         <div ref="log" class="chat-log" aria-live="polite">
           <p v-for="(l, i) in online.chat" :key="i" :class="{ 'chat-sys': l.kind === 'system' }">
-            <template v-if="l.kind === 'system'">{{ l.text }}</template>
+            <template v-if="l.kind === 'system'">{{ serverText(l.text) }}</template>
             <template v-else
               ><b :class="`chat-${l.kind}`">{{ l.kind === 'watcher' ? '👁 ' : '' }}{{ l.from }}</b> {{ l.text }}</template
             >
           </p>
         </div>
         <form class="chat-form" @submit.prevent="sendChat">
-          <input v-model="chatText" :maxlength="CHAT_MAX" autocomplete="off" placeholder="Nhắn cho cả phòng…" />
-          <button class="btn" type="submit">Gửi</button>
+          <input v-model="chatText" :maxlength="CHAT_MAX" autocomplete="off" :placeholder="t('room.chatPh')" />
+          <button class="btn" type="submit">{{ t('room.send') }}</button>
         </form>
       </section>
 
       <div class="room-actions">
         <p class="small room-hint">{{ hint }}</p>
         <div class="room-buttons">
-          <button v-if="you.host" class="btn btn-primary" :disabled="!allReady" @click="send({ t: 'begin' })">▶ Bắt đầu</button>
+          <button v-if="you.host" class="btn btn-primary" :disabled="!allReady" @click="send({ t: 'begin' })">{{ t('room.start') }}</button>
           <button v-else-if="you.role === 'player'" class="btn btn-primary" @click="send({ t: 'ready', on: !myReady })">
-            {{ myReady ? 'Huỷ sẵn sàng' : '✅ Sẵn sàng' }}
+            {{ myReady ? t('room.unready') : t('room.ready') }}
           </button>
-          <button v-if="you.role === 'player'" class="btn" @click="send({ t: 'seat', as: 'watch' })">👁 Ra xem</button>
-          <button class="btn btn-ghost" @click="leaveRoom">Rời phòng</button>
+          <button v-if="you.role === 'player'" class="btn" @click="send({ t: 'seat', as: 'watch' })">{{ t('room.toWatch') }}</button>
+          <button class="btn btn-ghost" @click="leaveRoom">{{ t('online.leave') }}</button>
         </div>
       </div>
     </div>

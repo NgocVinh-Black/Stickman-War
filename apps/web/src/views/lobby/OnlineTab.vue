@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { t } from '@stickman-war/i18n';
 import { auth } from '../../net/account';
 import { useOnline } from '../../stores/online';
 import { useSettings } from '../../stores/settings';
@@ -20,29 +21,36 @@ function onCode(e: Event): void {
   code.value = (e.target as HTMLInputElement).value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 function join(as: 'play' | 'watch'): void {
-  if (code.value.length !== 4) return ui.toast('Nhập mã phòng gồm 4 ký tự');
+  if (code.value.length !== 4) return ui.toast(t('online.codeHint'));
   void online.go({ t: 'join', code: code.value, as });
 }
 </script>
 
 <template>
   <label class="field">
-    <span>Tên của bạn</span>
+    <span>{{ t('online.yourName') }}</span>
     <input
       v-model="nameInput"
       maxlength="16"
       autocomplete="nickname"
       :disabled="!!auth.account"
-      :title="auth.account ? 'Đổi tên ở mục Tài khoản' : undefined"
+      :title="auth.account ? t('online.renameInAccount') : undefined"
       @change="saveName"
     />
   </label>
-  <button class="btn btn-primary wide" @click="online.go({ t: 'quick' })">⚡ Tìm trận nhanh</button>
-  <button class="btn wide" @click="online.go({ t: 'create' })">➕ Tạo phòng mời bạn</button>
+  <button class="btn btn-primary wide" @click="online.go({ t: 'quick' })">{{ t('online.quick') }}</button>
+  <button class="btn wide" @click="online.go({ t: 'create' })">{{ t('online.create') }}</button>
   <div class="join-row">
-    <input :value="code" maxlength="4" placeholder="Mã phòng" autocapitalize="characters" @input="onCode" @keydown.enter="join('play')" />
-    <button class="btn" @click="join('play')">▶ Chơi</button>
-    <button class="btn" title="Vào xem trận" @click="join('watch')">👁 Xem</button>
+    <input
+      :value="code"
+      maxlength="4"
+      :placeholder="t('online.code')"
+      autocapitalize="characters"
+      @input="onCode"
+      @keydown.enter="join('play')"
+    />
+    <button class="btn" @click="join('play')">{{ t('common.play') }}</button>
+    <button class="btn" :title="t('online.watchTitle')" @click="join('watch')">{{ t('online.watch') }}</button>
   </div>
-  <p class="online-status">{{ online.lastOnline ? `🟢 ${online.lastOnline} người đang trực tuyến` : online.status }}</p>
+  <p class="online-status">{{ online.lastOnline ? t('online.online', { n: online.lastOnline }) : online.statusText }}</p>
 </template>

@@ -53,6 +53,20 @@ export const CHAT_KEEP = 40;
 export const MAX_VOICE = 10;
 export const SIGNAL_MAX_BYTES = 12 * 1024;
 
+// ---------- Thưởng xu ----------
+
+/** Chiến dịch: mỗi sao lần đầu đạt được ở một màn (chơi lại không nhận lại). */
+export const XU_PER_STAR = 10;
+/** Chiến dịch: đủ 3 sao mọi màn của một tộc (tab tròn 100 sao). */
+export const XU_PERFECT_TAB = 100;
+/** Online: xu nhận sau trận (thua không có), chỉ khi trận dài ít nhất PVP_XU_MIN_SECONDS (chống đầu hàng ngay để cày xu). */
+export const PVP_XU = { win: 60, lose: 0, draw: 30 } as const;
+export const PVP_XU_MIN_SECONDS = 120;
+/** Chơi đơn (chiến dịch / đấu với máy): thua trận dài ít nhất PVP_XU_MIN_SECONDS vẫn được an ủi chút xu. */
+export const SOLO_LOSE_XU = 15;
+/** Máy chủ trả xu thua chơi đơn tối đa một lần trong chừng này giây cho mỗi ví (chống cố tình thua để cày). */
+export const SOLO_LOSE_GAP_SECONDS = 60;
+
 // ---------- Tin nhắn ----------
 
 export type ClientMsg =
@@ -64,6 +78,10 @@ export type ClientMsg =
   | { t: 'join'; code: string; as?: JoinAs }
   | { t: 'lobby'; on: boolean }
   | { t: 'bet'; side: Team; amount: number }
+  // Thắng màn chiến dịch (chơi trên máy): máy chủ cộng xu cho sao mới, mỗi ví mỗi màn chỉ một lần
+  | { t: 'campaignWin'; faction: FactionId; level: number; stars: number }
+  // Thua trận chơi đơn đủ dài: máy chủ cộng SOLO_LOSE_XU (giới hạn theo thời gian)
+  | { t: 'soloLose' }
   // Phòng chờ (phòng tạo bằng "Tạo phòng")
   | { t: 'ready'; on: boolean }
   | { t: 'begin' }
@@ -76,9 +94,10 @@ export type ClientMsg =
   | { t: 'voiceMute'; muted: boolean }
   | { t: 'signal'; to: string; data: SignalData }
   | { t: 'leave' }
-  | { t: 'train'; kind: UnitKind; x?: number } // x: chỗ dựng tháp của thợ xây (toạ độ phía người gửi)
+  | { t: 'train'; kind: UnitKind }
   | { t: 'stance'; stance: Stance }
   | { t: 'hold'; x: number } // cắm cờ tập hợp tại x (toạ độ phía người gửi, đã lật nếu là team 1)
+  | { t: 'wall'; x: number } // đặt xây tường thành tại x (toạ độ phía người gửi, đã lật nếu là team 1)
   | { t: 'centerMine'; on: boolean }
   | { t: 'mineSplit'; split: number[] } // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
   | { t: 'surrender' }
@@ -181,14 +200,16 @@ export type ServerMsg =
   | { t: 'full'; code: string; players: string[] }
   | { t: 'lobby'; rooms: LobbyRoom[]; online: number }
   | { t: 'watchers'; n: number }
-  | { t: 'wallet'; xu: number }
+  // gain: số xu vừa được thưởng (chiến dịch / trận online) để hiện thông báo
+  | { t: 'wallet'; xu: number; gain?: number }
   | ({ t: 'pool' } & BetPool)
   // payout: số xu nhận về (gồm cả tiền cược) khi thắng hoặc được hoàn
   | { t: 'betResult'; outcome: BetOutcome; amount: number; payout: number; xu: number }
   | { t: 'closed' }
   | { t: 'state'; s: Snapshot }
   // Người xem nhận kết quả theo góc nhìn của team 0 (bên trái); winner là tên người thắng
-  | { t: 'end'; result: 'win' | 'lose' | 'draw'; reason: EndReason; winner: string | null }
+  // reward: xu thưởng sau trận cho người chơi (không có nếu trận quá ngắn)
+  | { t: 'end'; result: 'win' | 'lose' | 'draw'; reason: EndReason; winner: string | null; reward?: number }
   | { t: 'rematch'; votes: number }
   | { t: 'left' }
   | { t: 'error'; msg: string }
@@ -209,6 +230,9 @@ export type TeamSnap = {
   fm: number; // chỉ số đội hình trong FORMATIONS
   hx: number; // chỗ cắm cờ tập hợp
   ms: number[]; // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
+  // Tường đang chờ dựng: chỗ đặt và số giây đã dựng (không có khi client cũ / không có tường chờ)
+  wp?: number;
+  wt?: number;
 };
 
 export type Snapshot = {
@@ -265,6 +289,7 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
       fm: FORMATIONS.indexOf(s.formation),
       hx: r1(mx(s.holdX)),
       ms: [...s.mineSplit],
+      ...(Number.isNaN(s.wallPlan) ? {} : { wp: r1(mx(s.wallPlan)), wt: r1(s.wallT) }),
     };
   };
   const other = (1 - viewer) as Team;

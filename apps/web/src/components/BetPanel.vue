@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MIN_BET, betOdds, type Team } from '@stickman-war/core';
 import { computed, ref, watch } from 'vue';
+import { t } from '@stickman-war/i18n';
 import { sound } from '../lib/sound';
 import { useOnline } from '../stores/online';
 
@@ -36,43 +37,43 @@ function bet(side: Team): void {
   <div v-if="pool" class="bet">
     <template v-if="pool.mine">
       <span class="bet-mine">
-        🎲 Đã cược <b>{{ pool.mine.amount }}</b> 🪙 vào
-        <b :class="pool.mine.side ? 'enemy-name' : 'ally-name'">{{ players[pool.mine.side] }}</b> · ăn ×{{
-          betOdds(pool.totals, pool.mine.side, 0).toFixed(2)
-        }}
+        {{ t('bet.placed') }} <b>{{ pool.mine.amount }}</b> {{ t('bet.on') }}
+        <b :class="pool.mine.side ? 'enemy-name' : 'ally-name'">{{ players[pool.mine.side] }}</b> ·
+        {{ t('bet.odds', { odds: betOdds(pool.totals, pool.mine.side, 0).toFixed(2) }) }}
       </span>
     </template>
-    <span v-else-if="!watcher" class="bet-mine">🎲 Người xem đang bắt kèo</span>
-    <span v-else-if="!pool.open" class="bet-mine">🔒 Đã khoá kèo</span>
+    <span v-else-if="!watcher" class="bet-mine">{{ t('bet.others') }}</span>
+    <span v-else-if="!pool.open" class="bet-mine">{{ t('bet.locked') }}</span>
     <template v-else>
       <div class="bet-row">
         <span class="bet-wallet">
-          🎲 Kèo · 🪙 <b>{{ xu }}</b>
-          <small v-if="inRoom">· mở đến giây {{ pool.closesAt }} của trận</small>
-          <small v-else-if="closesIn !== null">· khoá sau {{ closesIn }}s</small>
+          {{ t('bet.label') }} · 🪙 <b>{{ xu }}</b>
+          <small v-if="inRoom">{{ t('bet.openUntil', { s: pool.closesAt }) }}</small>
+          <small v-else-if="closesIn !== null">{{ t('bet.closesIn', { s: closesIn }) }}</small>
         </span>
         <div class="bet-chips">
           <button v-for="c in CHIPS" :key="c" class="chip" :class="{ active: online.betAmount === c }" :disabled="c > xu" @click="chip(c)">
             {{ c }}
           </button>
-          <button class="chip" :class="{ active: online.betAmount === -1 }" @click="chip(-1)">Tất tay</button>
+          <button class="chip" :class="{ active: online.betAmount === -1 }" @click="chip(-1)">{{ t('bet.allIn') }}</button>
         </div>
       </div>
       <div class="bet-row">
         <button
-          v-for="t in [0, 1] as Team[]"
-          :key="t"
+          v-for="side in [0, 1] as Team[]"
+          :key="side"
           class="btn bet-side"
-          :class="t ? 'enemy' : 'ally'"
+          :class="side ? 'enemy' : 'ally'"
           :disabled="amount < MIN_BET || sent"
-          @click="bet(t)"
+          @click="bet(side)"
         >
-          <b :class="t ? 'enemy-name' : 'ally-name'">{{ players[t] }}</b> <small>×{{ betOdds(pool.totals, t, amount).toFixed(2) }}</small>
+          <b :class="side ? 'enemy-name' : 'ally-name'">{{ players[side] }}</b>
+          <small>×{{ betOdds(pool.totals, side, amount).toFixed(2) }}</small>
         </button>
       </div>
     </template>
     <span class="bet-pool">
-      Quỹ kèo: <b class="ally-name">{{ players[0] }}</b> {{ pool.totals[0] }} 🪙 ({{ pool.counts[0] }}) ·
+      {{ t('bet.pool') }} <b class="ally-name">{{ players[0] }}</b> {{ pool.totals[0] }} 🪙 ({{ pool.counts[0] }}) ·
       <b class="enemy-name">{{ players[1] }}</b> {{ pool.totals[1] }} 🪙 ({{ pool.counts[1] }})
     </span>
   </div>

@@ -1,6 +1,6 @@
 # Stickman War
 
-Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 8 tộc, chơi đơn và online 1v1.
+Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 12 tộc, chơi đơn và online 1v1.
 
 **Công nghệ**
 
@@ -9,7 +9,8 @@ Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân p
 | Frontend (`apps/web`) | **Vue 3** (Composition API, `<script setup>`) + **Vite** + **TypeScript** + **Pinia** + **Vue Router**; trận đánh vẽ bằng **Canvas 2D**, âm thanh WebAudio, thoại WebRTC, PWA |
 | Backend (`apps/server`) | **NestJS** (adapter **Fastify**) + WebSocket (`ws`) + **Prisma** + **PostgreSQL**, kiểm tra dữ liệu bằng **Zod**, token Google bằng **jose**, helmet + rate-limit |
 | Trang admin (`apps/admin`) | **Vue 3** + **Rspack** (vue-loader, swc): xem tài khoản đã đăng ký, thống kê, lịch sử trận |
-| Lõi game (`packages/core`) | TypeScript thuần dùng chung cho web và máy chủ: mô phỏng trận, 8 tộc, AI, màn chơi, giao thức online |
+| Lõi game (`packages/core`) | TypeScript thuần dùng chung cho web và máy chủ: mô phỏng trận, 12 nền văn minh, AI, màn chơi, giao thức online |
+| Đa ngôn ngữ (`packages/i18n`) | Tiếng Việt / English dùng chung cho web và admin (đổi trong ⚙️ Cài đặt) |
 | Công cụ | **pnpm** workspace (monorepo), **Vitest**, **ESLint** + **Prettier**, **GitHub Actions**, **Docker Compose** |
 
 ## Chạy trên máy
@@ -35,10 +36,11 @@ Chuyển dữ liệu bản cũ (file `data/wallets.json`, `data/accounts.json`) 
 
 ```
 packages/core/src/      Lõi game (không DOM, không Node)
-  units.ts              khung quân gốc, sinh 96 loại quân cho 8 tộc, bảng khắc chế, kỳ cựu
-  factions.ts           dữ liệu 8 tộc: nội tại, điểm yếu, cách đánh bại, tên / chỉ số / hình dáng từng quân
-  world.ts              mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, tháp, triệu hồi
-  ai.ts, levels.ts      AI và 16 màn chiến dịch × 3 độ khó
+packages/i18n/src/      Từ điển vi / en, nội dung game tiếng Anh, dịch chữ máy chủ
+  units.ts              khung quân gốc, sinh 156 loại quân cho 12 tộc, bảng khắc chế, kỳ cựu
+  factions.ts           dữ liệu 12 tộc: nội tại (12 cơ chế khác nhau), điểm yếu, cách đánh bại, tên / chỉ số / hình dáng từng quân
+  world.ts              mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, trạm vàng, triệu hồi
+  ai.ts, levels.ts      AI và chiến dịch 3 vòng × 11 màn (mỗi tộc một chiến dịch)
   protocol.ts           tin nhắn WebSocket, ảnh chụp trạng thái
 apps/web/src/
   views/                LoginView, LobbyView (+ lobby/*Tab.vue), GameView, RoomView
@@ -70,19 +72,22 @@ NestJS được đóng gói bằng esbuild (tsup / tsx) nên mọi phụ thuộc
 
 ## Chế độ chơi
 
-- **Chơi đơn**: chiến dịch 16 màn ở 3 mức Dễ / Thường / Khó (tộc địch mỗi màn xáo ngẫu nhiên, mỗi 8 màn gặp đủ 8 tộc), đấu với máy (máy chọn tộc ngẫu nhiên).
+- **Chơi đơn**: chiến dịch chia 12 tab theo tộc: chơi đúng tộc đó qua 33 màn từ dễ tới khó, chia 3 vòng Làm quen / Chinh phạt / Thử thách, mỗi vòng gặp đủ 11 tộc còn lại; đấu với máy 3 mức Dễ / Thường / Khó (máy chọn tộc ngẫu nhiên).
 - **Online 1v1**: tìm trận nhanh, hoặc tạo phòng gửi mã / link `?room=MÃ`. Phòng chờ có 2 ghế, người xem, luật phòng, chat, kèo.
 - **Đấu trường**: danh sách phòng đang mở (chơi / xem) và bảng xếp hạng Elo.
 - **Bắt kèo**: người xem cược xu ảo 🪙 (không phải tiền thật) trong 60 giây đầu trận.
+- **Tường thành**: nút 🧱 (phím T) chọn chỗ ở nửa nhà (bóng xanh / đỏ), thợ mỏ đi ra dựng; quân nhà qua cổng, địch phải phá tường (công thành ×3). Mỗi nền văn minh một kiểu tường (gai, tự mọc lại, lửa, băng…).
+- **Kiếm xu**: mỗi sao mới ở chiến dịch +10 xu, đủ 100★ một tộc +100 (máy chủ ghi sao đã thưởng theo ví nên chơi lại không cày được);
+  online thắng +60 / hoà +30 / thua 0 nếu trận dài ≥ 2 phút; chơi đơn thua trận ≥ 2 phút +15 (máy chủ trả tối đa 1 lần / phút).
 - **Thoại**: WebRTC giữa các trình duyệt, máy chủ chỉ chuyển tin bắt tay.
 - **Tài khoản Google**: điểm Elo, lịch sử trận, ví xu theo tài khoản. Chỉ lưu mã Google, tên, ảnh đại diện; không lưu email.
 
 ## Cách chơi
 
-- 8 tộc × 12 loại quân (phím `1`–`9`, `0`, `-`, `=`), mỗi tộc có nội tại và khắc 2 tộc (+20% sát thương).
+- 12 tộc × 12 loại quân (phím `1`–`9`, `0`, `-`, `=`), mỗi tộc một nội tại riêng và một điểm yếu.
 - Khắc chế kiểu đòn × kiểu giáp (`DAMAGE_TABLE`): giáo đâm kỵ ×2, tên vào khổng lồ ×1.5, phép đốt giáp nặng ×1.3…
 - Đội hình (`F`): Tự do / Hàng lối / Tản rộng. Mỏ giữa (`R`). Lệnh: Rút về `Q` · Phòng thủ `W` · Tấn công `E`.
-- Thợ xây dựng tối đa 3 tháp canh; cờ hiệu tăng sức đánh quân quanh mình; quân kỳ cựu lên ★ khi hạ đủ địch.
+- Thợ xây dựng tối đa 2 trạm vàng ở chỗ cố định (thợ mỏ nộp vàng ở trạm, trạm bắn địch); cờ hiệu tăng sức đánh quân quanh mình; quân kỳ cựu lên ★ khi hạ đủ địch.
 
 ## Bật đăng nhập Google
 

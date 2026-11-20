@@ -42,6 +42,8 @@ export default defineConfig({
   devServer: {
     port: 5174,
     host: '127.0.0.1',
+    // Mở bằng localhost hay 127.0.0.1 đều được (không thì tự tải lại / HMR báo "Invalid Host/Origin header")
+    allowedHosts: ['localhost', '127.0.0.1'],
     historyApiFallback: true,
     proxy: [{ context: ['/api'], target: 'http://127.0.0.1:8787' }],
   },

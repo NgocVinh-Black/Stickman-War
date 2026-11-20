@@ -159,3 +159,51 @@
     transform: translate(-50%, 0);
   }
 }
+
+/* ---------- Cài đặt ---------- */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 4px;
+  text-align: left;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+.set-row > span:first-child {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+}
+.set-row small {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+}
+.set-seg {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.set-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.set-range input {
+  width: 120px;
+}
+.set-range b {
+  min-width: 38px;
+  text-align: right;
+  font-size: 13px;
+}

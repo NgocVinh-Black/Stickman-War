@@ -1,5 +1,6 @@
 import type { FactionId, Head, Machine, Mount, Weapon } from '@stickman-war/core';
 import { UNITS, type Arch, type UnitKind, type UnitStats } from '@stickman-war/core';
+import { drawWall } from './walls';
 
 export type StickPose = {
   kind: UnitKind;
@@ -19,6 +20,9 @@ export type StickPose = {
   stone?: boolean;
   /** Vẽ icon trên nền tối: giữ màu ink sáng người gọi đưa vào. */
   icon?: boolean;
+  /** Tường thành: cổng mở bao nhiêu (0..1) và thời gian (hoạt ảnh dung nham…). */
+  gate?: number;
+  time?: number;
 };
 
 const THIGH = 11;
@@ -60,6 +64,10 @@ const TOWER_COLOR: Record<FactionId, string> = {
   viking: '#7a5230',
   desert: '#c9a25b',
   steam: '#6b7280',
+  dwarf: '#8b6b4a',
+  tide: '#2a9d8f',
+  dragon: '#8b2e1f',
+  frost: '#cfe3f5',
 };
 
 /** Vũ khí mặc định của từng khung khi tộc không ghi đè. */
@@ -86,6 +94,10 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
   const a = s.arch;
   if (a === 'tower') {
     drawTower(ctx, p, s);
+    return;
+  }
+  if (a === 'wall') {
+    drawWall(ctx, s.faction, p.gate ?? 0, p.flash, p.time ?? 0);
     return;
   }
   if (a === 'catapult') {
@@ -425,6 +437,63 @@ function drawHead(g: Gear, style: Head): void {
       }
       return;
     }
+    case 'beard': {
+      // Mũ sắt tròn + râu dài của người lùn
+      ctx.fillStyle = '#9ca3af';
+      ctx.beginPath();
+      ctx.arc(h.x, h.y - 0.5, HEAD + 1.2, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(h.x - 1, h.y - HEAD - 4, 2, 4);
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.moveTo(h.x - 3, h.y + 1);
+      ctx.lineTo(h.x + 7, h.y + 1);
+      ctx.lineTo(h.x + 3, h.y + 14);
+      ctx.lineTo(h.x - 1, h.y + 9);
+      ctx.closePath();
+      ctx.fill();
+      return;
+    }
+    case 'fin': {
+      // Vây cá trên đầu + mang
+      ctx.fillStyle = '#2dd4bf';
+      ctx.beginPath();
+      ctx.moveTo(h.x - 6, h.y - 3);
+      ctx.quadraticCurveTo(h.x - 4, h.y - 15, h.x + 4, h.y - HEAD - 1);
+      ctx.lineTo(h.x + 2, h.y - 3);
+      ctx.closePath();
+      ctx.fill();
+      line(ctx, { x: h.x - 2, y: h.y + 1 }, { x: h.x - 3, y: h.y + 4 }, '#0f766e', 1.2);
+      return;
+    }
+    case 'dragon': {
+      // Sừng cong ra sau + mắt lửa
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(h.x - 2, h.y - HEAD + 1);
+      ctx.quadraticCurveTo(h.x - 8, h.y - 12, h.x - 13, h.y - 9);
+      ctx.moveTo(h.x + 2, h.y - HEAD);
+      ctx.quadraticCurveTo(h.x - 2, h.y - 15, h.x - 8, h.y - 14);
+      ctx.stroke();
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(h.x + 1.5, h.y - 1.5, 3, 1.5);
+      return;
+    }
+    case 'icecrown': {
+      // Vương miện băng nhọn
+      ctx.fillStyle = '#bae6fd';
+      ctx.beginPath();
+      ctx.moveTo(h.x - HEAD, h.y - HEAD + 2);
+      for (let i = 0; i <= 4; i++) {
+        const x = h.x - HEAD + (i * HEAD * 2) / 4;
+        ctx.lineTo(x, h.y - HEAD - (i % 2 ? 2 : 8));
+      }
+      ctx.lineTo(h.x + HEAD, h.y - HEAD + 2);
+      ctx.closePath();
+      ctx.fill();
+      return;
+    }
     case 'oni': {
       ctx.fillStyle = '#f5f0e1';
       ctx.beginPath();
@@ -442,7 +511,7 @@ function drawHead(g: Gear, style: Head): void {
   }
 }
 
-/** Mũ riêng từng loại quân của Bộ Lạc (bản gốc). */
+/** Mũ riêng từng loại quân của Blade Clan (bản gốc). */
 function tribeHat(g: Gear): void {
   const { ctx, head, p, a, shoulder } = g;
   switch (a) {
@@ -569,6 +638,9 @@ function drawWeaponGear(g: Gear): void {
   }
 
   switch (weapon) {
+    case 'trident':
+      polearm(ctx, tip, dir, perp, 'trident');
+      return;
     case 'pick': {
       const end = tip(14);
       line(ctx, hand, end, '#7a5230', 2.2);
@@ -823,7 +895,15 @@ function lance(ctx: CanvasRenderingContext2D, tip: (l: number) => V, dir: V, acc
 
 function polearm(ctx: CanvasRenderingContext2D, tip: (l: number) => V, dir: V, perp: V, kind: Weapon): void {
   const end = tip(26);
-  line(ctx, tip(-14), end, WOOD, 2.2);
+  line(ctx, tip(-14), end, kind === 'trident' ? '#0f766e' : WOOD, 2.2);
+  if (kind === 'trident') {
+    // Đinh ba: thanh ngang + ba mũi
+    const a = { x: end.x + perp.x * 5, y: end.y + perp.y * 5 };
+    const b = { x: end.x - perp.x * 5, y: end.y - perp.y * 5 };
+    line(ctx, a, b, '#d4af37', 1.8);
+    for (const q of [a, end, b]) line(ctx, q, { x: q.x + dir.x * 7, y: q.y + dir.y * 7 }, '#d4af37', 1.6);
+    return;
+  }
   ctx.fillStyle = STEEL;
   ctx.beginPath();
   if (kind === 'naginata') {
@@ -882,13 +962,17 @@ const MOUNT_COLOR: Record<Mount, string> = {
   boar: '#4a3426',
   chariot: '#6b4a2b',
   bike: '#374151',
+  shark: '#5b7a93',
+  lizard: '#b45309',
+  bear: '#e5e7eb',
 };
 
 /** Vẽ thú cưỡi / xe; trả về chỗ đặt hông người cưỡi. */
 function drawMount(ctx: CanvasRenderingContext2D, p: StickPose, mount: Mount): V {
   if (mount === 'bike') return drawBike(ctx, p);
   const color = p.flash ? '#ffffff' : MOUNT_COLOR[mount];
-  const low = mount === 'wolf' || mount === 'boar';
+  const low = mount === 'wolf' || mount === 'boar' || mount === 'shark' || mount === 'lizard' || mount === 'bear';
+  const bulky = mount === 'boar' || mount === 'bear';
   const t = p.moving ? p.walk * 1.3 : 0;
   const lift = p.moving ? Math.abs(Math.sin(t)) * 2 : 0;
   const legLen = low ? 8 : 12;
@@ -937,8 +1021,26 @@ function drawMount(ctx: CanvasRenderingContext2D, p: StickPose, mount: Mount): V
   }
   // Thân
   ctx.beginPath();
-  ctx.ellipse(0, bodyY, mount === 'boar' ? 16 : 17, mount === 'boar' ? 9 : 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, bodyY, bulky ? 16 : mount === 'lizard' ? 19 : 17, bulky ? 9 : 7, 0, 0, Math.PI * 2);
   ctx.fill();
+  if (mount === 'shark') {
+    ctx.beginPath(); // vây lưng
+    ctx.moveTo(-4, bodyY - 6);
+    ctx.lineTo(2, bodyY - 17);
+    ctx.lineTo(7, bodyY - 6);
+    ctx.fill();
+  }
+  if (mount === 'lizard') {
+    ctx.fillStyle = '#fbbf24'; // gai lưng
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 6 - 2, bodyY - 6);
+      ctx.lineTo(i * 6, bodyY - 11);
+      ctx.lineTo(i * 6 + 2, bodyY - 6);
+      ctx.fill();
+    }
+    ctx.fillStyle = color;
+  }
   if (mount === 'bonehorse') {
     ctx.strokeStyle = '#3b3b44';
     ctx.lineWidth = 1;
@@ -965,6 +1067,26 @@ function drawMount(ctx: CanvasRenderingContext2D, p: StickPose, mount: Mount): V
       ctx.lineTo(18, bodyY - 14);
       ctx.lineTo(21, bodyY - 7);
       ctx.fill();
+    } else if (mount === 'shark' || mount === 'lizard') {
+      ctx.beginPath(); // mõm dài nhọn
+      ctx.moveTo(24, bodyY - 5);
+      ctx.lineTo(34, bodyY);
+      ctx.lineTo(24, bodyY + 2);
+      ctx.fill();
+      ctx.fillStyle = mount === 'shark' ? '#f8fafc' : '#facc15';
+      ctx.beginPath();
+      ctx.arc(23, bodyY - 4, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = color;
+    } else if (mount === 'bear') {
+      ctx.beginPath(); // tai tròn
+      ctx.arc(17, bodyY - 8, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1f2937';
+      ctx.beginPath(); // mũi
+      ctx.arc(27, bodyY - 2, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = color;
     } else {
       ctx.fillStyle = '#f5f0e1'; // nanh lợn rừng
       ctx.beginPath();

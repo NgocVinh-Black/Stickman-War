@@ -29,7 +29,8 @@ const player = (unlocked: UnitKind[], gold = 400): TeamSetup => ({
   start: ['miner', 'miner', 'sword'],
 });
 
-export const LEVELS: Level[] = [
+/** Các màn soạn tay: vòng 1 (8 màn mở quân + 3 màn đủ quân) và vòng 2 (11 màn đủ quân). */
+const BASE: Level[] = [
   {
     name: 'Trận đầu tiên',
     enemyFaction: 'tribe',
@@ -59,7 +60,8 @@ export const LEVELS: Level[] = [
   {
     name: 'Đột kích',
     enemyFaction: 'viking',
-    intro: 'Địch đánh úp rất sớm, có cả kỵ binh! Giữ phòng thủ, dùng giáo binh chặn kỵ, thợ xây dựng tháp canh trước nhà.',
+    intro:
+      'Địch đánh úp rất sớm, có cả kỵ binh! Giữ phòng thủ, dùng giáo binh chặn kỵ, thợ xây dựng trạm vàng cạnh mỏ để có thêm vàng và thêm chốt bắn.',
     newUnits: ['cavalry', 'builder'],
     player: { ...player(WITH_CAV, 600), start: ['miner', 'miner', 'sword', 'sword'] },
     enemy: {
@@ -133,11 +135,11 @@ export const LEVELS: Level[] = [
       centerMine: true,
     },
   },
-  // ---------- Chinh phạt: đủ quân, mỗi màn máy một lối đánh ----------
+  // ---------- Đủ quân, mỗi màn máy một lối đánh ----------
   {
     name: 'Phản công chớp nhoáng',
     enemyFaction: 'viking',
-    intro: 'Địch dồn quân đánh sớm và liên tục. Giữ nhà bằng tháp canh và giáo binh, thắng một trận giữ nhà rồi phản công.',
+    intro: 'Địch dồn quân đánh sớm và liên tục. Giữ nhà bằng trạm vàng và giáo binh, thắng một trận giữ nhà rồi phản công.',
     player: player(ALL, 700),
     enemy: { gold: 300, statueHp: 3000, incomeMult: 0.64, unlocked: ALL, start: ['miner', 'miner', 'miner', 'sword', 'sword'] },
     ai: {
@@ -152,16 +154,17 @@ export const LEVELS: Level[] = [
   {
     name: 'Pháo đài',
     enemyFaction: 'steam',
-    intro: 'Địch rùa trong nhà với tháp canh và khiên. Máy bắn đá bắn xa hơn tháp, pháp sư đốt giáp nặng.',
+    intro: 'Địch rùa trong nhà với trạm vàng và khiên. Máy bắn đá bắn xa hơn trạm, pháp sư đốt giáp nặng; phá trạm để cắt vàng của họ.',
     player: player(ALL, 700),
     enemy: {
       gold: 400,
       statueHp: 4200,
-      incomeMult: 0.5,
+      incomeMult: 0.35,
       unlocked: ALL,
       start: ['miner', 'miner', 'miner', 'miner', 'spear', 'archer', 'builder'],
     },
     ai: {
+      wall: { at: 120, dist: 420 },
       miners: 6,
       mix: { spear: 3, archer: 3, builder: 1, healer: 1, catapult: 1 },
       attackAt: 6000,
@@ -191,6 +194,7 @@ export const LEVELS: Level[] = [
       formation: 'line',
     },
   },
+  // ---------- Vòng 2: Chinh phạt ----------
   {
     name: 'Vó ngựa',
     enemyFaction: 'samurai',
@@ -257,18 +261,145 @@ export const LEVELS: Level[] = [
     },
   },
   {
-    name: 'Trận chiến cuối cùng',
+    name: 'Sói đêm',
+    enemyFaction: 'samurai',
+    intro: 'Ninja và kỵ binh địch liên tục quấy thợ mỏ. Giữ vài quân canh mỏ, dựng trạm vàng làm chốt bắn.',
+    player: player(ALL, 800),
+    enemy: {
+      gold: 500,
+      statueHp: 4200,
+      incomeMult: 0.5,
+      unlocked: ALL,
+      start: ['miner', 'miner', 'miner', 'miner', 'ninja', 'cavalry'],
+    },
+    ai: {
+      miners: 7,
+      mix: { ninja: 3, cavalry: 2, archer: 2, sword: 1 },
+      attackAt: 3400,
+      forceAttackAt: 200,
+      retreatRatio: 0.3,
+      centerMine: true,
+      formation: 'spread',
+    },
+  },
+  {
+    name: 'Gọng kìm',
+    enemyFaction: 'viking',
+    intro: 'Địch tràn lên rất sớm rồi đánh liên tục không nghỉ. Giữ nhà thật chắc trước khi nghĩ tới phản công.',
+    player: player(ALL, 700),
+    enemy: { gold: 400, statueHp: 3800, incomeMult: 0.6, unlocked: ALL, start: ['miner', 'miner', 'miner', 'sword', 'sword', 'cavalry'] },
+    ai: {
+      miners: 5,
+      mix: { sword: 3, cavalry: 2, spear: 1, archer: 1, banner: 1 },
+      attackAt: 1200,
+      forceAttackAt: 110,
+      retreatRatio: 0.12,
+      formation: 'wedge',
+    },
+  },
+  {
+    name: 'Rừng giáo',
+    enemyFaction: 'steam',
+    intro: 'Tường khiên dày, thầy thuốc hồi máu phía sau, máy bắn đá yểm trợ. Đánh lan và bắn xa để phá thế rùa.',
+    player: player(ALL, 800),
+    enemy: {
+      gold: 500,
+      statueHp: 4600,
+      incomeMult: 0.4,
+      unlocked: ALL,
+      start: ['miner', 'miner', 'miner', 'miner', 'miner', 'spear', 'spear', 'healer'],
+    },
+    ai: {
+      wall: { at: 90, dist: 440 },
+      miners: 7,
+      mix: { spear: 4, healer: 2, archer: 2, catapult: 1, builder: 1 },
+      attackAt: 6200,
+      forceAttackAt: 300,
+      retreatRatio: 0.45,
+      formation: 'wall',
+    },
+  },
+  {
+    name: 'Bão phép',
+    enemyFaction: 'elf',
+    intro: 'Pháp sư và cung thủ địch bắn từ xa sau hàng giáo. Tản đội hình, cho ninja và kỵ binh cắt vào hàng sau.',
+    player: player(ALL, 800),
+    enemy: {
+      gold: 500,
+      statueHp: 4400,
+      incomeMult: 0.55,
+      unlocked: ALL,
+      start: ['miner', 'miner', 'miner', 'miner', 'miner', 'archer', 'archer', 'spear'],
+    },
+    ai: {
+      miners: 7,
+      mix: { mage: 3, archer: 3, spear: 2, banner: 1 },
+      attackAt: 4800,
+      forceAttackAt: 260,
+      retreatRatio: 0.35,
+      centerMine: true,
+      formation: 'line',
+    },
+  },
+  {
+    name: 'Bước chân người khổng lồ',
+    enemyFaction: 'orc',
+    intro: 'Cả đoàn khổng lồ kéo tới cùng tay trống. Cung thủ bắn xuyên giáp dày, đừng để khổng lồ chạm tượng.',
+    player: player(ALL, 800),
+    enemy: {
+      gold: 600,
+      statueHp: 4200,
+      incomeMult: 0.3,
+      unlocked: ALL,
+      start: ['miner', 'miner', 'miner', 'miner', 'miner', 'spear', 'spear'],
+    },
+    ai: {
+      wall: { at: 140, dist: 460 },
+      miners: 8,
+      mix: { giant: 2, spear: 2, banner: 1, healer: 1, catapult: 1 },
+      attackAt: 6000,
+      forceAttackAt: 280,
+      retreatRatio: 0.35,
+      formation: 'line',
+    },
+  },
+  {
+    name: 'Đại quân',
+    enemyFaction: 'undead',
+    intro: 'Địch giàu, tranh mỏ giữa và xây đủ mọi loại quân. Một trận dài: giữ kinh tế, đánh khi có lợi.',
+    player: player(ALL, 900),
+    enemy: {
+      gold: 600,
+      statueHp: 4800,
+      incomeMult: 0.36,
+      unlocked: ALL,
+      start: ['miner', 'miner', 'miner', 'miner', 'miner', 'sword', 'sword', 'archer', 'spear', 'mage'],
+    },
+    ai: {
+      wall: { at: 150, dist: 480 },
+      miners: 8,
+      mix: { sword: 3, archer: 2, spear: 2, cavalry: 1, mage: 1, giant: 1, ninja: 1 },
+      attackAt: 5200,
+      forceAttackAt: 240,
+      retreatRatio: 0.35,
+      centerMine: true,
+      formation: 'spread',
+    },
+  },
+  {
+    name: 'Vua chiến trường',
     enemyFaction: 'tribe',
-    intro: 'Trận cuối! Địch đủ mọi loại quân, đánh có đội hình. Kết hợp mọi thứ bạn đã học.',
+    intro: 'Trận trùm! Địch đủ mọi loại quân, đánh có đội hình. Kết hợp mọi thứ bạn đã học.',
     player: player(ALL, 900),
     enemy: {
       gold: 600,
       statueHp: 5000,
-      incomeMult: 0.48,
+      incomeMult: 0.42,
       unlocked: ALL,
       start: ['miner', 'miner', 'miner', 'miner', 'miner', 'spear', 'spear', 'archer', 'archer', 'sword', 'sword', 'healer'],
     },
     ai: {
+      wall: { at: 120, dist: 460 },
       miners: 8,
       mix: { sword: 2, archer: 3, spear: 2, ninja: 1, cavalry: 1, healer: 1, mage: 2, giant: 1, catapult: 1, banner: 1 },
       attackAt: 6000,
@@ -279,6 +410,36 @@ export const LEVELS: Level[] = [
     },
   },
 ];
+
+/** Số màn mỗi vòng chiến dịch = số tộc đối thủ: mỗi vòng gặp đủ 11 tộc còn lại. */
+export const ROUND = FACTION_ORDER.length - 1;
+
+/** Vòng 3 (Thử thách): làm lại các màn vòng 2 nhưng máy giàu hơn, tượng dày hơn, đánh sớm và lì hơn. */
+function harder(lv: Level): Level {
+  return {
+    ...lv,
+    name: `${lv.name} (khó)`,
+    enemy: {
+      ...lv.enemy,
+      gold: lv.enemy.gold + 100,
+      statueHp: Math.round(lv.enemy.statueHp * 1.15),
+      incomeMult: (lv.enemy.incomeMult ?? 1) * 1.05,
+    },
+    ai: {
+      ...lv.ai,
+      // Vòng 3: màn nào máy cũng xây tường, màn đã có tường thì xây sớm hơn
+      wall: lv.ai.wall ? { ...lv.ai.wall, at: Math.round(lv.ai.wall.at * 0.7) } : { at: 150, dist: 450 },
+      attackAt: Math.round(lv.ai.attackAt * 0.95),
+      retreatRatio: lv.ai.retreatRatio * 0.9,
+    },
+  };
+}
+
+/** Chiến dịch mỗi tộc: 3 vòng × 11 màn, khó dần; màn cuối mỗi vòng 2 và 3 là trùm. */
+export const LEVELS: Level[] = [...BASE, ...BASE.slice(ROUND).map(harder)];
+
+/** Màn trùm: màn cuối vòng 2 và vòng 3. */
+export const isBoss = (i: number) => i >= 2 * ROUND - 1 && (i + 1) % ROUND === 0;
 
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
@@ -324,52 +485,11 @@ export const SKIRMISH: Record<Difficulty, { label: string; player: TeamSetup; en
   },
 };
 
-/** Chiến dịch chơi lại ở mức Thường / Khó: cùng 16 màn, máy giàu hơn, đông hơn, đánh sớm hơn. */
-export type CampaignDiff = {
-  label: string;
-  incomeMult: number; // nhân tốc độ kiếm vàng của máy
-  gold: number; // vàng ban đầu cộng thêm cho máy
-  hpMult: number; // nhân máu tượng máy
-  start: UnitKind[]; // quân ban đầu cộng thêm cho máy
-  miners: number; // thợ mỏ máy muốn giữ cộng thêm
-  attackMult: number; // nhân ngưỡng quân để máy tấn công
-  forceMult: number; // nhân mốc giờ máy buộc phải đánh
-  retreatMult: number; // nhân tỉ lệ rút lui (nhỏ hơn = lì đòn hơn)
-};
-
-export const CAMPAIGN: Record<Difficulty, CampaignDiff> = {
-  easy: { label: 'Dễ', incomeMult: 1, gold: 0, hpMult: 1, start: [], miners: 0, attackMult: 1, forceMult: 1, retreatMult: 1 },
-  normal: {
-    label: 'Thường',
-    incomeMult: 1.12,
-    gold: 100,
-    hpMult: 1.1,
-    start: ['miner'],
-    miners: 0,
-    attackMult: 0.95,
-    forceMult: 0.9,
-    retreatMult: 0.9,
-  },
-  hard: {
-    label: 'Khó',
-    incomeMult: 1.15,
-    gold: 200,
-    hpMult: 1.15,
-    start: ['miner', 'miner'],
-    miners: 0,
-    attackMult: 0.9,
-    forceMult: 0.9,
-    retreatMult: 0.8,
-  },
-};
-
-export const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
-
 /**
- * Thứ tự tộc địch của một lượt chiến dịch, xáo theo `seed`: mỗi 8 màn liền nhau gặp đủ 8 tộc,
- * không màn nào gặp lại đúng tộc vừa đánh. Mỗi người chơi / mỗi mức khó một thứ tự khác nhau.
+ * Thứ tự tộc địch trong chiến dịch của tộc `player`, xáo theo `seed`: mỗi vòng 11 màn liền nhau gặp đủ
+ * 11 tộc còn lại, không bao giờ gặp chính mình, không gặp lại tộc vừa đánh. Mỗi người chơi / mỗi tộc một thứ tự.
  */
-export function campaignFactions(seed: number): FactionId[] {
+export function campaignFactions(player: FactionId, seed: number): FactionId[] {
   let r = seed >>> 0;
   const rand = () => {
     // mulberry32: seed gần nhau vẫn ra thứ tự khác hẳn nhau
@@ -381,7 +501,7 @@ export function campaignFactions(seed: number): FactionId[] {
   };
   const out: FactionId[] = [];
   while (out.length < LEVELS.length) {
-    const block = [...FACTION_ORDER];
+    const block = FACTION_ORDER.filter((f) => f !== player);
     for (let i = block.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
       [block[i], block[j]] = [block[j], block[i]];
@@ -392,29 +512,7 @@ export function campaignFactions(seed: number): FactionId[] {
   return out.slice(0, LEVELS.length);
 }
 
-/** Màn `index` của chiến dịch ở độ khó `diff`, tộc địch lấy theo thứ tự xáo từ `seed` (nếu có). */
-export function campaignLevel(index: number, diff: Difficulty, seed?: number): Level {
-  const base = LEVELS[index];
-  const lv = seed === undefined ? base : { ...base, enemyFaction: campaignFactions(seed)[index] };
-  if (diff === 'easy') return lv;
-  const d = CAMPAIGN[diff];
-  const w = 1 - (0.6 * index) / (LEVELS.length - 1);
-  const mul = (m: number) => 1 + (m - 1) * w;
-  return {
-    ...lv,
-    enemy: {
-      ...lv.enemy,
-      gold: lv.enemy.gold + Math.round(d.gold * w),
-      statueHp: Math.round(lv.enemy.statueHp * mul(d.hpMult)),
-      incomeMult: (lv.enemy.incomeMult ?? 1) * mul(d.incomeMult),
-      start: [...(lv.enemy.start ?? []), ...d.start.slice(0, Math.floor(d.start.length * w + 0.01))],
-    },
-    ai: {
-      ...lv.ai,
-      miners: lv.ai.miners + d.miners,
-      attackAt: Math.round(lv.ai.attackAt * mul(d.attackMult)),
-      forceAttackAt: Math.round(lv.ai.forceAttackAt * mul(d.forceMult)),
-      retreatRatio: lv.ai.retreatRatio * mul(d.retreatMult),
-    },
-  };
+/** Màn `index` trong chiến dịch của tộc `player`, tộc địch lấy theo thứ tự xáo từ `seed`. */
+export function campaignLevel(index: number, player: FactionId, seed = 1): Level {
+  return { ...LEVELS[index], enemyFaction: campaignFactions(player, seed)[index] };
 }

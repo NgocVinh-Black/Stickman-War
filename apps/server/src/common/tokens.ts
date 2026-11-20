@@ -14,6 +14,8 @@ export type ServerOptions = {
   googleClientId: string;
   /** Số giây đầu trận còn được bắt kèo (test dùng số nhỏ). */
   betSeconds?: number;
+  /** Trận online phải dài ít nhất chừng này giây mới thưởng xu (test dùng 0). */
+  pvpXuMinSeconds?: number;
   /** Thay bộ kiểm tra token Google (test). */
   verifyGoogle?: (credential: string) => Promise<GoogleProfile>;
   /** Ghi log ngắn (phòng, đăng nhập…). */

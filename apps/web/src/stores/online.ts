@@ -1,10 +1,12 @@
 import type { BetPool, ChatLine, ClientMsg, EndReason, FactionId, LobbyRoom, ServerMsg, WaitRoom } from '@stickman-war/core';
 import { defineStore } from 'pinia';
-import { ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import { onlineMatch, watchMatch } from '../game/match';
 import { statsOf } from '../game/session';
+import { t } from '@stickman-war/i18n';
+import { serverText } from '@stickman-war/i18n/server';
 import { sound } from '../lib/sound';
-import { walletId } from '../lib/storage';
+import { load, save, walletId } from '../lib/storage';
 import { accountFromServer, auth } from '../net/account';
 import { OnlineClient, RemoteWorld } from '../net/remote';
 import { Voice } from '../net/voice';
@@ -16,9 +18,9 @@ import { useUi } from './ui';
 export type BetResult = Extract<ServerMsg, { t: 'betResult' }>;
 
 export function betResultText(r: BetResult): string {
-  if (r.outcome === 'win') return `🎉 Thắng kèo! +${r.payout - r.amount} 🪙 · còn ${r.xu} xu`;
-  if (r.outcome === 'lose') return `😢 Thua kèo −${r.amount} 🪙 · còn ${r.xu} xu`;
-  return `↩️ Hoàn lại ${r.amount} 🪙 (hoà hoặc không ai cược bên kia)`;
+  if (r.outcome === 'win') return t('online.betWin', { gain: r.payout - r.amount, xu: r.xu });
+  if (r.outcome === 'lose') return t('online.betLose', { amount: r.amount, xu: r.xu });
+  return t('online.betRefund', { amount: r.amount });
 }
 
 export const inviteLink = (code: string) => `${location.origin}${location.pathname}?room=${code}`;
@@ -26,7 +28,9 @@ export const inviteLink = (code: string) => `${location.origin}${location.pathna
 /** Kết nối máy chủ online và mọi trạng thái online: sảnh, phòng chờ, kèo, chat, thoại, trận đang chơi / xem. */
 export const useOnline = defineStore('online', () => {
   const client = shallowRef<OnlineClient | null>(null);
-  const status = ref('1 đấu 1 với người chơi khác qua mạng');
+  /** Dòng trạng thái: lưu dạng hàm để đổi ngôn ngữ là đổi theo. */
+  const status = shallowRef<() => string>(() => t('online.status'));
+  const statusText = computed(() => status.value());
   const lastOnline = ref(0);
   const lobby = ref<LobbyRoom[] | null>(null);
   const xu = ref<number | null>(null);
@@ -65,27 +69,57 @@ export const useOnline = defineStore('online', () => {
     client.value?.send(m);
   }
 
-  async function ensure(): Promise<OnlineClient | null> {
+  /** quiet: không báo lỗi khi không kết nối được (gửi ngầm, ví dụ nhận xu chiến dịch). */
+  async function ensure(quiet = false): Promise<OnlineClient | null> {
     if (client.value?.connected) return client.value;
     client.value?.close();
     client.value = null;
     const c = new OnlineClient();
     c.on(onServer);
-    status.value = 'Đang kết nối máy chủ…';
+    status.value = () => t('online.connecting');
     try {
       await c.connect(settings().name, walletId(), settings().faction);
     } catch {
       c.close();
-      status.value = '🔴 Không kết nối được máy chủ online';
-      ui().toast('Không kết nối được máy chủ online', 3000);
+      status.value = () => t('online.noServer');
+      if (!quiet) ui().toast(t('online.noServerToast'), 3000);
       return null;
     }
     client.value = c;
+    void flushClaims();
     const timer = window.setInterval(() => {
       if (client.value !== c) return clearInterval(timer);
       ping.value = c.ping;
     }, 1000);
     return c;
+  }
+
+  // ---------- Xu chiến dịch ----------
+
+  type Claim = Extract<ClientMsg, { t: 'campaignWin' | 'soloLose' }>;
+  const CLAIMS = 'camp-claims';
+
+  /** Thắng màn chiến dịch: báo máy chủ để nhận xu; mất mạng thì giữ lại, lần kết nối sau gửi tiếp. */
+  function claimCampaign(faction: FactionId, level: number, stars: number): void {
+    save(CLAIMS, [...load<Claim[]>(CLAIMS, []), { t: 'campaignWin', faction, level, stars }]);
+    void flushClaims();
+  }
+
+  /** Thua trận chơi đơn: báo máy chủ để nhận xu an ủi (máy chủ giới hạn số lần). */
+  function claimSoloLose(): void {
+    save(CLAIMS, [...load<Claim[]>(CLAIMS, []), { t: 'soloLose' }]);
+    void flushClaims();
+  }
+
+  async function flushClaims(): Promise<void> {
+    const list = load<Claim[]>(CLAIMS, []);
+    if (!list.length) return;
+    const c = await ensure(true);
+    if (!c) return;
+    save(CLAIMS, []);
+    // Chào lại kèm phiên đăng nhập để xu vào đúng ví tài khoản, rồi gửi theo thứ tự thắng
+    c.send({ t: 'hello', name: settings().name, wallet: walletId(), faction: settings().faction, session: auth.session || undefined });
+    list.forEach((m) => c.send(m));
   }
 
   /** Rời phòng / trận online đang ở (rời luôn thoại). */
@@ -115,26 +149,26 @@ export const useOnline = defineStore('online', () => {
     if (!c) return;
     c.send({ t: 'hello', name: settings().name, wallet: walletId(), faction: settings().faction, session: auth.session || undefined });
     c.send(msg);
-    if (msg.t !== 'join') showWaiting(msg.t === 'quick' ? 'Đang tìm đối thủ…' : 'Đang tạo phòng…', '');
+    if (msg.t !== 'join') showWaiting(msg.t === 'quick' ? t('online.searching') : t('online.creating'), '');
   }
 
   function showWaiting(title: string, code: string): void {
     const buttons = [];
     if (code) {
       buttons.push({
-        label: '📋 Sao chép link mời',
+        label: t('online.copyLink'),
         primary: true,
         action: () => {
-          if (!navigator.clipboard) return ui().toast('Hãy gửi mã phòng cho bạn bè');
+          if (!navigator.clipboard) return ui().toast(t('online.sendCode'));
           navigator.clipboard.writeText(inviteLink(code)).then(
-            () => ui().toast('Đã sao chép link'),
-            () => ui().toast('Không sao chép được, hãy gửi mã phòng'),
+            () => ui().toast(t('online.copied')),
+            () => ui().toast(t('online.copyFail')),
           );
         },
       });
     }
     buttons.push({
-      label: 'Huỷ',
+      label: t('common.cancel'),
       action: () => {
         leave();
         ui().close();
@@ -144,7 +178,7 @@ export const useOnline = defineStore('online', () => {
       kind: 'generic',
       spinner: true,
       title,
-      lines: code ? ['Gửi mã này cho bạn bè:'] : ['Sẽ vào trận ngay khi có người chơi khác.'],
+      lines: code ? [t('online.sendCodeLine')] : [t('online.waitLine')],
       code: code || undefined,
       link: code ? inviteLink(code) : undefined,
       buttons,
@@ -152,10 +186,10 @@ export const useOnline = defineStore('online', () => {
   }
 
   function copyInvite(code: string): void {
-    if (!navigator.clipboard) return ui().toast(`Gửi mã phòng ${code} cho bạn bè`);
+    if (!navigator.clipboard) return ui().toast(t('online.sendCodeN', { code }));
     navigator.clipboard.writeText(inviteLink(code)).then(
-      () => ui().toast('Đã sao chép link mời'),
-      () => ui().toast(`Không sao chép được, gửi mã ${code}`),
+      () => ui().toast(t('online.copiedInvite')),
+      () => ui().toast(t('online.copyFailN', { code })),
     );
   }
 
@@ -179,7 +213,7 @@ export const useOnline = defineStore('online', () => {
     opponent.value = opp;
     watching.value = null;
     const match = onlineMatch(r, send, factions[0], { started: () => started, ended: () => ended.value });
-    const s = game().mount({ type: 'online', opponent: opp }, match, `vs ${opp}`, 'Trận online 1v1');
+    const s = game().mount({ type: 'online', opponent: opp }, match, `vs ${opp}`, t('online.match'));
     s.running = true;
     voiceVisible.value = true;
     runCountdown(countdown, () => (started = true));
@@ -195,7 +229,7 @@ export const useOnline = defineStore('online', () => {
     remote = r;
     ended.value = false;
     watching.value = players;
-    const s = game().mount({ type: 'watch', players }, watchMatch(r), `${players[0]} vs ${players[1]}`, '👁 Đang xem trận');
+    const s = game().mount({ type: 'watch', players }, watchMatch(r), `${players[0]} vs ${players[1]}`, t('online.watchingMatch'));
     s.running = true;
     voiceVisible.value = true;
     if (countdown > 0) runCountdown(countdown, () => {});
@@ -215,7 +249,7 @@ export const useOnline = defineStore('online', () => {
         setTimeout(next, 1000);
       } else {
         onGo();
-        g.hud.countdown = 'Chiến!';
+        g.hud.countdown = t('game.fight');
         sound.horn();
         setTimeout(() => g.session === s && (g.hud.countdown = ''), 900);
       }
@@ -227,32 +261,29 @@ export const useOnline = defineStore('online', () => {
   function openNetMenu(): void {
     const s = game().session;
     if (!s || s.endShown) return;
-    const st = settings();
-    const soundBtn = {
-      label: st.muted ? '🔇 Bật âm thanh' : '🔊 Tắt âm thanh',
-      action: () => {
-        st.toggleSound();
-        openNetMenu();
-      },
-    };
+    const soundBtn = { label: `⚙️ ${t('settings.title')}`, action: () => ui().show({ kind: 'settings', back: openNetMenu }) };
     if (s.mode.type === 'watch') {
       ui().show({
         kind: 'generic',
-        title: 'Đang xem trận',
+        title: t('online.watchingTitle'),
         lines: [`${s.mode.players[0]} vs ${s.mode.players[1]}`],
-        buttons: [{ label: 'Tiếp tục xem', primary: true, action: ui().close }, soundBtn, { label: 'Rời phòng', action: toMenu }],
+        buttons: [
+          { label: t('online.keepWatching'), primary: true, action: ui().close },
+          soundBtn,
+          { label: t('online.leave'), action: toMenu },
+        ],
       });
       return;
     }
     ui().show({
       kind: 'generic',
-      title: 'Trận online',
-      lines: ['Trận vẫn đang tiếp diễn!'],
+      title: t('online.onlineMatch'),
+      lines: [t('online.stillOn')],
       buttons: [
-        { label: 'Quay lại trận', primary: true, action: ui().close },
+        { label: t('online.backToMatch'), primary: true, action: ui().close },
         soundBtn,
         {
-          label: '🏳️ Đầu hàng',
+          label: t('online.surrender'),
           action: () => {
             send({ t: 'surrender' });
             ui().close();
@@ -272,37 +303,33 @@ export const useOnline = defineStore('online', () => {
     const winner = result === 'win' ? left : right;
     const loser = result === 'win' ? right : left;
     const why: Record<EndReason, string> = {
-      statue: `Tượng của ${loser} đã sụp đổ.`,
-      surrender: `${loser} đã đầu hàng.`,
-      disconnect: `${loser} đã rời trận.`,
-      timeout: `Hết ${minutes.value} phút, so máu tượng hai bên.`,
+      statue: t('online.endStatue', { name: loser }),
+      surrender: t('online.endSurrender', { name: loser }),
+      disconnect: t('online.endLeft', { name: loser }),
+      timeout: t('online.endTime', { n: minutes.value }),
     };
     setTimeout(
       () => {
         if (game().session !== s) return;
-        const next = roomClosed.value
-          ? 'Hai người chơi đã rời phòng.'
-          : wait.value
-            ? 'Về phòng chờ để bắt kèo trận tiếp theo.'
-            : 'Nếu hai người đấu lại, bạn sẽ được xem tiếp và bắt kèo trận mới.';
+        const next = roomClosed.value ? t('online.bothLeft') : wait.value ? t('online.backToRoomBet') : t('online.rematchWatch');
         ui().show({
           kind: 'generic',
           emoji: result === 'draw' ? '🤝' : '🏆',
-          title: result === 'draw' ? 'Hoà' : `${winner} thắng!`,
+          title: result === 'draw' ? t('online.draw') : t('online.wins', { name: winner ?? '' }),
           lines: [why[reason]],
           stats: statsOf(s.view),
           status: lastBet.value ? betResultText(lastBet.value) : undefined,
           small: next,
           buttons: roomClosed.value
-            ? [{ label: 'Về menu', primary: true, action: toMenu }]
+            ? [{ label: t('common.toMenu'), primary: true, action: toMenu }]
             : wait.value
               ? [
-                  { label: '↩ Về phòng chờ', primary: true, action: showRoom },
-                  { label: 'Về menu', action: toMenu },
+                  { label: t('online.backToRoom'), primary: true, action: showRoom },
+                  { label: t('common.toMenu'), action: toMenu },
                 ]
               : [
                   {
-                    label: '👁 Ở lại xem',
+                    label: t('online.stay'),
                     primary: true,
                     action: () => {
                       s.endShown = false;
@@ -311,7 +338,7 @@ export const useOnline = defineStore('online', () => {
                       else ui().close();
                     },
                   },
-                  { label: 'Về menu', action: toMenu },
+                  { label: t('common.toMenu'), action: toMenu },
                 ],
         });
       },
@@ -319,7 +346,7 @@ export const useOnline = defineStore('online', () => {
     );
   }
 
-  function onOnlineEnd(result: 'win' | 'lose' | 'draw', reason: string): void {
+  function onOnlineEnd(result: 'win' | 'lose' | 'draw', reason: string, reward?: number): void {
     ended.value = true;
     const s = game().session;
     if (!s || s.mode.type !== 'online') return;
@@ -327,10 +354,10 @@ export const useOnline = defineStore('online', () => {
     if (result === 'win') sound.win();
     else sound.lose();
     const why: Record<string, string> = {
-      statue: result === 'win' ? 'Tượng đối thủ đã sụp đổ.' : 'Tượng của bạn đã bị phá.',
-      surrender: result === 'win' ? 'Đối thủ đã đầu hàng.' : 'Bạn đã đầu hàng.',
-      disconnect: result === 'win' ? 'Đối thủ đã rời trận.' : 'Bạn đã rời trận.',
-      timeout: `Hết ${minutes.value} phút, so máu tượng hai bên.`,
+      statue: result === 'win' ? t('online.theirStatue') : t('online.myStatue'),
+      surrender: result === 'win' ? t('online.theySurrender') : t('online.iSurrender'),
+      disconnect: result === 'win' ? t('online.theyLeft') : t('online.iLeft'),
+      timeout: t('online.endTime', { n: minutes.value }),
     };
     setTimeout(
       () => {
@@ -338,26 +365,26 @@ export const useOnline = defineStore('online', () => {
         ui().show({
           kind: 'generic',
           emoji: result === 'win' ? '🏆' : result === 'lose' ? '💀' : '🤝',
-          title: result === 'win' ? 'Chiến thắng!' : result === 'lose' ? 'Thất bại' : 'Hoà',
-          lines: [why[reason] ?? ''],
+          title: result === 'win' ? t('online.win') : result === 'lose' ? t('online.lose') : t('online.draw'),
+          lines: [why[reason] ?? '', ...(reward ? [t('common.xuGain', { n: reward })] : [])],
           small: `vs ${opponent.value}`,
           stats: statsOf(s.view),
           buttons: wait.value
             ? [
-                { label: '↩ Về phòng chờ', primary: true, action: showRoom },
-                { label: 'Về menu', action: toMenu },
+                { label: t('online.backToRoom'), primary: true, action: showRoom },
+                { label: t('common.toMenu'), action: toMenu },
               ]
             : [
                 {
-                  label: '🔁 Đấu lại',
+                  label: t('online.rematch'),
                   primary: true,
                   disabled: reason === 'disconnect',
                   action: () => {
                     send({ t: 'rematch' });
-                    ui().setStatus('Đang chờ đối thủ đồng ý…');
+                    ui().setStatus(t('online.waitRematch'));
                   },
                 },
-                { label: 'Về menu', action: toMenu },
+                { label: t('common.toMenu'), action: toMenu },
               ],
         });
       },
@@ -369,13 +396,13 @@ export const useOnline = defineStore('online', () => {
     ui().show({
       kind: 'generic',
       spinner: true,
-      title: 'Đang chờ người chơi',
-      lines: [`Phòng ${code} của ${players[0] ?? ''} còn 1 ghế trống.`],
-      small: 'Bạn đang ở chế độ xem. Trận bắt đầu là sẽ xem được ngay.',
+      title: t('online.waitingPlayer'),
+      lines: [t('online.seatFree', { code, name: players[0] ?? '' })],
+      small: t('online.watchMode'),
       buttons: [
-        { label: '▶ Vào chơi', primary: true, action: () => send({ t: 'join', code, as: 'play' }) },
+        { label: t('online.joinPlay'), primary: true, action: () => send({ t: 'join', code, as: 'play' }) },
         {
-          label: 'Rời phòng',
+          label: t('online.leave'),
           action: () => {
             if (game().session?.mode.type === 'watch') toMenu();
             else {
@@ -392,11 +419,11 @@ export const useOnline = defineStore('online', () => {
     ui().show({
       kind: 'generic',
       emoji: '⚔️',
-      title: `Phòng ${code} đang đấu`,
+      title: t('online.roomBusy', { code }),
       lines: [players.join(' vs ')],
-      small: 'Phòng đã đủ 2 người. Bạn có thể vào xem trực tiếp và 🎲 bắt kèo xem ai thắng.',
+      small: t('online.roomFull'),
       buttons: [
-        { label: '👁 Vào xem', primary: true, action: () => send({ t: 'join', code, as: 'watch' }) },
+        { label: t('online.joinWatch'), primary: true, action: () => send({ t: 'join', code, as: 'watch' }) },
         { label: 'Huỷ', action: ui().close },
       ],
     });
@@ -418,7 +445,7 @@ export const useOnline = defineStore('online', () => {
         break;
       case 'welcome':
         lastOnline.value = msg.online;
-        status.value = `🟢 ${msg.online} người đang trực tuyến`;
+        status.value = () => t('online.online', { n: msg.online });
         break;
       case 'waitroom': {
         const { t: _, ...w } = msg;
@@ -445,7 +472,7 @@ export const useOnline = defineStore('online', () => {
       case 'kicked':
         wait.value = null;
         toMenu();
-        ui().toast('Chủ phòng đã mời bạn ra khỏi phòng', 3500);
+        ui().toast(t('online.kicked'), 3500);
         break;
       case 'room':
         wait.value = null;
@@ -453,7 +480,7 @@ export const useOnline = defineStore('online', () => {
         if (msg.watching) {
           watchWait.value = { code: msg.code, players: msg.players };
           if (!(g.session?.mode.type === 'watch' && g.session.endShown)) showWatchWaiting(msg.code, msg.players);
-        } else showWaiting(msg.private ? 'Phòng của bạn' : 'Đang tìm đối thủ…', msg.private ? msg.code : '');
+        } else showWaiting(msg.private ? t('online.yourRoom') : t('online.searching'), msg.private ? msg.code : '');
         break;
       case 'start':
         minutes.value = msg.minutes;
@@ -469,13 +496,18 @@ export const useOnline = defineStore('online', () => {
       case 'lobby':
         lobby.value = msg.rooms;
         lastOnline.value = msg.online;
-        status.value = `🟢 ${msg.online} người trực tuyến · ${msg.rooms.length} phòng${xu.value === null ? '' : ` · 🪙 ${xu.value} xu`}`;
+        status.value = () =>
+          t('online.lobbyStatus', { n: msg.online, rooms: msg.rooms.length }) +
+          (xu.value === null ? '' : t('online.lobbyXu', { xu: xu.value }));
         break;
       case 'watchers':
         watchers.value = msg.n;
         break;
       case 'wallet':
         xu.value = msg.xu;
+        if (auth.account) auth.xu = msg.xu;
+        // Trận online đã ghi xu thưởng trong bảng kết quả
+        if (msg.gain && g.session?.mode.type !== 'online') ui().toast(t('common.xuGain', { n: msg.gain }), 3000);
         break;
       case 'pool': {
         const { t: _, ...p } = msg;
@@ -494,12 +526,12 @@ export const useOnline = defineStore('online', () => {
           roomClosed.value = true;
           const d = ui().dialog;
           if (d?.kind === 'generic') {
-            d.small = 'Hai người chơi đã rời phòng.';
-            d.buttons = [{ label: 'Về menu', primary: true, action: toMenu }];
+            d.small = t('online.bothLeft');
+            d.buttons = [{ label: t('common.toMenu'), primary: true, action: toMenu }];
           }
           break;
         }
-        ui().toast('Phòng đã đóng', 3000);
+        ui().toast(t('online.closed'), 3000);
         if (g.session?.mode.type === 'watch') toMenu();
         else if (ui().dialog?.kind === 'generic' && (ui().dialog as { spinner?: boolean }).spinner) ui().close();
         break;
@@ -508,24 +540,24 @@ export const useOnline = defineStore('online', () => {
         break;
       case 'end':
         if (g.session?.mode.type === 'watch') onWatchEnd(msg.result, msg.reason);
-        else onOnlineEnd(msg.result, msg.reason);
+        else onOnlineEnd(msg.result, msg.reason, msg.reward);
         break;
       case 'rematch':
-        ui().setStatus(msg.votes === 1 ? 'Đang chờ người còn lại đồng ý…' : '');
+        ui().setStatus(msg.votes === 1 ? t('online.waitOther') : '');
         break;
       case 'left':
         if (g.session?.mode.type === 'online') {
-          ui().toast('Đối thủ đã rời phòng', 3000);
+          ui().toast(t('online.oppLeft'), 3000);
           const d = ui().dialog;
           if (d?.kind === 'generic') {
-            d.status = 'Đối thủ đã rời phòng';
-            d.buttons = d.buttons.map((b) => (b.label.includes('Đấu lại') ? { ...b, disabled: true } : b));
+            d.status = t('online.oppLeft');
+            d.buttons = d.buttons.map((b) => (b.label === t('online.rematch') ? { ...b, disabled: true } : b));
           }
         }
         break;
       case 'error':
-        ui().toast(msg.msg, 3000);
-        if (msg.msg.startsWith('Mất kết nối')) {
+        ui().toast(serverText(msg.msg), 3000);
+        if (msg.msg === t('online.lostServer')) {
           voice.teardown();
           voiceVisible.value = false;
           client.value = null;
@@ -533,9 +565,9 @@ export const useOnline = defineStore('online', () => {
             ui().show({
               kind: 'generic',
               emoji: '📡',
-              title: 'Mất kết nối',
-              lines: ['Không còn liên lạc được với máy chủ.'],
-              buttons: [{ label: 'Về menu', primary: true, action: toMenu }],
+              title: t('online.lost'),
+              lines: [t('online.lostLine')],
+              buttons: [{ label: t('common.toMenu'), primary: true, action: toMenu }],
             });
           } else if (ui().dialog?.kind === 'generic' && (ui().dialog as { spinner?: boolean }).spinner) ui().close();
         }
@@ -546,6 +578,7 @@ export const useOnline = defineStore('online', () => {
   return {
     client,
     status,
+    statusText,
     lastOnline,
     lobby,
     xu,
@@ -567,6 +600,8 @@ export const useOnline = defineStore('online', () => {
     voiceVisible,
     send,
     ensure,
+    claimCampaign,
+    claimSoloLose,
     leave,
     toMenu,
     go,

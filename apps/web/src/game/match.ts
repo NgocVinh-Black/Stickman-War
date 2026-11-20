@@ -8,15 +8,18 @@ import {
   World,
   canTrainSnap,
   roster,
+  wallBlockOf,
   type ClientMsg,
   type FactionId,
   type Formation,
   type MineSplit,
   type Stance,
   type UnitKind,
+  type WallBlock,
   type WorldEvent,
   type WorldView,
 } from '@stickman-war/core';
+import { t as tr } from '@stickman-war/i18n';
 import type { RemoteWorld } from '../net/remote';
 
 const STEP = 1 / 60;
@@ -25,8 +28,8 @@ const STEP = 1 / 60;
 export type Match = {
   view: WorldView;
   step: (dt: number) => WorldEvent[];
-  /** Xây quân; thợ xây kèm x: chỗ dựng tháp người chơi chọn. */
-  train: (kind: UnitKind, x?: number) => boolean;
+  /** Xây quân (thợ xây tự tới chỗ trạm vàng còn trống). */
+  train: (kind: UnitKind) => boolean;
   setStance: (s: Stance) => void;
   setHold: (x: number) => void;
   setCenterMine: (on: boolean) => void;
@@ -34,6 +37,9 @@ export type Match = {
   setFormation: (f: Formation) => void;
   canTrain: (kind: UnitKind) => boolean;
   whyNot: (kind: UnitKind) => string;
+  /** Đặt xây tường thành ở x (một thợ mỏ đi ra dựng) và lý do không xây được ở x (null = được). */
+  orderWall: (x: number) => boolean;
+  wallBlock: (x: number) => WallBlock | null;
   pop: () => number;
   unlocked: UnitKind[];
 };
@@ -53,19 +59,21 @@ export function localMatch(world: World, ais: EnemyAI[]): Match {
       }
       return world.drainEvents();
     },
-    train: (k, x) => world.train(0, k, x),
+    train: (k) => world.train(0, k),
     setStance: (s) => world.setStance(0, s),
     setHold: (x) => world.setHold(0, x),
+    orderWall: (x) => world.orderWall(0, x),
+    wallBlock: (x) => world.wallBlock(0, x),
     setCenterMine: (on) => world.setCenterMine(0, on),
     setMineSplit: (split) => world.setMineSplit(0, split),
     setFormation: (f) => world.setFormation(0, f),
     canTrain: (k) => world.canTrain(0, k),
     whyNot: (k) => {
       const t = world.teams[0];
-      if (!t.unlocked.includes(k)) return 'Chưa mở khoá';
-      if (t.gold < UNITS[k].cost) return 'Không đủ vàng';
-      if (t.queue.length >= MAX_QUEUE) return 'Hàng chờ đã đầy';
-      return 'Đã đủ quân số';
+      if (!t.unlocked.includes(k)) return tr('game.whyNot.locked');
+      if (t.gold < UNITS[k].cost) return tr('game.whyNot.gold');
+      if (t.queue.length >= MAX_QUEUE) return tr('game.whyNot.queue');
+      return tr('game.whyNot.pop');
     },
     pop: () => world.pop(0),
     unlocked: world.teams[0].unlocked,
@@ -74,10 +82,10 @@ export function localMatch(world: World, ais: EnemyAI[]): Match {
 
 /**
  * Nền sảnh: hai phe do AI điều khiển đánh nhau, tượng không bao giờ vỡ.
- * Truyền tộc người chơi đang chọn thì cả hai phe đều là tộc đó (camera trôi theo giao tranh nên
- * nhìn phía nào cũng thấy đúng tộc mình); không truyền thì hai tộc khác nhau ngẫu nhiên.
+ * Bên trái là nền văn minh người chơi đang chọn, bên phải một nền văn minh khác (ngẫu nhiên nếu không truyền),
+ * nên bản đồ chia đôi phong cảnh hai bên như trong trận thật.
  */
-export function demoMatch(mine?: FactionId): Match {
+export function demoMatch(mine?: FactionId, enemy?: FactionId): Match {
   const lv = LEVELS[6];
   const setup = (faction: FactionId) => ({
     faction,
@@ -87,11 +95,13 @@ export function demoMatch(mine?: FactionId): Match {
     unlocked: ARCH_ORDER,
     start: ['miner', 'miner', 'miner', 'sword', 'archer', 'spear'] as UnitKind[],
   });
-  const a = mine && FACTION_ORDER.includes(mine) ? mine : FACTION_ORDER[Math.floor(Math.random() * FACTION_ORDER.length)];
-  const others = FACTION_ORDER.filter((f) => f !== a);
-  const b = mine && FACTION_ORDER.includes(mine) ? mine : others[Math.floor(Math.random() * others.length)];
+  const pick = (list: FactionId[]) => list[Math.floor(Math.random() * list.length)];
+  const a = mine && FACTION_ORDER.includes(mine) ? mine : pick(FACTION_ORDER);
+  const b = enemy && enemy !== a && FACTION_ORDER.includes(enemy) ? enemy : pick(FACTION_ORDER.filter((f) => f !== a));
   const world = new World([setup(a), setup(b)]);
-  return localMatch(world, [new EnemyAI({ ...lv.ai, forceAttackAt: 60 }, 0), new EnemyAI({ ...lv.ai, forceAttackAt: 75 }, 1)]);
+  // Hai phe đều xây tường thành sớm để nền sảnh có cảnh phá tường
+  const wall = { at: 20, dist: 460 };
+  return localMatch(world, [new EnemyAI({ ...lv.ai, forceAttackAt: 60, wall }, 0), new EnemyAI({ ...lv.ai, forceAttackAt: 75, wall }, 1)]);
 }
 
 /** Trận online do máy chủ chạy: chỉ gửi lệnh, vẽ lại ảnh chụp trạng thái. */
@@ -107,24 +117,30 @@ export function onlineMatch(
       remote.advance(dt);
       return remote.drainEvents();
     },
-    train: (k, x) => {
+    train: (k) => {
       if (!match.canTrain(k)) return false;
-      send(x === undefined ? { t: 'train', kind: k } : { t: 'train', kind: k, x });
+      send({ t: 'train', kind: k });
       return true;
     },
     setStance: (stance) => send({ t: 'stance', stance }),
     setHold: (x) => send({ t: 'hold', x }),
+    orderWall: (x) => {
+      if (match.wallBlock(x) !== null) return false;
+      send({ t: 'wall', x });
+      return true;
+    },
+    wallBlock: (x) => (state.started() && !state.ended() ? wallBlockOf(remote, 0, x) : 'over'),
     setCenterMine: (on) => send({ t: 'centerMine', on }),
     setMineSplit: (split) => send({ t: 'mineSplit', split }),
     setFormation: (mode) => send({ t: 'formation', mode }),
     canTrain: (k) => !!remote.snaps && state.started() && canTrainSnap(remote.snaps[0], k, state.ended()),
     whyNot: (k) => {
       const t = remote.snaps?.[0];
-      if (!state.started()) return 'Chờ trận bắt đầu';
-      if (!t) return 'Đang kết nối…';
-      if (t.gold < UNITS[k].cost) return 'Không đủ vàng';
-      if (t.queue.length >= MAX_QUEUE) return 'Hàng chờ đã đầy';
-      return 'Đã đủ quân số';
+      if (!state.started()) return tr('game.whyNot.wait');
+      if (!t) return tr('game.whyNot.connecting');
+      if (t.gold < UNITS[k].cost) return tr('game.whyNot.gold');
+      if (t.queue.length >= MAX_QUEUE) return tr('game.whyNot.queue');
+      return tr('game.whyNot.pop');
     },
     pop: () => remote.snaps?.[0].pop ?? 0,
     unlocked: roster(faction),
@@ -143,11 +159,13 @@ export function watchMatch(remote: RemoteWorld): Match {
     train: () => false,
     setStance: () => {},
     setHold: () => {},
+    orderWall: () => false,
+    wallBlock: () => 'over',
     setCenterMine: () => {},
     setMineSplit: () => {},
     setFormation: () => {},
     canTrain: () => false,
-    whyNot: () => 'Bạn đang xem trận',
+    whyNot: () => tr('game.whyNot.watching'),
     pop: () => remote.snaps?.[0].pop ?? 0,
     unlocked: [],
   };

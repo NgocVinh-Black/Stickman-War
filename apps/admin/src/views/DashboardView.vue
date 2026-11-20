@@ -1,17 +1,14 @@
 <script setup lang="ts">
+import { t } from '@stickman-war/i18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getStats, listAccounts, logout, state, type AccountPage, type Sort, type Stats } from '../lib/api';
 import AccountDrawer from '../components/AccountDrawer.vue';
 import AccountsTable from '../components/AccountsTable.vue';
 import Avatar from '../components/Avatar.vue';
+import LangSwitch from '../components/LangSwitch.vue';
 import StatsCards from '../components/StatsCards.vue';
 
-const SORTS: { id: Sort; label: string }[] = [
-  { id: 'createdAt', label: 'Mới đăng ký' },
-  { id: 'lastSeen', label: 'Mới vào gần đây' },
-  { id: 'rating', label: 'Elo cao nhất' },
-  { id: 'name', label: 'Tên A → Z' },
-];
+const SORTS: Sort[] = ['createdAt', 'lastSeen', 'rating', 'name'];
 
 const stats = ref<Stats | null>(null);
 const page = ref<AccountPage | null>(null);
@@ -72,15 +69,18 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">⚔</span>
-        <span>Stickman War <small>Quản trị</small></span>
+        <span
+          >Stickman War <small>{{ t('admin.brand') }}</small></span
+        >
       </div>
       <div class="me">
         <template v-if="state.who?.via === 'google'">
           <Avatar :name="state.who.name" :picture="state.who.picture" :size="28" />
           <span class="me-name">{{ state.who.name }}</span>
         </template>
-        <span v-else class="me-name muted">Đăng nhập bằng mã quản trị</span>
-        <button class="btn ghost" @click="logout">Đăng xuất</button>
+        <span v-else class="me-name muted">{{ t('admin.tokenLogin') }}</span>
+        <LangSwitch />
+        <button class="btn ghost" @click="logout">{{ t('admin.logout') }}</button>
       </div>
     </header>
 
@@ -90,24 +90,24 @@ onBeforeUnmount(() => {
       <section class="panel">
         <div class="toolbar">
           <h1>
-            Tài khoản đã đăng ký <span v-if="page" class="count">{{ page.total }}</span>
+            {{ t('admin.accounts') }} <span v-if="page" class="count">{{ page.total }}</span>
           </h1>
           <div class="filters">
-            <input v-model="q" class="search" type="search" placeholder="Tìm theo tên hoặc mã tài khoản…" aria-label="Tìm tài khoản" />
-            <select v-model="sort" aria-label="Sắp xếp">
-              <option v-for="s in SORTS" :key="s.id" :value="s.id">{{ s.label }}</option>
+            <input v-model="q" class="search" type="search" :placeholder="t('admin.search')" :aria-label="t('admin.searchLabel')" />
+            <select v-model="sort" :aria-label="t('admin.sortLabel')">
+              <option v-for="s in SORTS" :key="s" :value="s">{{ t(`admin.sort.${s}`) }}</option>
             </select>
-            <button class="btn ghost" :disabled="loading" @click="load">Làm mới</button>
+            <button class="btn ghost" :disabled="loading" @click="load">{{ t('admin.refresh') }}</button>
           </div>
         </div>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <AccountsTable :accounts="page?.accounts ?? []" :loading="loading" :selected="selected" @open="selected = $event" />
 
-        <nav v-if="pages > 1" class="pager" aria-label="Trang">
-          <button class="btn ghost" :disabled="pageNo <= 1" @click="pageNo--">‹ Trước</button>
-          <span>Trang {{ pageNo }} / {{ pages }}</span>
-          <button class="btn ghost" :disabled="pageNo >= pages" @click="pageNo++">Sau ›</button>
+        <nav v-if="pages > 1" class="pager" :aria-label="t('admin.pager')">
+          <button class="btn ghost" :disabled="pageNo <= 1" @click="pageNo--">{{ t('admin.prev') }}</button>
+          <span>{{ t('admin.page', { n: pageNo, total: pages }) }}</span>
+          <button class="btn ghost" :disabled="pageNo >= pages" @click="pageNo++">{{ t('admin.next') }}</button>
         </nav>
       </section>
     </main>

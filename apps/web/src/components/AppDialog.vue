@@ -1,37 +1,27 @@
 <script setup lang="ts">
 import { UNITS } from '@stickman-war/core';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
+import { t } from '@stickman-war/i18n';
+import { unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
-import { useSettings } from '../stores/settings';
 import { useUi } from '../stores/ui';
 import FactionPicker from './FactionPicker.vue';
 import FactionRow from './FactionRow.vue';
 import HowToContent from './HowToContent.vue';
+import LegalContent from './LegalContent.vue';
 import MatchupCard from './MatchupCard.vue';
+import SettingsPanel from './SettingsPanel.vue';
 import UnitIcon from './UnitIcon.vue';
 
 /** Một hộp thoại dùng chung cho cả game: nội dung dựng từ dữ liệu trong store ui (không chèn HTML). */
 const ui = useUi();
-const settings = useSettings();
 const d = computed(() => ui.dialog);
-const guestName = ref(settings.name);
-watch(
-  () => ui.dialog?.kind,
-  (k) => {
-    if (k === 'settings') guestName.value = settings.name;
-  },
-);
 
 function back(): void {
   sound.click();
   const cur = ui.dialog;
   ui.close();
   if (cur?.kind === 'howto') cur.back?.();
-}
-
-function saveSettings(): void {
-  settings.setName(guestName.value);
-  ui.close();
 }
 </script>
 
@@ -50,31 +40,31 @@ function saveSettings(): void {
         <template v-if="d.code">
           <div class="room-code">{{ d.code }}</div>
           <p class="small">
-            hoặc gửi đường link:<br /><span class="link">{{ d.link }}</span>
+            {{ t('online.orLink') }}<br /><span class="link">{{ d.link }}</span>
           </p>
         </template>
         <MatchupCard v-if="d.matchup" :mine="d.matchup[0]" :theirs="d.matchup[1]" />
         <template v-if="d.matchup && d.pickFaction">
-          <p class="small">Chọn tộc của bạn cho trận này:</p>
+          <p class="small">{{ t('civ.pickForMatch') }}</p>
           <FactionRow :model-value="d.matchup[0]" @update:model-value="d.pickFaction" />
         </template>
         <div v-for="unit in d.newUnits" :key="unit" class="new-unit">
           <UnitIcon :kind="unit" />
           <div>
-            <small>Quân mới</small><b>{{ UNITS[unit].name }}</b>
-            <span>{{ UNITS[unit].desc }} · {{ UNITS[unit].cost }} vàng</span>
-            <span class="counter">{{ UNITS[unit].counter }}</span>
+            <small>{{ t('game.newUnit') }}</small><b>{{ unitName(unit) }}</b>
+            <span>{{ unitDesc(unit) }} · {{ t('common.gold', { n: UNITS[unit].cost }) }}</span>
+            <span class="counter">{{ unitCounter(unit) }}</span>
           </div>
         </div>
         <div v-if="d.stats" class="stats">
           <div>
-            <b>{{ d.stats.time }}</b><small>Thời gian</small>
+            <b>{{ d.stats.time }}</b><small>{{ t('game.stats.time') }}</small>
           </div>
           <div>
-            <b>{{ d.stats.kills }}</b><small>Hạ gục</small>
+            <b>{{ d.stats.kills }}</b><small>{{ t('game.stats.kills') }}</small>
           </div>
           <div>
-            <b>{{ d.stats.statue }}%</b><small>Máu tượng</small>
+            <b>{{ d.stats.statue }}%</b><small>{{ t('game.stats.statue') }}</small>
           </div>
         </div>
         <p v-if="d.status" class="bet-result">{{ d.status }}</p>
@@ -95,56 +85,28 @@ function saveSettings(): void {
 
       <template v-else-if="d.kind === 'faction'">
         <FactionPicker :on-pick="d.onPick" />
-        <div class="dialog-actions"><button class="btn" @click="ui.close()">Đóng</button></div>
+        <div class="dialog-actions">
+          <button class="btn" @click="ui.close()">{{ t('common.close') }}</button>
+        </div>
       </template>
 
       <template v-else-if="d.kind === 'howto'">
-        <h2>Cách chơi</h2>
+        <h2>{{ t('common.howto') }}</h2>
         <HowToContent />
-        <div class="dialog-actions"><button class="btn btn-primary" @click="back">Đã hiểu</button></div>
-      </template>
-
-      <template v-else-if="d.kind === 'legal' && d.which === 'terms'">
-        <h2>Điều khoản dịch vụ</h2>
-        <ul class="howto">
-          <li>Stickman War là trò chơi miễn phí, chơi trên trình duyệt.</li>
-          <li><b>Xu 🪙</b> trong game là xu ảo dùng để bắt kèo cho vui, không mua bán, không đổi ra tiền thật.</li>
-          <li>Không dùng tên hiển thị hoặc chat để xúc phạm, quấy rối người khác. Chủ phòng có thể mời người vi phạm ra khỏi phòng.</li>
-          <li>Không gian lận, không phá máy chủ. Tài khoản vi phạm có thể bị xoá.</li>
-          <li>Game có thể thay đổi, cân bằng lại quân lính hoặc dừng máy chủ online bất cứ lúc nào.</li>
-        </ul>
-        <div class="dialog-actions"><button class="btn btn-primary" @click="ui.close()">Đã hiểu</button></div>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" @click="back">{{ t('common.gotIt') }}</button>
+        </div>
       </template>
 
       <template v-else-if="d.kind === 'legal'">
-        <h2>Chính sách bảo mật</h2>
-        <ul class="howto">
-          <li>
-            Khi <b>đăng nhập Google</b>, máy chủ chỉ lưu: mã định danh Google, tên hiển thị, ảnh đại diện. <b>Không lưu email</b>, không lưu
-            mật khẩu.
-          </li>
-          <li>Kèm theo là dữ liệu chơi: tộc ưa thích, số trận thắng / thua, điểm xếp hạng, lịch sử trận và số xu.</li>
-          <li>Tên hiển thị và điểm xếp hạng hiện công khai trên bảng xếp hạng.</li>
-          <li>Khi <b>chơi khách</b>, tiến độ chiến dịch và cài đặt chỉ nằm trong trình duyệt của bạn (localStorage).</li>
-          <li>Thoại trong phòng đi thẳng giữa các trình duyệt (WebRTC), máy chủ không ghi âm.</li>
-          <li>Muốn xoá tài khoản: liên hệ chủ máy chủ game.</li>
-        </ul>
-        <div class="dialog-actions"><button class="btn btn-primary" @click="ui.close()">Đã hiểu</button></div>
-      </template>
-
-      <template v-else-if="d.kind === 'settings'">
-        <h2>Cài đặt</h2>
-        <label class="field"
-          ><span>Tên khi chơi khách</span>
-          <input v-model="guestName" maxlength="16" autocomplete="nickname" />
-        </label>
+        <h2>{{ d.which === 'terms' ? t('legal.terms') : t('legal.privacy') }}</h2>
+        <LegalContent :which="d.which" />
         <div class="dialog-actions">
-          <button class="btn" @click="settings.toggleSound()">
-            {{ settings.muted ? '🔇 Đang tắt tiếng · bật lại' : '🔊 Đang có tiếng · tắt' }}
-          </button>
-          <button class="btn btn-primary" @click="saveSettings">Lưu</button>
+          <button class="btn btn-primary" @click="ui.close()">{{ t('common.gotIt') }}</button>
         </div>
       </template>
+
+      <SettingsPanel v-else-if="d.kind === 'settings'" />
     </div>
   </div>
 </template>

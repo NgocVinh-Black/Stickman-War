@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { t } from '@stickman-war/i18n';
 import { ref, watch } from 'vue';
 import { getAccount, type AccountDetail } from '../lib/api';
-import { RESULT_LABEL, ago, faction, fmtDate, fmtNum } from '../lib/format';
+import { ago, faction, fmtDate, fmtNum, resultLabel } from '../lib/format';
 import Avatar from './Avatar.vue';
 
 const props = defineProps<{ id: string }>();
@@ -32,14 +33,14 @@ const winRate = (d: AccountDetail) => {
 </script>
 
 <template>
-  <aside class="drawer" aria-label="Chi tiết tài khoản" @keydown.esc="emit('close')">
+  <aside class="drawer" :aria-label="t('admin.drawer.title')" @keydown.esc="emit('close')">
     <header class="drawer-head">
-      <h2>Chi tiết tài khoản</h2>
-      <button class="btn ghost icon" aria-label="Đóng" @click="emit('close')">✕</button>
+      <h2>{{ t('admin.drawer.title') }}</h2>
+      <button class="btn ghost icon" :aria-label="t('common.close')" @click="emit('close')">✕</button>
     </header>
 
     <p v-if="error" class="error">{{ error }}</p>
-    <p v-else-if="!detail" class="muted pad">Đang tải…</p>
+    <p v-else-if="!detail" class="muted pad">{{ t('common.loading') }}</p>
 
     <div v-else class="drawer-body">
       <div class="profile">
@@ -57,19 +58,19 @@ const winRate = (d: AccountDetail) => {
 
       <dl class="facts">
         <div>
-          <dt>Mã tài khoản</dt>
+          <dt>{{ t('admin.drawer.id') }}</dt>
           <dd class="mono">{{ detail.account.id }}</dd>
         </div>
         <div>
-          <dt>Mã Google (sub)</dt>
+          <dt>{{ t('admin.drawer.sub') }}</dt>
           <dd class="mono">{{ detail.account.googleSub }}</dd>
         </div>
         <div>
-          <dt>Đăng ký</dt>
+          <dt>{{ t('admin.col.created') }}</dt>
           <dd>{{ fmtDate(detail.account.createdAt) }}</dd>
         </div>
         <div>
-          <dt>Lần cuối vào</dt>
+          <dt>{{ t('admin.col.lastSeen') }}</dt>
           <dd>{{ fmtDate(detail.account.lastSeen) }} ({{ ago(detail.account.lastSeen) }})</dd>
         </div>
         <div>
@@ -77,32 +78,37 @@ const winRate = (d: AccountDetail) => {
           <dd class="strong">{{ detail.account.rating }}</dd>
         </div>
         <div>
-          <dt>Thắng / Thua / Hoà</dt>
-          <dd>{{ detail.account.wins }} / {{ detail.account.losses }} / {{ detail.account.draws }} · tỉ lệ thắng {{ winRate(detail) }}</dd>
+          <dt>{{ t('admin.col.wld') }}</dt>
+          <dd>
+            {{ detail.account.wins }} / {{ detail.account.losses }} / {{ detail.account.draws }} ·
+            {{ t('admin.drawer.winRate', { r: winRate(detail) }) }}
+          </dd>
         </div>
         <div>
-          <dt>Xu ảo</dt>
+          <dt>{{ t('admin.drawer.xu') }}</dt>
           <dd>{{ fmtNum(detail.account.xu) }} 🪙</dd>
         </div>
         <div>
-          <dt>Phiên đăng nhập còn hạn</dt>
+          <dt>{{ t('admin.drawer.activeSessions') }}</dt>
           <dd>{{ detail.sessions.length }}</dd>
         </div>
       </dl>
 
-      <h3>Phiên đăng nhập</h3>
+      <h3>{{ t('admin.drawer.sessions') }}</h3>
       <ul v-if="detail.sessions.length" class="sessions">
-        <li v-for="(s, i) in detail.sessions" :key="i">Đăng nhập {{ fmtDate(s.createdAt) }} · hết hạn {{ fmtDate(s.expiresAt) }}</li>
+        <li v-for="(s, i) in detail.sessions" :key="i">
+          {{ t('admin.drawer.session', { a: fmtDate(s.createdAt), b: fmtDate(s.expiresAt) }) }}
+        </li>
       </ul>
-      <p v-else class="muted">Không còn phiên nào (đã đăng xuất hoặc hết hạn).</p>
+      <p v-else class="muted">{{ t('admin.drawer.noSessions') }}</p>
 
-      <h3>Lịch sử trận online ({{ detail.account.matches }})</h3>
+      <h3>{{ t('admin.drawer.history', { n: detail.account.matches }) }}</h3>
       <table v-if="detail.history.length" class="history">
         <thead>
           <tr>
-            <th>Lúc</th>
-            <th>Kết quả</th>
-            <th>Đối thủ</th>
+            <th>{{ t('admin.drawer.at') }}</th>
+            <th>{{ t('admin.drawer.result') }}</th>
+            <th>{{ t('admin.drawer.opponent') }}</th>
             <th class="num">Elo</th>
           </tr>
         </thead>
@@ -110,7 +116,7 @@ const winRate = (d: AccountDetail) => {
           <tr v-for="(m, i) in detail.history" :key="i">
             <td>{{ fmtDate(m.at) }}</td>
             <td>
-              <span :class="m.result">{{ RESULT_LABEL[m.result] }}</span>
+              <span :class="m.result">{{ resultLabel(m.result) }}</span>
               <span class="muted small"> {{ faction(m.faction).icon }} vs {{ faction(m.vsFaction).icon }}</span>
             </td>
             <td>{{ m.vs }}</td>
@@ -118,8 +124,8 @@ const winRate = (d: AccountDetail) => {
           </tr>
         </tbody>
       </table>
-      <p v-else class="muted">Chưa chơi trận online nào.</p>
-      <p class="muted small">Máy chủ không lưu email Google của người chơi.</p>
+      <p v-else class="muted">{{ t('admin.drawer.noHistory') }}</p>
+      <p class="muted small">{{ t('admin.drawer.noEmail') }}</p>
     </div>
   </aside>
 </template>

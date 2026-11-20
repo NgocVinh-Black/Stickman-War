@@ -8,6 +8,7 @@ import type {
   AdminAccountRow,
   AdminSession,
   AdminStats,
+  CampaignStarRow,
   MatchEntry,
   WalletStore,
 } from './store.types';
@@ -189,5 +190,14 @@ export class PrismaWalletStore implements WalletStore {
   async saveMany(entries: [string, number][]): Promise<void> {
     if (!entries.length) return;
     await this.db.$transaction(entries.map(([id, xu]) => this.db.wallet.upsert({ where: { id }, create: { id, xu }, update: { xu } })));
+  }
+
+  async campaignStars(id: string): Promise<CampaignStarRow[]> {
+    return this.db.campaignStar.findMany({ where: { walletId: id }, select: { faction: true, level: true, stars: true } });
+  }
+
+  async setCampaignStars(id: string, row: CampaignStarRow): Promise<void> {
+    const key = { walletId_faction_level: { walletId: id, faction: row.faction, level: row.level } };
+    await this.db.campaignStar.upsert({ where: key, create: { walletId: id, ...row }, update: { stars: row.stars } });
   }
 }

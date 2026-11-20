@@ -6,6 +6,13 @@ class Sound {
   private noise: AudioBuffer | null = null;
   private last = new Map<string, number>();
   muted = load('muted', false);
+  /** Âm lượng chung 0..1 (nhân vào mọi tiếng). */
+  volume = Math.min(1, Math.max(0, load('volume', 1)));
+
+  setVolume(v: number): void {
+    this.volume = Math.min(1, Math.max(0, v));
+    save('volume', this.volume);
+  }
 
   toggle(): boolean {
     this.muted = !this.muted;
@@ -14,7 +21,7 @@ class Sound {
   }
 
   private audio(): AudioContext | null {
-    if (this.muted) return null;
+    if (this.muted || this.volume <= 0) return null;
     try {
       this.ctx ??= new AudioContext();
       if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -41,7 +48,7 @@ class Sound {
     osc.type = type;
     osc.frequency.setValueAtTime(freq, t);
     if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t + duration);
-    gain.gain.setValueAtTime(volume, t);
+    gain.gain.setValueAtTime(Math.max(0.0011, volume * this.volume), t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
     osc.connect(gain).connect(ctx.destination);
     osc.start(t);
@@ -63,7 +70,7 @@ class Sound {
     filter.frequency.value = freq;
     const gain = ctx.createGain();
     const t = ctx.currentTime;
-    gain.gain.setValueAtTime(volume, t);
+    gain.gain.setValueAtTime(Math.max(0.0011, volume * this.volume), t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
     src.connect(filter).connect(gain).connect(ctx.destination);
     src.start(t);

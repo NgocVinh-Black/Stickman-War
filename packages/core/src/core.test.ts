@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { EnemyAI } from './ai';
-import { campaignFactions, campaignLevel, CAMPAIGN, LEVELS, SKIRMISH, type Difficulty } from './levels';
+import { campaignFactions, campaignLevel, isBoss, LEVELS, ROUND, SKIRMISH } from './levels';
 import { FACTIONS, FACTION_ORDER, type FactionId } from './factions';
-import { UNITS, kindOf, roster, type UnitKind } from './units';
-import { statueX, towerX, World, WORLD_WIDTH, type Unit } from './world';
+import { UNITS, UNIT_ORDER, kindOf, roster, wallKind, type UnitKind } from './units';
+import { depotX, statueX, World, WORLD_WIDTH, type Unit } from './world';
 
 function seeded(seed: number) {
   return () => {
@@ -137,16 +137,17 @@ describe('World', () => {
 
 describe('Màn chơi', () => {
   /**
-   * Số trận bot thắng ở màn `i`: mỗi seed xáo một thứ tự tộc địch và đổi tộc người chơi,
+   * Số trận bot thắng ở màn `i`: mỗi seed đổi tộc người chơi (tab chiến dịch) và xáo thứ tự tộc địch,
    * nên mỗi màn được thử với đủ cặp tộc chứ không chỉ một tộc cố định.
    */
-  const campaignWins = (i: number, diff: Difficulty, seeds: number[]) => {
+  const campaignWins = (i: number, seeds: number[]) => {
     let wins = 0;
     seeds.forEach((seed, k) => {
-      const lv = campaignLevel(i, diff, seed * 7919);
+      const mine = FACTION_ORDER[k % FACTION_ORDER.length];
+      const lv = campaignLevel(i, mine, seed * 7919);
       const w = new World(
         [
-          { ...lv.player, faction: FACTION_ORDER[k % 8] },
+          { ...lv.player, faction: mine },
           { ...lv.enemy, faction: lv.enemyFaction },
         ],
         seeded(seed),
@@ -163,38 +164,39 @@ describe('Màn chơi', () => {
   };
 
   // Nhiều seed: vài màn chỉ thắng quanh 50%, ít seed thì một thay đổi nhỏ cũng làm test chập chờn.
-  // Màn trùm (màn cuối): bot đơn giản chỉ cần thắng được 1/8 số trận, màn khác một nửa.
-  for (const diff of ['easy', 'normal', 'hard'] as const) {
-    it(`chiến dịch ${CAMPAIGN[diff].label}: mọi màn thắng được với tộc địch bất kỳ`, () => {
-      const seeds = Array.from({ length: 32 }, (_, k) => 11 * (k + 1));
-      LEVELS.forEach((_, i) => {
-        const last = i === LEVELS.length - 1;
-        expect(campaignWins(i, diff, seeds), `${CAMPAIGN[diff].label} màn ${i + 1}`).toBeGreaterThanOrEqual(seeds.length / (last ? 8 : 2));
-      });
-    }, 300_000);
-  }
+  // Màn trùm (cuối vòng 2 và vòng 3): bot đơn giản chỉ cần thắng được 1/8 số trận, màn khác một nửa.
+  it('chiến dịch: mọi màn thắng được với tộc mình và tộc địch bất kỳ', () => {
+    const seeds = Array.from({ length: 32 }, (_, k) => 11 * (k + 1));
+    LEVELS.forEach((_, i) => {
+      expect(campaignWins(i, seeds), `màn ${i + 1}`).toBeGreaterThanOrEqual(seeds.length / (isBoss(i) ? 8 : 2));
+    });
+  }, 600_000);
 
-  it('tộc địch xáo theo seed: mỗi 8 màn gặp đủ 8 tộc, không gặp lại tộc vừa đánh, seed khác thứ tự khác', () => {
-    const a = campaignFactions(123);
-    expect(a).toHaveLength(LEVELS.length);
-    expect(campaignFactions(123)).toEqual(a);
-    for (let i = 0; i + 8 <= a.length; i += 8) expect(new Set(a.slice(i, i + 8)).size).toBe(8);
-    for (let i = 1; i < a.length; i++) expect(a[i]).not.toBe(a[i - 1]);
-    const firsts = new Set(Array.from({ length: 40 }, (_, k) => campaignFactions(k)[LEVELS.length - 2]));
-    expect(firsts.size).toBe(8);
-    expect(campaignLevel(3, 'hard', 123).enemyFaction).toBe(a[3]);
+  it('chiến dịch mỗi tộc: 3 vòng, mỗi vòng 11 màn gặp đủ 11 tộc còn lại, không gặp chính mình, không gặp lại tộc vừa đánh', () => {
+    expect(ROUND).toBe(FACTION_ORDER.length - 1);
+    expect(LEVELS).toHaveLength(3 * ROUND);
+    expect(LEVELS.filter((_, i) => isBoss(i))).toHaveLength(2);
+    for (const mine of FACTION_ORDER) {
+      const a = campaignFactions(mine, 123);
+      expect(a).toHaveLength(LEVELS.length);
+      expect(campaignFactions(mine, 123)).toEqual(a);
+      expect(a).not.toContain(mine);
+      for (let i = 0; i < a.length; i += ROUND) expect(new Set(a.slice(i, i + ROUND)).size).toBe(ROUND);
+      for (let i = 1; i < a.length; i++) expect(a[i]).not.toBe(a[i - 1]);
+      expect(campaignLevel(3, mine, 123).enemyFaction).toBe(a[3]);
+      const lasts = new Set(Array.from({ length: 80 }, (_, k) => campaignFactions(mine, k)[LEVELS.length - 1]));
+      expect(lasts.size).toBe(ROUND);
+    }
   });
 
-  it('chiến dịch Thường / Khó làm máy mạnh hơn màn gốc', () => {
-    LEVELS.forEach((lv, i) => {
-      const normal = campaignLevel(i, 'normal').enemy;
-      const hard = campaignLevel(i, 'hard').enemy;
-      expect(campaignLevel(i, 'easy')).toBe(lv);
-      expect(normal.incomeMult!).toBeGreaterThan(lv.enemy.incomeMult!);
-      expect(hard.incomeMult!).toBeGreaterThan(normal.incomeMult!);
-      expect(hard.statueHp).toBeGreaterThan(normal.statueHp);
-      expect(hard.gold).toBeGreaterThan(normal.gold);
-    });
+  it('vòng 3 làm lại vòng 2 nhưng máy mạnh hơn', () => {
+    for (let i = ROUND; i < 2 * ROUND; i++) {
+      const a = LEVELS[i].enemy;
+      const b = LEVELS[i + ROUND].enemy;
+      expect(b.incomeMult!).toBeGreaterThan(a.incomeMult!);
+      expect(b.statueHp).toBeGreaterThan(a.statueHp);
+      expect(b.gold).toBeGreaterThan(a.gold);
+    }
   });
 
   it('đấu với máy: Dễ và Thường thắng được, Khó khó hơn', () => {
@@ -412,8 +414,8 @@ describe('Cơ chế đa dạng chiến thuật', () => {
 describe('Tộc và đội hình', () => {
   const side = (faction: FactionId, unlocked: UnitKind[] = []) => ({ faction, gold: 0, statueHp: 5000, unlocked });
 
-  it('8 tộc, mỗi tộc 12 quân xây được + tháp, chỉ số hợp lệ', () => {
-    expect(FACTION_ORDER.length).toBe(8);
+  it('12 tộc, mỗi tộc 12 quân xây được + trạm, chỉ số hợp lệ', () => {
+    expect(FACTION_ORDER.length).toBe(12);
     for (const f of FACTION_ORDER) {
       expect(roster(f).length).toBe(12);
       for (const k of [...roster(f), kindOf(f, 'tower')]) {
@@ -757,16 +759,6 @@ describe('Tộc và đội hình', () => {
     expect(healed).toBeGreaterThan(30);
   });
 
-  it('thợ xây dựng tháp đúng chỗ người chơi chọn (trên sân nhà)', () => {
-    const w = new World([{ ...side('tribe', ['builder']), gold: 9999 }, side('tribe')], seeded(24));
-    expect(w.train(0, 'builder', 900)).toBe(true);
-    expect(w.train(0, 'builder', 3500)).toBe(true); // quá xa: dời về rìa sân nhà
-    run(w, 40);
-    const towers = w.units.filter((u) => u.team === 0 && u.kind === 'tower').map((u) => Math.round(u.x));
-    expect(towers.some((x) => Math.abs(x - 900) <= 5)).toBe(true);
-    expect(Math.max(...towers)).toBeLessThanOrEqual(WORLD_WIDTH / 2 - 200);
-  });
-
   it('đội hình xếp quân cùng hàng ra các lane khác nhau, mũi nhọn hẹp ở đầu', () => {
     const lanesOf = (formation: 'line' | 'wedge') => {
       const w = new World([side('tribe'), side('tribe')], seeded(14));
@@ -800,21 +792,21 @@ describe('Tộc và đội hình', () => {
     for (const u of soldiers()) expect(u.x).toBeLessThan(WORLD_WIDTH / 2 - 600);
   });
 
-  it('thợ xây ra dựng tháp canh, tối đa 3 tháp', () => {
+  it('thợ xây ra dựng trạm vàng ở 2 chỗ cố định, tối đa 2 trạm', () => {
     const w = new World([{ ...side('tribe', ['builder']), gold: 5000 }, side('tribe')], seeded(4));
-    for (let i = 0; i < 4; i++) w.train(0, 'builder');
-    expect(w.teams[0].queue.length).toBe(3);
-    run(w, 40);
-    const towers = w.units.filter((u) => UNITS[u.kind].arch === 'tower');
-    expect(towers.length).toBe(3);
-    expect(new Set(towers.map((t) => Math.round(t.x))).size).toBe(3);
+    for (let i = 0; i < 3; i++) w.train(0, 'builder');
+    expect(w.teams[0].queue.length).toBe(2);
+    run(w, 60);
+    const towers = w.units.filter((u) => UNITS[u.kind].arch === 'tower').map((t) => t.x);
+    expect(towers.length).toBe(2);
+    towers.sort((a, b) => a - b).forEach((x, i) => expect(Math.abs(x - depotX(0, i))).toBeLessThanOrEqual(5));
   });
 
-  it('tháp canh bắn địch đến gần', () => {
+  it('trạm vàng bắn địch đến gần', () => {
     const w = new World([side('tribe'), side('tribe')], seeded(5));
-    const t = w.spawn(0, 'tower', towerX(0, 0));
+    const t = w.spawn(0, 'tower', depotX(0, 0));
     t.buildSlot = 0;
-    const e = w.spawn(1, 'sword', towerX(0, 0) + 300);
+    const e = w.spawn(1, 'sword', depotX(0, 0) + 300);
     w.setStance(1, 'garrison');
     run(w, 3);
     expect(e.hp).toBeLessThan(e.maxHp);
@@ -873,5 +865,220 @@ describe('Tộc và đội hình', () => {
     expect(ghost.hidden).toBe(true);
     run(w, 0.5);
     expect(archer.attackT).toBeLessThan(0); // chưa bắn vì không thấy
+  });
+});
+
+describe('12 tộc: nội tại và trạm vàng', () => {
+  const side = (faction: FactionId, unlocked: UnitKind[] = []) => ({ faction, gold: 0, statueHp: 5000, unlocked });
+  const one = (w: World, team: 0 | 1, kind: UnitKind, x: number) => {
+    const u = w.spawn(team, kind, x);
+    u.lane = 0.5;
+    return u;
+  };
+
+  it('12 tộc có 12 nội tại khác nhau', () => {
+    expect(new Set(FACTION_ORDER.map((f) => FACTIONS[f].passive)).size).toBe(12);
+    expect(FACTION_ORDER.slice(8)).toEqual(['dwarf', 'tide', 'dragon', 'frost']);
+  });
+
+  /** Sát thương một nhát của quân đầu tiên phe 0 vào một khổng lồ địch đứng yên. */
+  const firstHit = (faction: FactionId, allies: number, setup?: (w: World) => void) => {
+    const w = new World([side(faction), side('tribe')], seeded(3));
+    setup?.(w);
+    const me = one(w, 0, kindOf(faction, 'sword'), 1000);
+    for (let i = 0; i < allies; i++) one(w, 0, kindOf(faction, 'sword'), 990 - i * 4);
+    const e = one(w, 1, 'giant', 1020);
+    w.setStance(1, 'garrison');
+    e.inside = false;
+    const hp0 = e.hp;
+    for (let t = 0; t < 3 && e.hp === hp0; t += DT) {
+      for (const u of w.units) if (u !== me && u.team === 0) u.cooldownT = 99; // chỉ quân đầu ra đòn
+      w.update(DT);
+    }
+    return { dealt: hp0 - e.hp, w, me, e };
+  };
+
+  it('Bầy đàn (Orc Horde): đứng giữa đồng đội thì đánh đau hơn đứng một mình', () => {
+    const alone = firstHit('orc', 0).dealt;
+    const pack = firstHit('orc', 5).dealt;
+    expect(pack / alone).toBeGreaterThan(1.1);
+    expect(pack / alone).toBeLessThan(1.22);
+  });
+
+  it('Lò rèn (Mountain Dwarves): quân xây càng muộn càng nhiều máu và đánh đau hơn', () => {
+    const w = new World([side('dwarf'), side('tribe')], seeded(2));
+    const early = w.spawn(0, 'dwarf-sword');
+    w.time = 180;
+    const late = w.spawn(0, 'dwarf-sword');
+    expect(late.maxHp / early.maxHp).toBeCloseTo(1.15, 2);
+    w.time = 9999;
+    expect(w.spawn(0, 'dwarf-sword').maxHp / early.maxHp).toBeCloseTo(1.4, 2);
+    const a = firstHit('dwarf', 0).dealt;
+    const b = firstHit('dwarf', 0, (x) => (x.time = 180)).dealt;
+    expect(b / a).toBeCloseTo(1.15, 1);
+  });
+
+  it('Thủy triều (Tide Folk): đánh trúng thì hồi máu', () => {
+    const w = new World([side('tide'), side('tribe')], seeded(3));
+    const u = one(w, 0, 'tide-sword', 1000);
+    u.hp = u.maxHp / 2;
+    const e = one(w, 1, 'giant', 1020);
+    w.setStance(1, 'garrison');
+    e.inside = false;
+    const hp0 = u.hp;
+    run(w, 1.5);
+    expect(u.hp).toBeGreaterThan(hp0);
+  });
+
+  it('Lửa rồng (Dragon Brood): đòn đánh đốt máu theo thời gian', () => {
+    const { e } = firstHit('dragon', 0);
+    expect(e.poisonT).toBeGreaterThan(0);
+    expect(e.poisonDps).toBeGreaterThan(0);
+  });
+
+  it('Giá lạnh (Frost Kin): đòn đánh làm chậm mục tiêu', () => {
+    const { e } = firstHit('frost', 0);
+    expect(e.slowT).toBeGreaterThan(0);
+    expect(firstHit('tribe', 0).e.slowT).toBeLessThanOrEqual(0);
+  });
+
+  it('thợ mỏ vàng nộp vàng ở trạm gần mỏ, trạm bị phá thì vác về tượng', () => {
+    const deliveries = (withDepot: boolean) => {
+      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      w.setMineSplit(0, [0, 1, 0]);
+      for (let i = 0; i < 2; i++) w.spawn(0, 'miner');
+      let depot: Unit | null = null;
+      if (withDepot) {
+        depot = w.spawn(0, 'tower', depotX(0, 0));
+        depot.buildSlot = 0;
+      }
+      const xs: number[] = [];
+      for (let t = 0; t < 40; t += DT) {
+        w.update(DT);
+        for (const ev of w.drainEvents()) if (ev.type === 'gold' && ev.team === 0) xs.push(ev.x);
+      }
+      return { xs, w, depot };
+    };
+    const home = deliveries(false);
+    const near = deliveries(true);
+    expect(Math.max(...home.xs)).toBeLessThan(statueX(0) + 60);
+    expect(near.xs.every((x) => Math.abs(x - depotX(0, 0)) < 30)).toBe(true);
+    expect(near.xs.length).toBeGreaterThan(home.xs.length * 1.5);
+    // Phá trạm: thợ lại về tượng
+    near.depot!.hp = 0;
+    near.depot!.dying = true;
+    const xs: number[] = [];
+    for (let t = 0; t < 30; t += DT) {
+      near.w.update(DT);
+      for (const ev of near.w.drainEvents()) if (ev.type === 'gold' && ev.team === 0) xs.push(ev.x);
+    }
+    expect(xs.length).toBeGreaterThan(0);
+    expect(Math.max(...xs)).toBeLessThan(statueX(0) + 60);
+  });
+});
+
+describe('Tường thành', () => {
+  const side = (faction: FactionId, gold = 0) => ({ faction, gold, statueHp: 50000, unlocked: [] as UnitKind[] });
+  const one = (w: World, team: 0 | 1, kind: UnitKind, x: number) => {
+    const u = w.spawn(team, kind, x);
+    u.lane = 0.5;
+    return u;
+  };
+  const step = (w: World, seconds: number, each?: () => void) => {
+    for (let t = 0; t < seconds; t += 1 / 30) {
+      each?.();
+      w.update(1 / 30);
+    }
+  };
+
+  it('chỉ xây trong nửa nhà, đủ vàng, có thợ mỏ, mỗi phe 1 bức; thợ mỏ gần nhất đi ra dựng rồi quay lại đào', () => {
+    const w = new World([side('tribe', 1000), side('tribe')], seeded(1));
+    const x = statueX(0) + 500;
+    expect(w.wallBlock(0, x)).toBe('miner');
+    const miner = one(w, 0, 'miner', statueX(0) + 60);
+    expect(w.wallBlock(0, statueX(0) + 40)).toBe('range');
+    expect(w.wallBlock(0, statueX(0) + 1500)).toBe('range');
+    expect(w.wallBlock(1, statueX(1) - 500)).toBe('gold'); // phe địch 0 vàng
+    expect(w.orderWall(0, x)).toBe(true);
+    expect(w.teams[0].gold).toBe(1000 - UNITS[wallKind('tribe')].cost);
+    expect(w.wallBlock(0, x)).toBe('busy');
+    step(w, 6.5); // thợ mỏ đi 440 đơn vị
+    expect(Math.abs(miner.x - x)).toBeLessThan(6);
+    expect(w.wallOf(0)).toBeNull();
+    step(w, (UNITS[wallKind('tribe')].buildTime ?? 6) + 0.5);
+    const wall = w.wallOf(0)!;
+    expect(wall).not.toBeNull();
+    expect(wall.x).toBe(x);
+    expect(Number.isNaN(w.teams[0].wallPlan)).toBe(true);
+    expect(w.wallBlock(0, x)).toBe('exists');
+    step(w, 3);
+    expect(miner.x).toBeLessThan(x - 50); // về đào tiếp
+    // Thiếu vàng thì không xây (khi tường cũ đã đổ)
+    w.teams[0].gold = 10;
+    wall.hp = 0;
+    (w as unknown as { kill: (u: Unit, by: 0 | 1) => void }).kill(wall, 1);
+    expect(w.wallBlock(0, x)).toBe('gold');
+  });
+
+  it('chặn quân địch (phải phá tường mới qua), quân nhà đi xuyên qua cổng', () => {
+    const w = new World([side('tribe'), side('tribe')], seeded(2));
+    const wx = statueX(0) + 600;
+    const wall = one(w, 0, wallKind('tribe'), wx);
+    const enemy = one(w, 1, 'sword', wx + 300);
+    const mine = one(w, 0, 'sword', wx - 200);
+    w.setStance(0, 'attack');
+    w.setStance(1, 'attack');
+    let minX = Infinity;
+    step(w, 6, () => (minX = Math.min(minX, wall.dying ? Infinity : enemy.x)));
+    expect(minX).toBeGreaterThanOrEqual(wx);
+    expect(mine.x).toBeGreaterThan(wx); // quân nhà đã qua cổng
+    // Không có quân nhà, quân địch đánh vào tường
+    const w2 = new World([side('tribe'), side('tribe')], seeded(3));
+    const wall2 = one(w2, 0, wallKind('tribe'), wx);
+    const e2 = one(w2, 1, 'sword', wx + 200);
+    w2.setStance(1, 'attack');
+    step(w2, 8);
+    expect(wall2.hp).toBeLessThan(wall2.maxHp);
+    expect(e2.x).toBeGreaterThanOrEqual(wx);
+  });
+
+  it('máy công thành phá tường ×3', () => {
+    const hitWall = (kind: UnitKind) => {
+      const w = new World([side('tribe'), side('tribe')], seeded(4));
+      const wall = one(w, 0, wallKind('tribe'), 1000);
+      const s = UNITS[kind];
+      (w as unknown as { damageUnit: (u: Unit, d: number, by: 0 | 1, t: string) => void }).damageUnit(wall, 100, 1, s.dmgType);
+      return wall.maxHp - wall.hp;
+    };
+    expect(hitWall('catapult')).toBeGreaterThan(hitWall('sword') * 2.5);
+  });
+
+  it('nét riêng: rào gai đâm lại, tường băng làm chậm, tường lửa đốt, tường cây tự hồi máu', () => {
+    const attackWall = (faction: FactionId) => {
+      const w = new World([side(faction), side('tribe')], seeded(5));
+      const wall = one(w, 0, wallKind(faction), 1000);
+      const e = one(w, 1, 'sword', 1030);
+      w.setStance(1, 'attack');
+      step(w, 3);
+      return { w, wall, e };
+    };
+    const orc = attackWall('orc');
+    expect(orc.e.hp).toBeLessThan(orc.e.maxHp);
+    expect(attackWall('frost').e.slowT).toBeGreaterThan(0);
+    expect(attackWall('dragon').e.poisonT).toBeGreaterThan(0);
+    expect(attackWall('tribe').e.hp).toBe(UNITS.sword.hp); // tường đá thường không phản đòn
+    const w = new World([side('elf'), side('tribe')], seeded(6));
+    const tree = one(w, 0, wallKind('elf'), 1000);
+    tree.hp -= 500;
+    const before = tree.hp;
+    step(w, 2);
+    expect(tree.hp).toBeGreaterThan(before);
+  });
+
+  it('mã tường nối vào cuối UNIT_ORDER (client cũ không lệch chỉ số), mỗi nền văn minh một loại tường', () => {
+    const n = FACTION_ORDER.length;
+    expect(UNIT_ORDER.slice(-n)).toEqual(FACTION_ORDER.map((f) => wallKind(f)));
+    expect(UNIT_ORDER.indexOf(kindOf('frost', 'tower'))).toBe(n * 13 - 1);
+    expect(new Set(FACTION_ORDER.map((f) => UNITS[wallKind(f)].name)).size).toBe(n);
   });
 });

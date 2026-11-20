@@ -1,4 +1,5 @@
 import { UNITS, UNIT_ORDER, type Team, type UnitKind } from '@stickman-war/core';
+import { t } from '@stickman-war/i18n';
 import type { Drop, Projectile, TeamState, Unit, WorldEvent, WorldView } from '@stickman-war/core';
 import { FACTION_ORDER, type FactionId } from '@stickman-war/core';
 import { FLAG, FORMATIONS, PROJECTILES, STANCES, type ClientMsg, type ServerMsg, type Snapshot, type TeamSnap } from '@stickman-war/core';
@@ -42,7 +43,7 @@ export class OnlineClient {
       };
       ws.onclose = () => {
         clearInterval(this.pingTimer);
-        this.handlers.forEach((h) => h({ t: 'error', msg: 'Mất kết nối tới máy chủ' }));
+        this.handlers.forEach((h) => h({ t: 'error', msg: t('online.lostServer') }));
       };
     });
   }
@@ -101,6 +102,9 @@ export class RemoteWorld implements WorldView {
       statueCooldown: 0,
       centerMine: false,
       mineSplit: [1, 1, 0],
+      wallPlan: NaN,
+      wallBuilder: -1,
+      wallT: 0,
     });
     this.teams = [empty(), empty()];
   }
@@ -122,6 +126,8 @@ export class RemoteWorld implements WorldView {
       team.formation = FORMATIONS[t.fm] ?? 'free';
       team.holdX = t.hx ?? 0;
       if (t.ms?.length === 3) team.mineSplit = [t.ms[0], t.ms[1], t.ms[2]];
+      team.wallPlan = t.wp ?? NaN;
+      team.wallT = t.wt ?? 0;
     });
 
     const prev = new Map(this.units.map((u) => [u.id, u]));
@@ -163,7 +169,7 @@ export class RemoteWorld implements WorldView {
         lifeT: 0,
         lastStruck: 0,
         buildSlot: -1,
-        buildX: NaN,
+        forge: 1,
         combat: false,
         toCenter: false,
         mine: 0,

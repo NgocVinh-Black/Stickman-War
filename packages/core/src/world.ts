@@ -11,6 +11,7 @@ import {
   damageMult,
   isArch,
   kindOf,
+  wallKind,
   toFaction,
   type Arch,
   type Aura,
@@ -82,9 +83,6 @@ const HEALER_SIGHT = 520;
 // để quân nhanh không bỏ đội xông lên trước; tới gần tượng địch chừng này thì đội hình tan, cả đội đánh tượng
 const FORMATION_LEASH = 140;
 const STATUE_APPROACH = 260;
-// Thợ xây: chỗ dựng tháp do người chơi chọn phải nằm trong khoảng này tính từ tượng nhà
-const BUILD_MIN = 150;
-const BUILD_MAX_FROM_CENTER = 200;
 // Quân bắn xa (tầm từ chừng này trở lên) đánh quân cận chiến thì đứng sau quân cận chiến đầu tiên ít nhất RANGED_BEHIND,
 // lệch lên trước quá RANGED_SLACK thì lùi về; quân cận chiến ở sau lưng quá RANGED_FRONT_NEAR thì không tính.
 const RANGED_REACH = 150;
@@ -104,8 +102,9 @@ const CALM_TIME = 4; // nội tại hồi máu của tộc: không bị đánh c
 const SUMMON_LIFE = 25;
 const RAISE_RANGE = 260;
 const MAX_SUMMONS = 8;
-// Thợ xây: dựng tháp ở các vị trí cách tượng chừng này
-const TOWER_SLOTS = [420, 580, 220];
+// Thợ xây: dựng trạm vàng (kiêm tháp canh) ở các chỗ cố định cách tượng chừng này:
+// trạm 0 giữa mỏ bạc và mỏ vàng, trạm 1 trên đường tới mỏ kim cương giữa bản đồ.
+const DEPOT_SLOTS = [430, 1150];
 const BUILD_TIME = 6;
 /**
  * Hình đội hình. Mỗi loại quân một hàng (ROW / FORMATION_ROW), hàng đông thì chia thành nhiều lớp.
@@ -140,11 +139,19 @@ const FORMATION_LATE = 200;
 const FORMATION_TOLERANCE = 0.5;
 // Mỏ giữa bật + phòng thủ: quân đứng chắn trước mỏ, phía bên địch
 const CENTER_GUARD = 70;
+/** Tường thành: được xây trong khoảng [WALL_MIN, WALL_MAX] tính từ tượng nhà, mỗi phe 1 bức. */
+export const WALL_MIN = 120;
+export const WALL_MAX = 1300;
+/** Nửa bề dày tường: quân địch bị chặn lại ở mép tường phía bên mình. */
+const WALL_HALF = 16;
+/** Lý do không xây được tường (null = được). */
+export type WallBlock = 'exists' | 'busy' | 'range' | 'gold' | 'miner' | 'over';
 /** Hàng trong đội hình: 0 = khiên trước, 1 = cận chiến, 2 = bắn xa, 3 = hỗ trợ / công thành. */
 export const ROW: Record<Arch, number> = {
   spear: 0,
   giant: 0,
   tower: 0,
+  wall: 0,
   sword: 1,
   ninja: 1,
   cavalry: 1,
@@ -201,8 +208,8 @@ export type Unit = {
   calmT: number; // số giây chưa bị đánh
   lifeT: number; // > 0: quân triệu hồi, hết giờ thì tan
   lastStruck: number; // mục tiêu của đòn trước (nhất kích)
-  buildSlot: number;
-  buildX: number; // chỗ dựng tháp người chơi chọn (NaN = chỗ mặc định theo buildSlot)
+  buildSlot: number; // thợ xây / trạm: chỗ trạm (chỉ số trong DEPOT_SLOTS)
+  forge: number; // hệ số lò rèn lúc xây ra (Mountain Dwarves), 1 = không có
   combat: boolean; // đang đánh quân địch (không tính đánh tượng)
   // thợ mỏ
   mine: number;
@@ -261,13 +268,18 @@ export type TeamState = {
   formation: Formation;
   formX: number; // mũi đội hình khi tấn công (NaN = chưa lập)
   holdX: number; // chỗ đứng giữ khi Dừng
-  queue: { kind: UnitKind; t: number; x?: number }[]; // x: chỗ dựng tháp (thợ xây)
+  queue: { kind: UnitKind; t: number }[];
   incomeMult: number;
   unlocked: UnitKind[];
   kills: number;
   statueCooldown: number;
   centerMine: boolean; // có thợ mỏ được chia sang mỏ kim cương
   mineSplit: MineSplit; // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
+  /** Tường đã đặt mua, đang chờ thợ mỏ tới dựng (NaN = không có). */
+  wallPlan: number;
+  /** Thợ mỏ đang đi dựng tường (id, -1 = chưa có) và số giây đã dựng. */
+  wallBuilder: number;
+  wallT: number;
 };
 
 export type TeamSetup = {
@@ -295,7 +307,8 @@ export const statueX = (team: Team) => (team === 0 ? STATUE_OFFSET : WORLD_WIDTH
 /** Chỗ thợ mỏ đào ở mỏ loại i (0 bạc, 1 vàng, 2 kim cương). */
 export const mineX = (team: Team, i: number) => (i === 2 ? centerMineX(team) : statueX(team) + dirOf(team) * MINES[MINE_KINDS[i]].offset);
 export const defendX = (team: Team) => statueX(team) + dirOf(team) * DEFEND_DISTANCE;
-export const towerX = (team: Team, slot: number) => statueX(team) + dirOf(team) * TOWER_SLOTS[slot];
+/** Chỗ trạm vàng thứ slot của phe team. */
+export const depotX = (team: Team, slot: number) => statueX(team) + dirOf(team) * DEPOT_SLOTS[slot];
 /** Chỗ thợ mỏ của mỗi phe đứng đào ở mỏ giữa (mỗi phe một bên mỏ). */
 export const centerMineX = (team: Team) => CENTER_MINE_X - dirOf(team) * CENTER_MINE_GAP;
 const BACKLINE: Arch[] = ['archer', 'mage', 'healer', 'banner', 'catapult', 'miner'];
@@ -304,6 +317,22 @@ const other = (team: Team): Team => (team === 0 ? 1 : 0);
 const isShooter = (u: Unit) => UNITS[u.kind].range >= RANGED_REACH && !isSupport(u);
 const isSupport = (u: Unit) => arch(u) === 'healer' || arch(u) === 'banner';
 const arch = (u: Unit): Arch => UNITS[u.kind].arch;
+
+/**
+ * Lý do không xây được tường của phe team ở x (null = được). Chỉ đọc WorldView nên client online
+ * cũng tính được để tô bóng xanh / đỏ giống hệt máy chủ.
+ */
+export function wallBlockOf(view: WorldView, team: Team, x: number): WallBlock | null {
+  const t = view.teams[team];
+  if (view.winner !== null) return 'over';
+  if (view.units.some((u) => u.team === team && !u.dying && UNITS[u.kind].wall)) return 'exists';
+  if (!Number.isNaN(t.wallPlan)) return 'busy';
+  const d = (x - statueX(team)) * dirOf(team);
+  if (!(d >= WALL_MIN && d <= WALL_MAX)) return 'range';
+  if (t.gold < UNITS[wallKind(t.faction)].cost) return 'gold';
+  if (!view.units.some((u) => u.team === team && !u.dying && arch(u) === 'miner')) return 'miner';
+  return null;
+}
 
 export class World {
   units: Unit[] = [];
@@ -344,6 +373,9 @@ export class World {
         statueCooldown: 0,
         centerMine: false,
         mineSplit: [...DEFAULT_MINE_SPLIT],
+        wallPlan: NaN,
+        wallBuilder: -1,
+        wallT: 0,
       };
     };
     this.teams = [init(setups[0], 0), init(setups[1], 1)];
@@ -379,7 +411,7 @@ export class World {
     );
   }
 
-  /** Số tháp + thợ xây (kể cả đang chờ xây): tối đa MAX_TOWERS. */
+  /** Số trạm + thợ xây (kể cả đang chờ xây): tối đa MAX_TOWERS. */
   towerCount(team: Team): number {
     let n = 0;
     for (const u of this.units) {
@@ -391,25 +423,34 @@ export class World {
     return n;
   }
 
-  /** Xây quân; thợ xây có thể kèm buildX: chỗ người chơi chọn để dựng tháp. */
-  train(team: Team, kind: UnitKind, buildX?: number): boolean {
-    kind = this.kindFor(team, kind);
-    if (!this.canTrain(team, kind)) return false;
-    this.teams[team].gold -= UNITS[kind].cost;
-    const q: { kind: UnitKind; t: number; x?: number } = { kind, t: 0 };
-    if (UNITS[kind].build && buildX !== undefined && Number.isFinite(buildX)) q.x = this.clampBuild(team, buildX);
-    this.teams[team].queue.push(q);
+  /** Tường (đã xây xong, còn sống) của phe team. */
+  wallOf(team: Team): Unit | null {
+    return this.units.find((u) => u.team === team && !u.dying && UNITS[u.kind].wall) ?? null;
+  }
+
+  /** Có xây tường ở x được không; trả về lý do nếu không (null = được). */
+  wallBlock(team: Team, x: number): WallBlock | null {
+    return wallBlockOf(this, team, x);
+  }
+
+  /** Đặt xây tường ở x: trừ vàng ngay, một thợ mỏ sẽ đi ra dựng. */
+  orderWall(team: Team, x: number): boolean {
+    if (this.wallBlock(team, x) !== null) return false;
+    const t = this.teams[team];
+    t.gold -= UNITS[wallKind(t.faction)].cost;
+    t.wallPlan = x;
+    t.wallBuilder = -1;
+    t.wallT = 0;
     return true;
   }
 
-  /** Tháp chỉ dựng trên nửa sân nhà: không sát tượng, không quá gần giữa bản đồ. */
-  clampBuild(team: Team, x: number): number {
-    const dir = dirOf(team);
-    const min = statueX(team) + dir * BUILD_MIN;
-    const max = CENTER_MINE_X - dir * BUILD_MAX_FROM_CENTER;
-    if ((x - min) * dir < 0) return min;
-    if ((x - max) * dir > 0) return max;
-    return x;
+  /** Xây quân (thợ xây tự tới chỗ trạm còn trống, người chơi không chọn chỗ). */
+  train(team: Team, kind: UnitKind): boolean {
+    kind = this.kindFor(team, kind);
+    if (!this.canTrain(team, kind)) return false;
+    this.teams[team].gold -= UNITS[kind].cost;
+    this.teams[team].queue.push({ kind, t: 0 });
+    return true;
   }
 
   setStance(team: Team, stance: Stance): void {
@@ -475,22 +516,26 @@ export class World {
     return n;
   }
 
-  spawn(team: Team, kind: UnitKind, x = statueX(team) + dirOf(team) * 50, buildX = NaN): Unit {
+  spawn(team: Team, kind: UnitKind, x = statueX(team) + dirOf(team) * 50): Unit {
     kind = this.kindFor(team, kind);
     const s = UNITS[kind];
     let buildSlot = -1;
-    if (s.build || s.stationary) {
+    if (s.build || (s.stationary && !s.wall)) {
       const used = new Set(this.units.filter((u) => u.team === team && !u.dying && u.buildSlot >= 0).map((u) => u.buildSlot));
-      buildSlot = TOWER_SLOTS.findIndex((_, i) => !used.has(i));
+      buildSlot = DEPOT_SLOTS.findIndex((_, i) => !used.has(i));
     }
+    // Lò rèn: quân xây ra ở phút thứ m được +perMin·m máu và sát thương
+    const fg = FACTIONS[s.faction].forge;
+    const forge = fg ? 1 + Math.min(fg.max, fg.perMin * Math.floor(this.time / 60)) : 1;
+    const hp = s.hp * forge;
     const u: Unit = {
       id: this.nextId++,
       team,
       kind,
       x,
       lane: 0.1 + this.rng() * 0.8,
-      hp: s.hp,
-      maxHp: s.hp,
+      hp,
+      maxHp: hp,
       facing: dirOf(team),
       moving: false,
       walk: this.rng() * 10,
@@ -518,7 +563,7 @@ export class World {
       lifeT: 0,
       lastStruck: 0,
       buildSlot,
-      buildX,
+      forge,
       combat: false,
       toCenter: false,
       mine: 0,
@@ -547,13 +592,14 @@ export class World {
         if (q.t >= UNITS[q.kind].trainTime) {
           t.queue.shift();
           const n = UNITS[q.kind].spawnCount ?? 1;
-          for (let i = 0; i < n; i++) this.spawn(team, q.kind, statueX(team) + dirOf(team) * (50 + i * 14), q.x);
+          for (let i = 0; i < n; i++) this.spawn(team, q.kind, statueX(team) + dirOf(team) * (50 + i * 14));
           this.events.push({ type: 'trained', team, kind: q.kind });
         }
       }
     }
 
     this.assignMiners();
+    for (const team of [0, 1] as Team[]) this.assignWallBuilder(team);
     for (const team of [0, 1] as Team[]) this.updateFormation(team, dt);
     for (const u of this.units) this.updateUnit(u, dt);
     for (const team of [0, 1] as Team[]) this.updateStatue(team, dt);
@@ -597,7 +643,7 @@ export class World {
 
   private inFormation(u: Unit): boolean {
     const a = arch(u);
-    return !u.dying && !u.inside && a !== 'miner' && a !== 'builder' && a !== 'tower';
+    return !u.dying && !u.inside && a !== 'miner' && a !== 'builder' && a !== 'tower' && a !== 'wall';
   }
 
   /**
@@ -917,7 +963,7 @@ export class World {
     let best: Unit | null = null;
     let low = 0.97;
     for (const a of this.units) {
-      if (a === u || a.team !== u.team || a.dying || a.inside || arch(a) === 'tower') continue;
+      if (a === u || a.team !== u.team || a.dying || a.inside || arch(a) === 'tower' || arch(a) === 'wall') continue;
       if (Math.abs(a.x - u.x) > HEALER_SIGHT) continue;
       const r = a.hp / a.maxHp;
       if (r < low) {
@@ -944,7 +990,7 @@ export class World {
       for (const a of this.units) {
         if (a.team !== u.team || a.dying || a.inside) continue;
         const aa = arch(a);
-        if (aa === 'miner' || aa === 'healer' || aa === 'banner' || aa === 'tower' || aa === 'builder') continue;
+        if (aa === 'miner' || aa === 'healer' || aa === 'banner' || aa === 'tower' || aa === 'wall' || aa === 'builder') continue;
         if (!front || (a.x - front.x) * dir > 0) front = a;
       }
       if (front) {
@@ -962,15 +1008,14 @@ export class World {
       this.holdLine(u, dt);
       return;
     }
-    const spot = Number.isFinite(u.buildX) ? u.buildX : towerX(u.team, u.buildSlot);
-    if (this.moveTo(u, spot, dt, 4)) {
+    if (this.moveTo(u, depotX(u.team, u.buildSlot), dt, 4)) {
       u.mining = true;
       u.facing = dirOf(u.team);
       u.mineT += dt;
       if (u.mineT >= BUILD_TIME) {
         const t = UNITS[s.build];
         u.kind = s.build;
-        u.hp = u.maxHp = t.hp;
+        u.hp = u.maxHp = t.hp * u.forge;
         u.mineT = 0;
         u.hidden = false;
         this.events.push({ type: 'built', team: u.team, x: u.x });
@@ -980,6 +1025,7 @@ export class World {
 
   private updateTower(u: Unit, s: UnitStats, dt: number): void {
     u.inside = false;
+    if (s.wall) return; // tường không tự đánh
     if (u.attackT >= 0) {
       u.attackT += dt;
       if (!u.hitDone && u.attackT >= s.windup) {
@@ -1122,11 +1168,62 @@ export class World {
     this.events.push({ type: 'shoot', kind: 'arrow', x: sx });
   }
 
+  /**
+   * Chỗ thợ mỏ nộp vàng: trạm còn sống của phe mình nằm giữa thợ và tượng, gần thợ nhất,
+   * không xa nhà hơn mỏ thợ đang đào (thợ mỏ bạc vẫn về tượng). Không có trạm thì về tượng.
+   */
+  private dropOff(u: Unit): number {
+    const dir = dirOf(u.team);
+    const sx = statueX(u.team);
+    const limit = Math.min((u.x - sx) * dir, (mineX(u.team, u.mine) - sx) * dir) + 10;
+    let best = sx + dir * 30;
+    for (const d of this.units) {
+      if (d.team !== u.team || d.dying || arch(d) !== 'tower') continue;
+      const far = (d.x - sx) * dir;
+      if (far <= limit && far > (best - sx) * dir) best = d.x;
+    }
+    return best;
+  }
+
+  /** Có tường đang chờ dựng mà chưa có thợ (hoặc thợ đã chết): chọn thợ mỏ gần chỗ tường nhất. */
+  private assignWallBuilder(team: Team): void {
+    const t = this.teams[team];
+    if (Number.isNaN(t.wallPlan)) return;
+    if (this.units.some((u) => u.id === t.wallBuilder && !u.dying)) return;
+    let best: Unit | null = null;
+    for (const u of this.units) {
+      if (u.team !== team || u.dying || u.inside || arch(u) !== 'miner') continue;
+      if (!best || Math.abs(u.x - t.wallPlan) < Math.abs(best.x - t.wallPlan)) best = u;
+    }
+    t.wallBuilder = best?.id ?? -1;
+  }
+
+  /** Thợ mỏ được giao dựng tường: đi tới chỗ tường, dựng đủ buildTime giây thì tường mọc lên. */
+  private buildWall(u: Unit, dt: number): void {
+    const t = this.teams[u.team];
+    if (!this.moveTo(u, t.wallPlan, dt, 4)) return;
+    u.mining = true;
+    u.facing = dirOf(u.team);
+    t.wallT += dt;
+    const kind = wallKind(t.faction);
+    if (t.wallT >= (UNITS[kind].buildTime ?? 6)) {
+      const w = this.spawn(u.team, kind, t.wallPlan);
+      w.lane = 0.5;
+      t.wallPlan = NaN;
+      t.wallBuilder = -1;
+      t.wallT = 0;
+      this.events.push({ type: 'built', team: u.team, x: w.x });
+    }
+  }
+
   private updateMiner(u: Unit, dt: number): void {
     const s = UNITS[u.kind];
-    const home = statueX(u.team) + dirOf(u.team) * 30;
+    if (this.teams[u.team].wallBuilder === u.id && !Number.isNaN(this.teams[u.team].wallPlan)) {
+      this.buildWall(u, dt);
+      return;
+    }
     if (u.carrying > 0) {
-      if (this.moveTo(u, home, dt, 8)) {
+      if (this.moveTo(u, this.dropOff(u), dt, 8)) {
         this.teams[u.team].gold += u.carrying;
         this.events.push({ type: 'gold', team: u.team, x: u.x, amount: u.carrying });
         u.carrying = 0;
@@ -1163,7 +1260,16 @@ export class World {
     const speed = this.speedOf(u);
     if (speed <= 0) return false;
     u.facing = dx > 0 ? 1 : -1;
-    const moved = Math.min(speed * dt, Math.abs(dx));
+    let moved = Math.min(speed * dt, Math.abs(dx));
+    // Tường địch chắn đường: dừng ở mép tường (quân mình đi qua cổng tường nhà mình)
+    const wall = this.wallOf(other(u.team));
+    if (wall && Math.sign(wall.x - u.x) === Math.sign(dx)) {
+      const room = Math.max(0, Math.abs(wall.x - u.x) - WALL_HALF);
+      if (moved > room) {
+        moved = room;
+        if (moved <= 0) return true;
+      }
+    }
     u.x += Math.sign(dx) * moved;
     u.run += moved;
     u.moving = true;
@@ -1192,7 +1298,7 @@ export class World {
     for (const a of this.units) {
       if (a.team !== u.team || a.dying || a.inside || a.id === u.id) continue;
       const aa = arch(a);
-      if (BACKLINE.includes(aa) || aa === 'tower' || aa === 'builder') continue;
+      if (BACKLINE.includes(aa) || aa === 'tower' || aa === 'wall' || aa === 'builder') continue;
       if ((a.x - u.x) * dir < -RANGED_FRONT_NEAR) continue;
       if (front === null || (a.x - front) * dir > 0) front = a.x;
     }
@@ -1275,7 +1381,7 @@ export class World {
       if (target && target.team === u.team && !target.dying && !target.inside && Math.abs(target.x - u.x) <= s.range * 1.4 + 10) {
         const group = s.healAoe
           ? this.units.filter(
-              (a) => a.team === u.team && !a.dying && !a.inside && arch(a) !== 'tower' && Math.abs(a.x - target.x) <= s.healAoe!,
+              (a) => a.team === u.team && !a.dying && !a.inside && !UNITS[a.kind].stationary && Math.abs(a.x - target.x) <= s.healAoe!,
             )
           : [target];
         for (const a of group) {
@@ -1287,9 +1393,10 @@ export class World {
       return;
     }
 
-    let damage = s.damage * bonus;
+    let damage = s.damage * bonus * u.forge;
     const aura = this.auraAt(u.team, u.x);
     if (aura) damage *= 1 + aura.dmg;
+    if (fd.horde) damage *= 1 + Math.min(fd.horde.max, fd.horde.per * this.packSize(u, fd.horde.radius));
     const rage = (fd.rage ?? 0) + (s.rage ?? 0);
     if (rage) damage *= 1 + rage * (1 - u.hp / u.maxHp);
     // Nhất kích: chỉ đòn cận chiến đơn mục tiêu (đòn nổ / bắn xa đổi mục tiêu liên tục sẽ quá mạnh)
@@ -1358,6 +1465,17 @@ export class World {
     }
   }
 
+  /** Bầy đàn: số đồng đội chiến đấu đứng trong bán kính quanh u. */
+  private packSize(u: Unit, radius: number): number {
+    let n = 0;
+    for (const a of this.units) {
+      if (a === u || a.team !== u.team || a.dying || a.inside || Math.abs(a.x - u.x) > radius) continue;
+      const aa = arch(a);
+      if (aa !== 'miner' && aa !== 'tower' && aa !== 'wall' && aa !== 'builder') n++;
+    }
+    return n;
+  }
+
   private splash(
     team: Team,
     x: number,
@@ -1422,7 +1540,19 @@ export class World {
 
   private damageUnit(u: Unit, damage: number, by: Team, dtype: DamageType = 'none', src?: Unit, fx?: UnitStats): void {
     const s = UNITS[u.kind];
-    const dealt = damage * damageMult(dtype, s.armorType) * (1 - (s.armor ?? 0));
+    // Máy công thành phá tường như phá tượng (×3)
+    const structure = s.wall ? (STATUE_MULT[dtype] ?? 1) : 1;
+    const dealt = damage * damageMult(dtype, s.armorType) * (1 - (s.armor ?? 0)) * structure;
+    // Tường gai / lửa / băng: quân cận chiến đánh vào thì bị đâm lại, đốt hoặc làm chậm
+    if (s.thorns && src && !src.dying && UNITS[src.kind].range < RANGED_REACH) {
+      if (s.thorns.slow) src.slowT = Math.max(src.slowT, s.thorns.slow);
+      if (s.thorns.burn) {
+        src.poisonDps = Math.max(src.poisonT > 0 ? src.poisonDps : 0, s.thorns.burn);
+        src.poisonT = Math.max(src.poisonT, 3);
+        src.poisonBy = u.team;
+      }
+      if (s.thorns.dmg) this.damageUnit(src, s.thorns.dmg, u.team);
+    }
     u.hp -= dealt;
     u.hitFlash = 0.15;
     u.calmT = 0;
@@ -1433,7 +1563,16 @@ export class World {
       u.poisonDps = fx.poison.dps;
       u.poisonBy = by;
     }
-    if (fx?.lifesteal && src && !src.dying) src.hp = Math.min(src.maxHp, src.hp + dealt * fx.lifesteal);
+    // Nội tại tộc của bên ra đòn: lửa rồng, giá lạnh, thủy triều
+    const fd = fx ? FACTIONS[fx.faction] : undefined;
+    if (fd?.burn) {
+      u.poisonDps = u.poisonT > 0 ? Math.max(u.poisonDps, fd.burn.dps) : fd.burn.dps;
+      u.poisonT = Math.max(u.poisonT, fd.burn.dur);
+      u.poisonBy = by;
+    }
+    if (fd?.chill) u.slowT = Math.max(u.slowT, fd.chill);
+    const steal = (fx?.lifesteal ?? 0) + (fd?.lifesteal ?? 0);
+    if (steal && src && !src.dying) src.hp = Math.min(src.maxHp, src.hp + dealt * steal);
     this.events.push({ type: 'hit', x: u.x, h: -30 * s.scale, lane: u.lane, big: dealt >= 50 });
     if (u.hp <= 0) this.kill(u, by, src);
   }
@@ -1457,7 +1596,7 @@ export class World {
     const bounty = FACTIONS[this.teams[by].faction].bounty;
     if (bounty && u.lifeT <= 0) this.teams[by].gold += UNITS[u.kind].cost * bounty;
     if (src && !src.dying && src.team === by) this.addKill(src);
-    if (u.lifeT <= 0) this.tryRaise(u);
+    if (u.lifeT <= 0 && !UNITS[u.kind].stationary) this.tryRaise(u);
   }
 
   private tryRaise(corpse: Unit): void {
@@ -1483,7 +1622,7 @@ export class World {
     const need = FACTIONS[UNITS[u.kind].faction].rankKills ?? RANK_KILLS;
     if (u.rank >= need.length || u.kills < need[u.rank]) return;
     u.rank++;
-    const max = UNITS[u.kind].hp * (1 + RANK_BONUS * u.rank);
+    const max = UNITS[u.kind].hp * u.forge * (1 + RANK_BONUS * u.rank);
     u.hp += max - u.maxHp;
     u.maxHp = max;
     this.events.push({ type: 'promote', x: u.x, lane: u.lane, team: u.team, rank: u.rank });

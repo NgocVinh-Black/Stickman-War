@@ -328,3 +328,12 @@
   font-weight: 700;
   border: 1px solid var(--line);
 }
+
+/* Nút tường thành: hiện cả giá / tiến độ dựng, mờ khi đã có tường */
+.wall-btn small {
+  white-space: nowrap;
+}
+.wall-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}

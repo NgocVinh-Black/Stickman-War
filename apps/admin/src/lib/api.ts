@@ -1,3 +1,5 @@
+import { t } from '@stickman-war/i18n';
+import { serverText } from '@stickman-war/i18n/server';
 import type { FactionId, MatchRecord } from '@stickman-war/core';
 import { reactive } from 'vue';
 
@@ -85,7 +87,7 @@ async function api<T>(path: string, init: { method?: string; body?: unknown; ses
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
   } catch {
-    throw new ApiError('Không kết nối được máy chủ', 0);
+    throw new ApiError(t('admin.api.noServer'), 0);
   }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) {
@@ -93,7 +95,7 @@ async function api<T>(path: string, init: { method?: string; body?: unknown; ses
       setSession('');
       state.who = null;
     }
-    throw new ApiError(data.error ?? `Lỗi máy chủ (${res.status})`, res.status);
+    throw new ApiError(data.error ? serverText(data.error) : t('admin.api.serverError', { n: res.status }), res.status);
   }
   return data;
 }
@@ -128,7 +130,7 @@ export async function loginWithGoogle(credential: string): Promise<void> {
   const out = await api<{ session: string; admin: boolean }>('auth/google', { body: { credential } });
   if (!out.admin) {
     await api('logout', { body: {}, session: out.session }).catch(() => {});
-    throw new ApiError('Tài khoản Google này không có quyền quản trị', 403);
+    throw new ApiError(t('admin.api.notAdmin'), 403);
   }
   setSession(out.session);
   await restore();

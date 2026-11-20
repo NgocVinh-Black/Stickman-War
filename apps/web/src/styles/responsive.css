@@ -2,6 +2,19 @@
 
 /* Điện thoại: thu gọn thanh trên/dưới */
 @media (max-width: 720px) {
+  .unit-card {
+    grid-template-columns: 1fr;
+    padding: 10px 38px;
+  }
+  .uc-hero {
+    min-height: 180px;
+  }
+  .uc-stats {
+    grid-template-columns: 1fr;
+  }
+  .camp-tabs {
+    grid-template-columns: repeat(4, 1fr);
+  }
   .topbar {
     gap: 6px;
     padding-left: 6px;

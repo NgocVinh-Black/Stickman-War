@@ -4,7 +4,9 @@
 
 ## Làm việc với chủ dự án
 
-- Trả lời và viết chữ trong game bằng **tiếng Việt**. Comment trong code cũng tiếng Việt (giữ như code hiện có).
+- Trả lời bằng **tiếng Việt**. Comment trong code cũng tiếng Việt (giữ như code hiện có).
+- Game và admin có **2 ngôn ngữ (vi / en)**: chữ hiển thị không viết thẳng trong component mà thêm khoá vào
+  `packages/i18n/src/vi.ts` (bản gốc) **và** `en.ts`, rồi gọi `t('…')`. Thuật ngữ: nền văn minh / civilization (không dùng "tộc").
 - Chủ dự án kiểm tra bằng cách chơi thật trên trình duyệt: sau khi sửa giao diện / lối chơi, mở `http://localhost:5173` xem lại.
 - Không tự đổi framework / công cụ đã chọn (Vue 3 + Vite, NestJS + Fastify + Prisma, admin dùng Rspack).
 - Không commit khi chưa được yêu cầu.
@@ -20,6 +22,7 @@
 
 ```
 packages/core/src/   Lõi game TS thuần (không DOM, không Node): world (mô phỏng), units, factions, levels, ai, protocol
+packages/i18n/src/   Đa ngôn ngữ dùng chung web + admin: vi.ts / en.ts, content-en.ts (nội dung game), server.ts (dịch chữ máy chủ)
 apps/web/src/        Vue 3 + Vite + Pinia + Vue Router (hash history)
   views/             trang (LobbyView, GameView, RoomView, LoginView); views/lobby/*Tab.vue
   components/        mảnh giao diện dùng lại
@@ -36,6 +39,9 @@ apps/admin/src/      Vue 3 + Rspack: views/, components/, lib/, styles/
 ## Quy tắc code
 
 ### Lõi game (`packages/core`)
+
+- Nội dung chữ trong lõi (mô tả nền văn minh, tên / mô tả quân, tên / lời màn) giữ tiếng Việt; bản tiếng Anh ở
+  `packages/i18n/src/content-en.ts`, đổi chữ trong lõi thì sửa luôn bản tiếng Anh.
 
 - Mọi luật chơi nằm ở đây; web và server chỉ gọi vào. Không đặt luật chơi trong component Vue hay service.
 - Mô phỏng phải **tất định** khi truyền cùng bộ ngẫu nhiên: trong `World` dùng `this.rng()`, không gọi `Math.random()` trực tiếp
@@ -57,7 +63,8 @@ apps/admin/src/      Vue 3 + Rspack: views/, components/, lib/, styles/
 
 - Đóng gói bằng esbuild nên **mọi tham số constructor phải `@Inject(TOKEN)` tường minh** (kể cả service class).
 - Tính năng mới = module mới (`x.module.ts` + controller / service), import vào `AppModule.forRoot`; không khai báo thẳng vào AppModule.
-- Kiểm tra dữ liệu vào bằng Zod (`ZodPipe`); lỗi trả `{ error: '…' }` tiếng Việt.
+- Kiểm tra dữ liệu vào bằng Zod (`ZodPipe`); lỗi trả `{ error: '…' }` tiếng Việt. Câu mới máy chủ gửi cho người chơi (lỗi, dòng hệ thống)
+  phải thêm mẫu tiếng Anh ở `packages/i18n/src/server.ts` (test i18n báo câu thiếu).
 - Thông tin người chơi không được thấy (tộc đối thủ trong phòng chờ…) phải lọc ở server, không chỉ ẩn ở client.
 
 ### Admin (`apps/admin`)
