@@ -101,7 +101,10 @@ export function demoMatch(mine?: FactionId, enemy?: FactionId): Match {
   const world = new World([setup(a), setup(b)]);
   // Hai phe đều xây tường thành sớm để nền sảnh có cảnh phá tường
   const wall = { at: 20, dist: 460 };
-  return localMatch(world, [new EnemyAI({ ...lv.ai, forceAttackAt: 60, wall }, 0), new EnemyAI({ ...lv.ai, forceAttackAt: 75, wall }, 1)]);
+  return localMatch(world, [
+    new EnemyAI({ ...lv.ai, forceAttackAt: 60, wall, edge: 1.15 }, 0),
+    new EnemyAI({ ...lv.ai, forceAttackAt: 75, wall, edge: 1.15 }, 1),
+  ]);
 }
 
 /** Trận online do máy chủ chạy: chỉ gửi lệnh, vẽ lại ảnh chụp trạng thái. */

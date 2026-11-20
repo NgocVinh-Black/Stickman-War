@@ -9,6 +9,11 @@ export type AIConfig = {
   retreatRatio: number; // rút về khi quân còn dưới attackAt * ratio
   centerMine?: boolean; // khi đang tấn công thì cho thợ mỏ sang mỏ giữa
   formation?: Formation; // kiểu hành quân
+  /**
+   * Chỉ tấn công khi giá trị quân mình ≥ quân địch × edge (bên thủ có tường, trạm, tượng bắn nên đánh trước
+   * mà không áp đảo là thua). Không có = chỉ xét ngưỡng attackAt như cũ.
+   */
+  edge?: number;
   /** Xây tường thành: từ giây `at`, cách tượng nhà `dist`; tường đổ thì xây lại. Không có = không xây tường. */
   wall?: { at: number; dist: number };
 };
@@ -74,8 +79,12 @@ export class EnemyAI {
       // Sau mốc forceAttackAt thì không rút nữa, trừ khi bị đánh vào nhà
       const weak = strength < this.cfg.attackAt * this.cfg.retreatRatio;
       if ((weak && !late) || (late && threatened && weak)) this.attacking = false;
-    } else if (strength >= this.cfg.attackAt || (late && strength > 0 && !threatened)) {
-      this.attacking = true;
+    } else {
+      const enemy = this.armyValue(world, this.team === 0 ? 1 : 0);
+      // Quá mốc buộc đánh 4 phút mà vẫn chưa áp đảo thì vẫn đánh (tránh hai bên cùng ngồi thủ mãi)
+      const desperate = world.time >= this.cfg.forceAttackAt + 240;
+      const edge = this.cfg.edge === undefined || desperate || strength >= enemy * this.cfg.edge;
+      if ((strength >= this.cfg.attackAt && edge) || (late && strength > 0 && !threatened && edge)) this.attacking = true;
     }
     if (this.cfg.formation) world.setFormation(this.team, this.cfg.formation);
     world.setStance(this.team, this.attacking ? 'attack' : 'defend');

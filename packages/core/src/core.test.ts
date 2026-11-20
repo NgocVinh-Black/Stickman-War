@@ -1082,3 +1082,31 @@ describe('Tường thành', () => {
     expect(new Set(FACTION_ORDER.map((f) => UNITS[wallKind(f)].name)).size).toBe(n);
   });
 });
+
+describe('AI tấn công', () => {
+  const side = (gold = 0) => ({ faction: 'tribe' as FactionId, gold, statueHp: 9999, unlocked: [] as UnitKind[] });
+  const cfg = { miners: 0, mix: {}, attackAt: 100, forceAttackAt: 30, retreatRatio: 0.2, edge: 1.15 };
+
+  it('có edge: không lao vào khi quân yếu hơn địch, đủ áp đảo thì đánh; quá giờ lâu vẫn đánh', () => {
+    const w = new World([side(), side()], seeded(1));
+    w.spawn(1, 'sword');
+    w.spawn(1, 'sword');
+    w.spawn(1, 'sword');
+    w.spawn(0, 'sword');
+    w.spawn(0, 'sword');
+    const ai = new EnemyAI(cfg, 0);
+    ai.update(w, 1);
+    expect(w.teams[0].stance).toBe('defend'); // 2 kiếm sĩ < 3 × 1.15
+    for (let i = 0; i < 4; i++) w.spawn(0, 'sword');
+    ai.update(w, 1);
+    expect(w.teams[0].stance).toBe('attack'); // 6 > 3 × 1.15
+    // Quá mốc buộc đánh 4 phút mà vẫn yếu hơn: vẫn đánh để không ngồi thủ mãi
+    const w2 = new World([side(), side()], seeded(2));
+    for (let i = 0; i < 5; i++) w2.spawn(1, 'sword');
+    w2.spawn(0, 'sword');
+    w2.time = cfg.forceAttackAt + 250;
+    const ai2 = new EnemyAI(cfg, 0);
+    ai2.update(w2, 1);
+    expect(w2.teams[0].stance).toBe('attack');
+  });
+});

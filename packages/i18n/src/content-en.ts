@@ -10,7 +10,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   tribe: {
     desc: 'Balanced, easy to play, a unit for every job.',
     passive: 'Discipline: units cost 5% less and earn veteran stars faster (1 / 3 / 6 kills).',
-    weakness: 'Green troops: HP -17%. Before ranking up they lose to elite units.',
+    weakness: 'Green troops: HP -3%. Before ranking up they lose to elite units.',
     beat: 'Strike early with tough units (spearmen, giants) before their troops rank up; pick off stragglers and deny them kills.',
     units: {
       miner: ['Miner', 'Digs gold to fund the army. Drops his gold bag when killed'],
@@ -32,7 +32,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   orc: {
     desc: 'Big brutes that fight as a pack: stronger in numbers, weak alone.',
     passive: 'Horde: +2.5% damage for each nearby ally, up to +15%. Hits 4% harder.',
-    weakness: 'HP -7%, 12% slower, 6% more expensive, ranged units have 10% less range: weak alone, easy to kite.',
+    weakness: 'HP -8%, 12% slower, 6% more expensive, ranged units have 10% less range: weak alone, easy to kite.',
     beat: 'Split the pack: splash spells on the blob, ninjas on stragglers; kite them with archers since they are slow.',
     units: {
       miner: ['Goblin miner', 'Small, cheap, fast'],
@@ -54,7 +54,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   elf: {
     desc: 'Long range, self-healing, fragile up close.',
     passive: 'Forest vigor: regenerate 2 HP/s after 4 s without taking damage. Ranged units +12% range, 6% faster.',
-    weakness: 'HP -12%, damage -5%: vulnerable to splash spells and units that dive the back row.',
+    weakness: 'HP -7%, damage -5%: vulnerable to splash spells and units that dive the back row.',
     beat: 'Mages and catapults on their clumps; cavalry and ninjas straight into the archer line; keep pressure so they never rest and heal.',
     units: {
       miner: ['Gold sprite', 'Flies quickly between mine and home'],
@@ -76,7 +76,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   undead: {
     desc: 'Cheap, weak, endless numbers. The more they kill, the richer they get.',
     passive: 'Soul harvest: killing an enemy grants 30% of its cost. Units cost 20% less.',
-    weakness: 'HP -15%, damage -12%: they lose one-on-one.',
+    weakness: 'HP -22%, damage -12%: they lose one-on-one.',
     beat: 'Shield wall with tough units and don’t let yours die alone (every death is gold for them); pull weak units back to heal.',
     units: {
       miner: ['Bone miner', 'Cheap, fragile'],
@@ -97,8 +97,8 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   samurai: {
     desc: 'Elite warriors with fast, deadly strikes.',
-    passive: 'First strike: the first melee hit on each new target deals ×2.8 damage. Attacks 15% faster, hits 6% harder, HP +8%.',
-    weakness: 'Units cost 2% more, few units: the big hit only comes once, they tire when surrounded.',
+    passive: 'First strike: the first melee hit on each new target deals ×2.8 damage. Attacks 15% faster, hits 6% harder.',
+    weakness: 'HP -25%, 2% more expensive: the big hit only comes once; they tire when surrounded or kited.',
     beat: 'Let armored units (spearmen, giants) take the first hit; wear them down with cheap swarms and ranged fire.',
     units: {
       miner: ['Farmer', 'Digs gold under a straw hat'],
@@ -119,8 +119,8 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   viking: {
     desc: 'Savage melee fighters who get angrier the more they bleed.',
-    passive: 'Fury: the more HP a unit loses, the harder it hits, up to +45% damage.',
-    weakness: 'Armor -10%, HP -3%: weak while healthy, easy to burst down.',
+    passive: 'Fury: the more HP a unit loses, the harder it hits, up to +45% damage. HP +6%.',
+    weakness: 'Armor -10%: weak while healthy, easy to burst down.',
     beat: 'Focus fire to finish units one by one (mages, ninjas, many archers); don’t let their wounded units keep fighting.',
     units: {
       miner: ['Thrall', 'Fights back with his pickaxe'],
@@ -142,7 +142,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   desert: {
     desc: 'Rich in gold, sturdy statue, with chariots and sun priests.',
     passive: 'Desert gold: miners bring back +8% gold. Statue +25% HP.',
-    weakness: 'Units deal 8% less damage, HP -5%.',
+    weakness: 'Units deal 8% less damage.',
     beat: 'Attack early and raid their miners (especially at the diamond mine) before they get rich.',
     units: {
       miner: ['Stonecutter', 'Brings back lots of gold'],
@@ -163,7 +163,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   steam: {
     desc: 'Iron armor, rifles and cannons. Expensive and slow.',
-    passive: 'Steel: every unit +17% armor, HP +5%, ranged +5% range.',
+    passive: 'Steel: every unit +17% armor, HP +17%, ranged +5% range.',
     weakness: '6% more expensive, 12% slower: few units, slow to rebuild.',
     beat: 'Mages (magic burns heavy armor) and swarms of cheap units; raid their miners since they struggle to rebuild.',
     units: {
@@ -185,8 +185,8 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   dwarf: {
     desc: 'Stubborn smiths who grow stronger as the battle drags on.',
-    passive: 'Forge: units trained later are stronger, +5% HP and damage per minute (up to +40%).',
-    weakness: 'Weak early: HP -9%, damage -4%, 12% slower.',
+    passive: 'Forge: units trained later are stronger, +5% HP and damage per minute (up to +40%). Sturdy: HP +10%.',
+    weakness: 'Weak early: damage -4%, 12% slower.',
     beat: 'Rush them before minute 5; raid their miners so they can’t afford late units.',
     units: {
       miner: ['Dwarf miner', 'Digs fast and steady'],
@@ -207,7 +207,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   tide: {
     desc: 'Sea warriors who outlast foes by draining their life.',
-    passive: 'Tide: every hit heals for 40% of the damage dealt. HP +7%.',
+    passive: 'Tide: every hit heals for 40% of the damage dealt.',
     weakness: 'Attacks 5% slower, damage -3%: weak to splash and burst that kills before they can heal.',
     beat: 'Burst them down with splash spells and focused ranged fire; avoid long one-on-one fights.',
     units: {
@@ -229,8 +229,8 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   dragon: {
     desc: 'Descendants of dragons; every hit leaves fire behind.',
-    passive: 'Dragonfire: every hit burns the target for 9 HP/s over 3 s. Hits 3% harder.',
-    weakness: 'Units cost 10% more, HP -5%: few units, hard to recover after a lost fight.',
+    passive: 'Dragonfire: every hit burns the target for 9 HP/s over 3 s. Hits 3% harder, HP +9%.',
+    weakness: 'Units cost 10% more: few units, hard to recover after a lost fight.',
     beat: 'Surround them with cheap swarms, let healers undo the burn; force early fights while they have few units.',
     units: {
       miner: ['Ember miner', 'Digs gold inside the volcano'],
@@ -251,7 +251,7 @@ export const CIV_EN: Record<FactionId, CivEn> = {
   },
   frost: {
     desc: 'Snowland folk who control the enemy with bitter cold.',
-    passive: 'Chill: every hit slows the target for 2 s. Thick hides against the cold: +40% HP.',
+    passive: 'Chill: every hit slows the target for 2 s. HP +3%.',
     weakness: '5% slower, no burst ability: slow to finish enemies.',
     beat: 'Tough, high-HP units (giants, spearmen) shrug off slows; push straight into them instead of chasing.',
     units: {

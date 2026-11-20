@@ -450,6 +450,7 @@ export const SKIRMISH: Record<Difficulty, { label: string; player: TeamSetup; en
     player: { gold: 500, statueHp: 3000, unlocked: ALL, start: ['miner', 'miner', 'sword'] },
     enemy: { gold: 300, statueHp: 3000, incomeMult: 0.6, unlocked: ALL, start: ['miner', 'miner', 'sword'] },
     ai: {
+      edge: 1.15,
       miners: 5,
       mix: { sword: 3, archer: 2, spear: 1, cavalry: 1, healer: 1, mage: 1, giant: 1 },
       attackAt: 2500,
@@ -462,6 +463,7 @@ export const SKIRMISH: Record<Difficulty, { label: string; player: TeamSetup; en
     player: { gold: 500, statueHp: 3000, unlocked: ALL, start: ['miner', 'miner', 'sword'] },
     enemy: { gold: 500, statueHp: 3000, incomeMult: 0.8, unlocked: ALL, start: ['miner', 'miner', 'sword'] },
     ai: {
+      edge: 1.15,
       miners: 6,
       mix: { sword: 2, archer: 2, ninja: 1, spear: 2, cavalry: 1, healer: 1, mage: 1, giant: 1 },
       attackAt: 3200,
@@ -475,6 +477,7 @@ export const SKIRMISH: Record<Difficulty, { label: string; player: TeamSetup; en
     player: { gold: 500, statueHp: 3000, unlocked: ALL, start: ['miner', 'miner', 'sword'] },
     enemy: { gold: 600, statueHp: 3000, incomeMult: 1, unlocked: ALL, start: ['miner', 'miner', 'miner', 'sword'] },
     ai: {
+      edge: 1.15,
       miners: 7,
       mix: { sword: 2, archer: 3, ninja: 1, spear: 2, cavalry: 1, healer: 1, mage: 2, catapult: 1, giant: 1 },
       attackAt: 4000,
