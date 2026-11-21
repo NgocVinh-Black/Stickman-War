@@ -77,7 +77,7 @@ chiến dịch, trận online 1v1 với bot (ghép trận, đếm ngược, kế
 ## 6. Cân bằng
 
 Tạo tạm `packages/core/src/*.probe.test.ts` cho AI đấu AI / bot đấu từng màn, in tỉ lệ thắng, chỉnh `factions.ts` / `levels.ts`,
-rồi xoá file probe. Kết quả gần nhất: tỉ lệ thắng giữa các tộc 36–57%. Bot test dùng `BOT_MIX` (không có máy công thành).
+rồi xoá file probe. Kết quả gần nhất (2026-11-21, máy đấu máy cùng cấu hình AI "Thường", mọi cặp hệ × 2 bên × 8 seed = 1056 trận): mỗi hệ thắng 46–53%. Một số cặp vẫn lệch (vd. Lôi / Thủy / Băng thắng Huyết ≥ 90%) — chưa xử lý. Bot test dùng `BOT_MIX` (không có máy công thành).
 
 ## 7. Việc còn dở / gợi ý tiếp theo
 
