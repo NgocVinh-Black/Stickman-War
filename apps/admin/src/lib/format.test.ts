@@ -21,7 +21,7 @@ describe('Định dạng trang admin', () => {
   });
 
   it('tộc lạ (dữ liệu cũ) vẫn hiển thị được', () => {
-    expect(faction('elf').name).toBe('Forest Elves');
+    expect(faction('elf').name).toBe('Thanh Mộc Lâm');
     expect(faction('unknown' as never).icon).toBe('❔');
   });
 });

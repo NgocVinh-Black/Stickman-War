@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { civName } from '@stickman-war/i18n/content';
 import { FACTIONS } from '@stickman-war/core';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -77,7 +78,7 @@ watch(() => auth.clientId, paintGoogle);
         <b>{{ auth.xu ?? '–' }}</b><small>{{ t('account.xu') }}</small>
       </div>
       <div>
-        <b>{{ FACTIONS[a.faction]?.icon }}</b><small>{{ FACTIONS[a.faction]?.name }}</small>
+        <b>{{ FACTIONS[a.faction]?.icon }}</b><small>{{ FACTIONS[a.faction] ? civName(a.faction) : a.faction }}</small>
       </div>
     </div>
     <label class="field">

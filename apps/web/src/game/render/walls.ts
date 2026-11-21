@@ -67,19 +67,24 @@ function stakes(ctx: Ctx, color: string, tip: string): void {
 }
 
 const STYLES: Record<FactionId, Style> = {
+  // Quang: đá trắng, răng cưa, viền vàng
   tribe: {
-    body: n('#9aa7b8'),
-    dark: n('#5d6a7c'),
-    gate: n('#7a5a2a'),
-    pattern: (ctx) => blocks(ctx, 6, 'rgba(0,0,0,0.18)'),
-    top: (ctx) => crenels(ctx, n('#9aa7b8')),
-  },
-  orc: {
-    body: n('#6b4a2b'),
-    dark: n('#3f2a18'),
-    gate: n('#4a2f18'),
+    body: n('#e8e2d0'),
+    dark: n('#a8a090'),
+    gate: n('#b89a52'),
     pattern: (ctx) => {
-      ctx.fillStyle = n('#efe3c6');
+      blocks(ctx, 6, 'rgba(0,0,0,0.16)');
+      rect(ctx, -HALF, -WALL_H + 6, HALF * 2, 2, '#ffe08a');
+    },
+    top: (ctx) => crenels(ctx, n('#e8e2d0')),
+  },
+  // Phong: cọc gỗ ngọc bích vót nhọn, gai chĩa ra phía địch
+  orc: {
+    body: n('#5f8f80'),
+    dark: n('#3a5a50'),
+    gate: n('#2f4a42'),
+    pattern: (ctx) => {
+      ctx.fillStyle = n('#d9f5ea');
       for (let y = -60; y < -10; y += 16) {
         ctx.beginPath();
         ctx.moveTo(HALF, y);
@@ -88,7 +93,7 @@ const STYLES: Record<FactionId, Style> = {
         ctx.fill();
       }
     },
-    top: (ctx) => stakes(ctx, n('#6b4a2b'), n('#d9cbb0')),
+    top: (ctx) => stakes(ctx, n('#5f8f80'), n('#d9f5ea')),
   },
   elf: {
     body: n('#5b7f3a'),
@@ -113,85 +118,112 @@ const STYLES: Record<FactionId, Style> = {
       }
     },
   },
+  // Ám: đá hắc thạch, vân tím phát sáng
   undead: {
-    body: n('#cfc8b4'),
-    dark: n('#8a8372'),
-    gate: n('#4a3f3a'),
-    pattern: (ctx) => {
-      ctx.fillStyle = n('#efe9d6');
-      for (let y = -64; y < -6; y += 18)
-        for (let x = -HALF + 5; x < HALF; x += 14) {
-          ctx.beginPath();
-          ctx.arc(x, y, 4.5, 0, Math.PI * 2);
-          ctx.fill();
-          rect(ctx, x - 3, y + 3, 6, 3, n('#efe9d6'));
-          rect(ctx, x - 2.5, y - 1, 1.6, 1.6, n('#3a3030'));
-          rect(ctx, x + 1, y - 1, 1.6, 1.6, n('#3a3030'));
-        }
-    },
-    top: (ctx) => stakes(ctx, n('#cfc8b4'), n('#efe9d6')),
-  },
-  samurai: {
-    body: n('#f1ece2'),
-    dark: n('#a8443a'),
-    gate: n('#7a2b22'),
-    pattern: (ctx) => {
-      rect(ctx, -HALF, -WALL_H, 3, WALL_H, n('#a8443a'));
-      rect(ctx, HALF - 3, -WALL_H, 3, WALL_H, n('#a8443a'));
-      rect(ctx, -HALF, -WALL_H * 0.55, HALF * 2, 3, n('#a8443a'));
+    body: n('#2a2233'),
+    dark: n('#18121f'),
+    gate: n('#120c18'),
+    pattern: (ctx, t) => {
+      blocks(ctx, 5, 'rgba(179,136,255,0.25)');
+      ctx.strokeStyle = `rgba(179, 136, 255, ${0.55 + 0.35 * Math.sin(t * 2)})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-8, -66);
+      ctx.lineTo(-3, -50);
+      ctx.lineTo(-9, -34);
+      ctx.stroke();
     },
     top: (ctx) => {
-      ctx.fillStyle = n('#3a3a44');
+      ctx.fillStyle = n('#2a2233');
+      for (let x = -HALF; x < HALF; x += 8) {
+        ctx.beginPath();
+        ctx.moveTo(x, -WALL_H);
+        ctx.lineTo(x + 4, -WALL_H - 11);
+        ctx.lineTo(x + 8, -WALL_H);
+        ctx.fill();
+      }
+    },
+  },
+  // Lôi: tường đá xám tím, nẹp kim loại, vạch sét vàng
+  samurai: {
+    body: n('#4a4866'),
+    dark: n('#2c2b40'),
+    gate: n('#24233a'),
+    pattern: (ctx, t) => {
+      rect(ctx, -HALF, -WALL_H, 3, WALL_H, n('#9aa0b8'));
+      rect(ctx, HALF - 3, -WALL_H, 3, WALL_H, n('#9aa0b8'));
+      ctx.strokeStyle = `rgba(255, 243, 107, ${0.6 + 0.4 * Math.sin(t * 9)})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-HALF - 6, -WALL_H + 2);
-      ctx.quadraticCurveTo(0, -WALL_H - 12, HALF + 6, -WALL_H + 2);
-      ctx.lineTo(HALF, -WALL_H - 2);
-      ctx.lineTo(-HALF, -WALL_H - 2);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(-6, -70);
+      ctx.lineTo(2, -60);
+      ctx.lineTo(-4, -58);
+      ctx.lineTo(5, -46);
+      ctx.stroke();
     },
+    top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 4, HALF * 2 + 6, 4, n('#9aa0b8')),
   },
+  // Huyết: cọc gỗ đỏ thẫm, đai sẫm, đầu cọc nhuốm máu
   viking: {
-    body: n('#8b6a48'),
-    dark: n('#5e4732'),
-    gate: n('#5e4732'),
+    body: n('#6b2a30'),
+    dark: n('#42181c'),
+    gate: n('#3a1418'),
     pattern: (ctx) => {
-      rect(ctx, -HALF, -22, HALF * 2, 4, n('#5e4732'));
-      rect(ctx, -HALF, -54, HALF * 2, 4, n('#5e4732'));
+      rect(ctx, -HALF, -22, HALF * 2, 4, n('#42181c'));
+      rect(ctx, -HALF, -54, HALF * 2, 4, n('#42181c'));
     },
-    top: (ctx) => stakes(ctx, n('#8b6a48'), n('#c9a77a')),
+    top: (ctx) => stakes(ctx, n('#6b2a30'), '#a3101e'),
   },
+  // Tinh thể: khối pha lê hồng tím, mảnh tinh thể nhọn trên đỉnh
   desert: {
-    body: n('#dfba72'),
-    dark: n('#a38040'),
-    gate: n('#8a5f2a'),
-    pattern: (ctx) => blocks(ctx, 5, 'rgba(120,80,30,0.25)'),
-    top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 5, HALF * 2 + 6, 5, n('#c99a52')),
+    body: n('#9a5ab0'),
+    dark: n('#5e3270'),
+    gate: n('#4a2558'),
+    pattern: (ctx) => {
+      blocks(ctx, 5, 'rgba(255,200,250,0.35)');
+      ctx.fillStyle = 'rgba(255, 200, 250, 0.35)';
+      ctx.fillRect(-HALF + 3, -WALL_H + 4, 4, WALL_H - 8);
+    },
+    top: (ctx) => {
+      ctx.fillStyle = n('#d7a0e8');
+      for (let x = -HALF; x < HALF; x += 7) {
+        ctx.beginPath();
+        ctx.moveTo(x, -WALL_H);
+        ctx.lineTo(x + 3.5, -WALL_H - 10);
+        ctx.lineTo(x + 7, -WALL_H);
+        ctx.fill();
+      }
+    },
   },
+  // Thạch: đá tảng thô, khe nứt hổ phách
   steam: {
+    body: n('#8a7560'),
+    dark: n('#5a4a3c'),
+    gate: n('#3f342a'),
+    pattern: (ctx, t) => {
+      blocks(ctx, 4, 'rgba(0,0,0,0.25)');
+      ctx.strokeStyle = `rgba(232, 180, 106, ${0.55 + 0.35 * Math.sin(t * 2)})`;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(8, -70);
+      ctx.lineTo(3, -56);
+      ctx.lineTo(9, -42);
+      ctx.stroke();
+    },
+    top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 5, HALF * 2 + 6, 5, n('#a08a70')),
+  },
+  // Kim: tấm thép tán đinh, khe lò rèn cam
+  dwarf: {
     body: n('#7d8590'),
     dark: n('#4b5260'),
     gate: n('#3f444c'),
     pattern: (ctx) => {
       ctx.fillStyle = n('#c8ccd2');
       for (let y = -66; y < -4; y += 12) for (const x of [-HALF + 3, HALF - 3]) ctx.fillRect(x - 1, y, 2, 2);
-      for (let i = 0; i < 6; i++) {
-        ctx.fillStyle = i % 2 ? n('#1f2329') : '#f2c230';
-        ctx.fillRect(-HALF + i * 5.4, -WALL_H, 5.4, 5);
-      }
-    },
-    top: (ctx) => rect(ctx, -HALF - 2, -WALL_H - 3, HALF * 2 + 4, 3, n('#4b5260')),
-  },
-  dwarf: {
-    body: n('#8f8a84'),
-    dark: n('#5a5550'),
-    gate: n('#4b3a2a'),
-    pattern: (ctx) => {
-      blocks(ctx, 4, 'rgba(0,0,0,0.22)');
       ctx.fillStyle = '#ffb347';
       ctx.fillRect(-2, -64, 4, 8);
     },
-    top: (ctx) => crenels(ctx, n('#8f8a84')),
+    top: (ctx) => crenels(ctx, n('#7d8590')),
   },
   tide: {
     body: n('#2fa596'),

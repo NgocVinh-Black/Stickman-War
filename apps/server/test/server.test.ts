@@ -202,7 +202,7 @@ describe('Máy chủ online', () => {
     expect((await begin(a, b)).factions).toEqual(['elf', 'orc']);
   }, 15000);
 
-  it('chọn được tộc mới (Frost Kin, Mountain Dwarves); lệnh xây thợ xây kèm chỗ (client cũ) vẫn được nhận', async () => {
+  it('chọn được tộc thêm sau (frost, dwarf); lệnh xây thợ xây kèm chỗ (client cũ) vẫn được nhận', async () => {
     const a = await connect('Chủ');
     const b = await connect('Khách');
     a.send({ t: 'create' });

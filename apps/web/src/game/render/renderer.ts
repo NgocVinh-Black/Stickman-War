@@ -2,7 +2,7 @@ import { FACTIONS, UNITS, wallBlockOf, wallKind, type ProjectileKind, type Team 
 import { t } from '@stickman-war/i18n';
 import { prefs } from '../../lib/prefs';
 import { THEMES, type Theme } from './themes';
-import { ENERGY, GEAR, NIGHT, mix, rgba } from './palette';
+import { CLOTH, ENERGY, GEAR, NIGHT, mix, rgba } from './palette';
 import { drawMonument } from './monuments';
 import { drawWallGhost } from './walls';
 import {
@@ -883,7 +883,8 @@ export class Renderer {
     const bw = 100;
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(-bw / 2, -205, bw, 9);
-    ctx.fillStyle = ratio > 0.5 ? '#4ade80' : ratio > 0.25 ? '#facc15' : '#ef4444';
+    // Cùng quy ước với thanh máu lính: xanh lá phe mình, đỏ phe địch (vết nứt trên tượng cho biết máu thấp)
+    ctx.fillStyle = team === 0 ? '#4ade80' : '#ff4d63';
     ctx.fillRect(-bw / 2 + 1, -204, (bw - 2) * ratio, 7);
 
     // Số quân đang trú trong tượng
@@ -903,7 +904,8 @@ export class Renderer {
     const sx = this.sx(u.x);
     if (sx < -60 * scale * s.scale || sx > this.width + 60 * scale * s.scale) return;
     const sy = this.sy(u.lane);
-    const c = TEAM_COLORS[u.team];
+    // Lính mang màu vải của nền văn minh; phe phân biệt bằng thanh máu (luôn hiện) phía trên đầu
+    const c = { ink: TEAM_COLORS[u.team].ink, accent: CLOTH[s.faction] ?? TEAM_COLORS[u.team].accent };
 
     // Đang lướt: vệt bóng mờ phía sau và người chúi về trước
     if (u.dashT > 0 && !u.dying) {
@@ -993,12 +995,16 @@ export class Renderer {
       ctx.fillStyle = '#ffd23f';
       ctx.fillText('★'.repeat(u.rank), sx, y - 4);
     }
-    if (!u.dying && u.hp < u.maxHp) {
+    // Thanh máu luôn hiện (kể cả đầy máu) vì đây là dấu hiệu duy nhất cho biết lính thuộc phe nào
+    if (!u.dying) {
+      // Quân tàng hình: thanh máu mờ theo thân, không làm lộ chỗ
+      ctx.globalAlpha = u.hidden ? 0.28 : 1;
       const w = 22 * scale * Math.min(s.scale, 1.6);
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(sx - w / 2 - 1, y - 1, w + 2, 5.5);
       ctx.fillStyle = u.team === 0 ? '#4ade80' : '#ff4d63';
       ctx.fillRect(sx - w / 2, y, w * (u.hp / u.maxHp), 3.5);
+      ctx.globalAlpha = 1;
     }
   }
 

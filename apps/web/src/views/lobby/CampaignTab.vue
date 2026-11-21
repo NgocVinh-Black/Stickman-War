@@ -3,7 +3,7 @@ import { FACTIONS, FACTION_ORDER, ROUND, SKIRMISH, isBoss, type Difficulty, type
 import { computed } from 'vue';
 import { sound } from '../../lib/sound';
 import { t } from '@stickman-war/i18n';
-import { levelName } from '@stickman-war/i18n/content';
+import { civName, levelName } from '@stickman-war/i18n/content';
 import { useGame } from '../../stores/game';
 import { useSettings } from '../../stores/settings';
 import CivEmblem from '../../components/CivEmblem.vue';
@@ -47,7 +47,7 @@ function pickFaction(f: FactionId): void {
       @click="pickFaction(f)"
     >
       <CivEmblem class="camp-tab-icon" :faction="f" :size="36" />
-      <span class="camp-tab-name">{{ FACTIONS[f].name }}</span>
+      <span class="camp-tab-name">{{ civName(f) }}</span>
       <small>{{ settings.progress[f].completed ? '👑' : '★' }} {{ settings.factionStars(f) }}/{{ settings.tabMax }}</small>
     </button>
   </div>
@@ -69,13 +69,11 @@ function pickFaction(f: FactionId): void {
         class="level"
         :class="{ locked: i > settings.current.unlocked }"
         :disabled="i > settings.current.unlocked"
-        :title="
-          t('campaign.levelTitle', { name: levelName(i), boss: isBoss(i) ? t('campaign.boss') : '', enemy: FACTIONS[enemyOf(i)].name })
-        "
+        :title="t('campaign.levelTitle', { name: levelName(i), boss: isBoss(i) ? t('campaign.boss') : '', enemy: civName(enemyOf(i)) })"
         @click="game.startCampaign(i)"
       >
         <span class="level-num">{{ i > settings.current.unlocked ? '🔒 ' : isBoss(i) ? '👑 ' : '' }}{{ i + 1 }}</span>
-        <span class="level-enemy">{{ FACTIONS[enemyOf(i)].icon }} {{ FACTIONS[enemyOf(i)].name }}</span>
+        <span class="level-enemy">{{ FACTIONS[enemyOf(i)].icon }} {{ civName(enemyOf(i)) }}</span>
         <span class="level-stars"
           >{{ '★'.repeat(settings.current.stars[i] ?? 0) }}<i>{{ '★'.repeat(3 - (settings.current.stars[i] ?? 0)) }}</i></span
         >

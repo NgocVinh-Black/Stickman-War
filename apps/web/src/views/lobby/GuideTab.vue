@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import HowToContent from '../../components/HowToContent.vue';
 import UnitCarousel from '../../components/UnitCarousel.vue';
 import { lang, t } from '@stickman-war/i18n';
-import { civBeat, civDesc, civPassive, civWeakness } from '@stickman-war/i18n/content';
+import { civBeat, civDesc, civName, civPassive, civWeakness } from '@stickman-war/i18n/content';
 import { ARMOR_TYPES, DMG_TYPES, GUIDE_PAGES, armorLabel, dmgLabel, type GuidePage } from '../../lib/guide';
 import { sound } from '../../lib/sound';
 import { useSettings } from '../../stores/settings';
@@ -39,13 +39,13 @@ const go = (p: GuidePage) => {
           :style="{ '--faction': FACTIONS[id].color }"
           @click="(sound.click(), (faction = id))"
         >
-          {{ FACTIONS[id].icon }} {{ FACTIONS[id].name }}
+          {{ FACTIONS[id].icon }} {{ civName(id) }}
         </button>
       </div>
       <div class="guide-faction-head" :style="{ '--faction': fd.color }">
         <CivEmblem :faction="faction" :size="56" />
         <div>
-          <h3>{{ fd.name }}</h3>
+          <h3>{{ civName(faction) }}</h3>
           <p>{{ civDesc(faction) }}</p>
           <p class="faction-passive">✨ {{ civPassive(faction) }}</p>
           <p class="bad">{{ t('guide.weakness', { text: civWeakness(faction) }) }}</p>
@@ -92,7 +92,7 @@ const go = (p: GuidePage) => {
           </thead>
           <tbody>
             <tr v-for="id in FACTION_ORDER" :key="id">
-              <td>{{ FACTIONS[id].icon }} {{ FACTIONS[id].name }}</td>
+              <td>{{ FACTIONS[id].icon }} {{ civName(id) }}</td>
               <td class="good">{{ civPassive(id) }}</td>
               <td class="bad">{{ civWeakness(id) }}</td>
               <td>{{ civBeat(id) }}</td>

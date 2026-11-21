@@ -1,13 +1,13 @@
 import { UNITS, kindOf, type FactionId, type UnitKind } from '@stickman-war/core';
-import { ENERGY } from './render/palette';
+import { CLOTH, ENERGY } from './render/palette';
 import { TEAM_COLORS } from './render/renderer';
 import { drawStickman } from './render/stickman';
 
 /**
  * Vẽ icon một loại quân vào canvas 48×48 theo phong cách ảnh nền: quầng sáng màu năng lượng nền văn minh phía sau,
- * bóng stickman đen viền sáng (mặc định màu phe mình), mắt và vũ khí phát sáng.
+ * bóng stickman đen viền sáng (mặc định màu vải của nền văn minh), mắt và vũ khí phát sáng.
  */
-export function drawIcon(canvas: HTMLCanvasElement, kind: UnitKind, accent: string = TEAM_COLORS[0].accent): void {
+export function drawIcon(canvas: HTMLCanvasElement, kind: UnitKind, accent?: string): void {
   const size = 48;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = size * dpr;
@@ -18,6 +18,7 @@ export function drawIcon(canvas: HTMLCanvasElement, kind: UnitKind, accent: stri
   ctx.clearRect(0, 0, size, size);
   const s = UNITS[kind];
   const a = s.arch;
+  accent ??= CLOTH[s.faction] ?? TEAM_COLORS[0].accent;
   // Quầng sáng phía sau
   const e = s.look.tint ?? ENERGY[s.faction];
   const g = ctx.createRadialGradient(size / 2, size * 0.55, 2, size / 2, size * 0.55, size * 0.5);

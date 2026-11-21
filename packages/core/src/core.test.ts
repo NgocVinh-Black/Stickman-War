@@ -898,14 +898,14 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     return { dealt: hp0 - e.hp, w, me, e };
   };
 
-  it('Bầy đàn (Orc Horde): đứng giữa đồng đội thì đánh đau hơn đứng một mình', () => {
+  it('Cuồng phong (orc): đứng giữa đồng đội thì đánh đau hơn đứng một mình', () => {
     const alone = firstHit('orc', 0).dealt;
     const pack = firstHit('orc', 5).dealt;
     expect(pack / alone).toBeGreaterThan(1.1);
     expect(pack / alone).toBeLessThan(1.22);
   });
 
-  it('Lò rèn (Mountain Dwarves): quân xây càng muộn càng nhiều máu và đánh đau hơn', () => {
+  it('Lò rèn (dwarf): quân xây càng muộn càng nhiều máu và đánh đau hơn', () => {
     const w = new World([side('dwarf'), side('tribe')], seeded(2));
     const early = w.spawn(0, 'dwarf-sword');
     w.time = 180;
@@ -918,7 +918,7 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     expect(b / a).toBeCloseTo(1.15, 1);
   });
 
-  it('Thủy triều (Tide Folk): đánh trúng thì hồi máu', () => {
+  it('Thủy triều (tide): đánh trúng thì hồi máu', () => {
     const w = new World([side('tide'), side('tribe')], seeded(3));
     const u = one(w, 0, 'tide-sword', 1000);
     u.hp = u.maxHp / 2;
@@ -930,13 +930,13 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     expect(u.hp).toBeGreaterThan(hp0);
   });
 
-  it('Lửa rồng (Dragon Brood): đòn đánh đốt máu theo thời gian', () => {
+  it('Lửa rồng (dragon): đòn đánh đốt máu theo thời gian', () => {
     const { e } = firstHit('dragon', 0);
     expect(e.poisonT).toBeGreaterThan(0);
     expect(e.poisonDps).toBeGreaterThan(0);
   });
 
-  it('Giá lạnh (Frost Kin): đòn đánh làm chậm mục tiêu', () => {
+  it('Giá lạnh (frost): đòn đánh làm chậm mục tiêu', () => {
     const { e } = firstHit('frost', 0);
     expect(e.slowT).toBeGreaterThan(0);
     expect(firstHit('tribe', 0).e.slowT).toBeLessThanOrEqual(0);

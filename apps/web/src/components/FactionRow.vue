@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { civName } from '@stickman-war/i18n/content';
 import { FACTIONS, FACTION_ORDER, type FactionId } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
 import { sound } from '../lib/sound';
@@ -25,10 +26,10 @@ function pick(id: FactionId): void {
       :style="{ '--faction': FACTIONS[id].color }"
       role="radio"
       :aria-checked="id === modelValue"
-      :title="FACTIONS[id].name"
+      :title="civName(id)"
       @click="pick(id)"
     >
-      <CivEmblem :faction="id" :size="30" /><small>{{ FACTIONS[id].name }}</small>
+      <CivEmblem :faction="id" :size="30" /><small>{{ civName(id) }}</small>
     </button>
   </div>
 </template>

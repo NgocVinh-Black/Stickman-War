@@ -1,8 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { FACTION_ORDER, LEVELS, ROUND, UNITS, roster } from '@stickman-war/core';
+import { FACTIONS, FACTION_ORDER, LEVELS, ROUND, UNITS, roster } from '@stickman-war/core';
 import { describe, expect, it } from 'vitest';
-import { levelIntro, levelName, unitCounter, unitName } from './content';
+import { civName, levelIntro, levelName, unitCounter, unitName } from './content';
 import { LEVEL_EN } from './content-en';
 import { en, lang, t, vi } from './index';
 import { SERVER_EN, serverText } from './server';
@@ -38,12 +38,14 @@ describe('Đa ngôn ngữ', () => {
     expect(levelName(0)).toBe('First Battle');
     expect(levelName(2 * ROUND)).toBe(`${LEVEL_EN[ROUND][0]} (hard)`);
     expect(levelIntro(2 * ROUND)).toBe(LEVEL_EN[ROUND][1]);
-    expect(unitName('sword')).toBe('Swordsman');
+    expect(unitName('sword')).toBe('Light swordsman');
+    expect(civName('elf')).toBe('Verdant Grove');
     expect(unitCounter('spear')).toMatch(/^Strong vs/);
     for (const f of FACTION_ORDER) for (const k of roster(f)) expect(unitName(k), k).not.toBe('');
     lang.value = 'vi';
     expect(levelName(2 * ROUND)).toBe(LEVELS[2 * ROUND].name);
     expect(unitName('sword')).toBe(UNITS.sword.name);
+    expect(civName('elf')).toBe(FACTIONS.elf.name);
     expect(unitCounter('spear')).toBe(UNITS.spear.counter);
   });
 

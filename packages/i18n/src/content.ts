@@ -14,6 +14,8 @@ import { pick, t } from './index';
 
 /** Nội dung game theo ngôn ngữ đang chọn (lõi giữ bản tiếng Việt, tiếng Anh nằm ở content-en.ts). */
 
+/** Tên nền văn minh (hệ) theo ngôn ngữ. */
+export const civName = (f: FactionId) => pick(FACTIONS[f].name, CIV_EN[f].name);
 export const civDesc = (f: FactionId) => pick(FACTIONS[f].desc, CIV_EN[f].desc);
 export const civPassive = (f: FactionId) => pick(FACTIONS[f].passive, CIV_EN[f].passive);
 export const civWeakness = (f: FactionId) => pick(FACTIONS[f].weakness, CIV_EN[f].weakness);

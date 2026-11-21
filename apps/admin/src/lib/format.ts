@@ -1,5 +1,6 @@
 import { FACTIONS, type FactionId } from '@stickman-war/core';
 import { lang, t } from '@stickman-war/i18n';
+import { civName } from '@stickman-war/i18n/content';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -23,6 +24,7 @@ export function ago(at: number, now = Date.now()): string {
   return fmtDate(at);
 }
 
-export const faction = (id: FactionId) => FACTIONS[id] ?? { name: id, icon: '❔', color: '#888' };
+/** Nền văn minh để hiển thị: tên theo ngôn ngữ đang chọn; mã lạ (dữ liệu cũ) thì hiện nguyên mã. */
+export const faction = (id: FactionId) => (FACTIONS[id] ? { ...FACTIONS[id], name: civName(id) } : { name: id, icon: '❔', color: '#888' });
 
 export const resultLabel = (r: 'win' | 'lose' | 'draw') => t(`admin.result.${r}`);
