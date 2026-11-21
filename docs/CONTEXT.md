@@ -48,7 +48,7 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 | Chỗ | Vai trò |
 |---|---|
 | `packages/core/src/units.ts` | Khung quân (`Arch`), chỉ số gốc `BASE`, `DAMAGE_TABLE`, sinh `UNITS` cho 12 tộc, `kindOf`, `roster`, `TRAIN_KEYS` |
-| `packages/core/src/factions.ts` | Dữ liệu 12 tộc: nội tại (12 cơ chế: kỷ luật, bầy đàn, hồi máu, thu hồn, nhất kích, cuồng nộ, vàng sa mạc, thép, lò rèn, thủy triều, lửa rồng, giá lạnh), điểm yếu, cách đánh bại, tên / chỉ số / hình dáng (`look`) |
+| `packages/core/src/factions.ts` | Dữ liệu 12 nền văn minh = **12 hệ** (Quang, Phong, Mộc, Ám, Lôi, Huyết, Tinh thể, Thạch, Kim, Thủy, Hỏa, Băng; id cũ `tribe`…`frost` giữ nguyên): nội tại (kỷ luật, cuồng phong, hồi máu, thu hồn, lôi kích, huyết nộ, mạch tinh thể, thân đá, lò rèn, thủy triều, lửa rồng, giá lạnh), điểm yếu, cách đánh bại, tên / chỉ số / hình dáng (`look`, đầu theo hệ) |
 | `packages/core/src/world.ts` | Mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, trạm vàng (`depotX`, thợ mỏ nộp ở trạm), triệu hồi, túi vàng, mỏ giữa, kỳ cựu |
 | `packages/core/src/protocol.ts` | Tin nhắn WebSocket (`ClientMsg`, `ServerMsg`), ảnh chụp trạng thái, `AccountInfo` |
 | `apps/web/src/stores/game.ts` | Phiên chơi (`GameSession`), HUD reactive, chiến dịch / đấu máy, thắng thua, tạm dừng |
@@ -68,7 +68,7 @@ Test máy chủ dùng kho trong bộ nhớ (`MemoryAccountStore`, `MemoryWalletS
 
 ## 5. Tính năng đã có
 
-12 nền văn minh (tên tiếng Anh) × 12 quân + trạm vàng + tường thành có cổng (nút 🧱 / phím T, thợ mỏ đi dựng, mỗi nền văn minh một nét riêng; mã tường nối cuối UNIT_ORDER, AI chưa tự xây); giao diện vi / en (`packages/i18n`, dùng chung web + admin), ⚙️ Cài đặt: ngôn ngữ, âm thanh, âm lượng, mẹo, rung; khắc chế đòn / giáp, mỗi tộc một điểm yếu; đội hình; kỳ cựu; mỏ giữa + túi vàng; chiến dịch 12 tab theo tộc, mỗi tab 33 màn = 3 vòng (Làm quen, Chinh phạt, Thử thách) dễ → khó, mỗi vòng gặp đủ 11 tộc còn lại (thứ tự xáo riêng từng tộc), trùm cuối vòng 2 và 3;
+12 nền văn minh theo **12 hệ** (tên tiếng Việt trong lõi, bản tiếng Anh ở `content-en.ts`, hiển thị qua `civName`; người que thân đen, đầu / màu vải / màu năng lượng theo hệ như 2 ảnh mẫu `docs/art/reference`, mô tả ảnh ở `docs/art/unit-prompts.md`; phe phân biệt bằng thanh máu luôn hiện: xanh lá mình, đỏ địch) × 12 quân + trạm vàng + tường thành có cổng (nút 🧱 / phím T, thợ mỏ đi dựng, mỗi nền văn minh một nét riêng; mã tường nối cuối UNIT_ORDER, AI chưa tự xây); giao diện vi / en (`packages/i18n`, dùng chung web + admin), ⚙️ Cài đặt: ngôn ngữ, âm thanh, âm lượng, mẹo, rung; khắc chế đòn / giáp, mỗi tộc một điểm yếu; đội hình; kỳ cựu; mỏ giữa + túi vàng; chiến dịch 12 tab theo tộc, mỗi tab 33 màn = 3 vòng (Làm quen, Chinh phạt, Thử thách) dễ → khó, mỗi vòng gặp đủ 11 tộc còn lại (thứ tự xáo riêng từng tộc), trùm cuối vòng 2 và 3;
 đấu máy; online 1v1, phòng chờ, đấu trường, người xem, bắt kèo xu ảo, thoại WebRTC; màn đăng nhập (Google / khách,
 ô đồng ý điều khoản bắt buộc, mỗi lần mở đều hiện trừ khi còn phiên Google); sảnh kiểu game di động tông gỗ; Cẩm nang;
 tài khoản (Elo, lịch sử, đổi tên). Đã thử thật trên trình duyệt sau khi chuyển sang Vue + NestJS: đăng nhập khách, sảnh,

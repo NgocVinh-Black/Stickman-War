@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FACTIONS, FACTION_ORDER, kindOf, type FactionId } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
-import { civDesc, civPassive, civWeakness } from '@stickman-war/i18n/content';
+import { civDesc, civName, civPassive, civWeakness } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
 import { chooseFaction } from '../lib/faction';
 import { useSettings } from '../stores/settings';
@@ -19,7 +19,7 @@ const preview = ['sword', 'cavalry', 'catapult', 'giant'] as const;
 function pick(id: FactionId): void {
   chooseFaction(id);
   sound.click();
-  ui.toast(t('civ.picked', { icon: FACTIONS[id].icon, name: FACTIONS[id].name }), 1500);
+  ui.toast(t('civ.picked', { icon: FACTIONS[id].icon, name: civName(id) }), 1500);
   ui.close();
   props.onPick?.();
 }
@@ -40,7 +40,7 @@ function pick(id: FactionId): void {
       @click="pick(id)"
     >
       <div class="faction-head">
-        <CivEmblem :faction="id" :size="36" /><b>{{ FACTIONS[id].name }}</b>
+        <CivEmblem :faction="id" :size="36" /><b>{{ civName(id) }}</b>
       </div>
       <div class="faction-preview"><UnitIcon v-for="a in preview" :key="a" :kind="kindOf(id, a)" :accent="ENERGY[id]" /></div>
       <p>{{ civDesc(id) }}</p>

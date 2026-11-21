@@ -209,7 +209,7 @@ export type Unit = {
   lifeT: number; // > 0: quân triệu hồi, hết giờ thì tan
   lastStruck: number; // mục tiêu của đòn trước (nhất kích)
   buildSlot: number; // thợ xây / trạm: chỗ trạm (chỉ số trong DEPOT_SLOTS)
-  forge: number; // hệ số lò rèn lúc xây ra (Mountain Dwarves), 1 = không có
+  forge: number; // hệ số lò rèn lúc xây ra (Thiết Lò Môn, dwarf), 1 = không có
   combat: boolean; // đang đánh quân địch (không tính đánh tượng)
   // thợ mỏ
   mine: number;

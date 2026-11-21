@@ -2,7 +2,7 @@ import type { FactionId } from '@stickman-war/core';
 import { night } from './palette';
 
 /**
- * Tượng nhà của từng nền văn minh: một công trình đặc trưng (không phải lính mặc đồ tộc).
+ * Tượng nhà của từng nền văn minh (theo hệ): một công trình đặc trưng (không phải lính mặc đồ tộc).
  * Vẽ quanh gốc (0, 0) là mặt đất, hướng lên là y âm, rộng khoảng ±50, cao khoảng 170 (đơn vị thế giới).
  * `stone` / `dark`: màu đá theo phong cảnh; `glow`: màu chủ đạo của nền văn minh; `t`: thời gian (hoạt ảnh nhẹ).
  */
@@ -48,104 +48,99 @@ function glowDot(ctx: Ctx, x: number, y: number, r: number, color: string, t: nu
 }
 
 const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> = {
-  /** Blade Clan: thanh kiếm khổng lồ cắm xuống tảng đá. */
-  tribe(ctx, c) {
+  /** Hệ Quang (Thánh Quang Điện): cột đá trắng đỡ đĩa mặt trời toả tia sáng. */
+  tribe(ctx, c, t) {
+    plinth(ctx, c, 40, 20);
     poly(
       ctx,
       [
-        [-46, 0],
-        [-36, -34],
-        [-12, -46],
-        [16, -44],
-        [38, -30],
-        [46, 0],
+        [-14, -26],
+        [14, -26],
+        [10, -130],
+        [-10, -130],
       ],
-      c.dark,
+      n('#e8e2d0'),
     );
+    ctx.fillStyle = c.dark;
+    for (let y = -40; y > -130; y -= 18) ctx.fillRect(-12, y, 24, 2);
+    ctx.fillStyle = n('#e8e2d0');
+    ctx.fillRect(-20, -138, 40, 9);
+    // Tia sáng xoay chậm
+    ctx.save();
+    ctx.translate(0, -160);
+    ctx.rotate(t * 0.25);
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = c.glow;
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(Math.PI / 6);
+      ctx.beginPath();
+      ctx.moveTo(-3, -24);
+      ctx.lineTo(0, -40);
+      ctx.lineTo(3, -24);
+      ctx.fill();
+    }
+    ctx.restore();
+    glowDot(ctx, 0, -160, 20, c.glow, t);
+    circle(ctx, 0, -160, 13, '#fff6d6');
+  },
+
+  /** Hệ Phong (Cuồng Phong Trại): tháp đá xoắn, cánh chong chóng gió quay trên đỉnh. */
+  orc(ctx, c, t) {
+    plinth(ctx, c, 38, 18);
     poly(
       ctx,
       [
-        [-30, -30],
-        [-10, -42],
-        [14, -40],
-        [30, -28],
-        [8, -24],
+        [-22, -24],
+        [22, -24],
+        [8, -140],
+        [-8, -140],
       ],
       c.stone,
     );
-    poly(
-      ctx,
-      [
-        [-7, -40],
-        [7, -40],
-        [7, -150],
-        [0, -160],
-        [-7, -150],
-      ],
-      n('#dfe4ea'),
-    );
-    ctx.fillStyle = n('#aeb6c2');
-    ctx.fillRect(-1, -150, 2, 108);
-    ctx.fillStyle = n('#7a5a2a');
-    ctx.fillRect(-30, -152, 60, 9);
-    ctx.fillStyle = n('#5a3e1c');
-    ctx.fillRect(-4, -178, 8, 26);
-    circle(ctx, 0, -182, 7, c.glow);
-  },
-
-  /** Orc Horde: cột totem ba mặt quỷ có nanh. */
-  orc(ctx, c, t) {
-    for (let i = 0; i < 3; i++) {
-      const y = -i * 48;
-      ctx.fillStyle = i % 2 ? c.stone : c.dark;
-      ctx.fillRect(-26 + i * 2, y - 48, 52 - i * 4, 48);
-      // mắt
-      glowDot(ctx, -10, y - 32, 4, '#ff4a1a', t, i);
-      glowDot(ctx, 10, y - 32, 4, '#ff4a1a', t, i + 1);
-      // nanh
-      poly(
-        ctx,
-        [
-          [-14, y - 14],
-          [-10, y - 14],
-          [-12, y - 2],
-        ],
-        n('#f5efe0'),
-      );
-      poly(
-        ctx,
-        [
-          [10, y - 14],
-          [14, y - 14],
-          [12, y - 2],
-        ],
-        n('#f5efe0'),
-      );
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(-12, y - 20, 24, 4);
+    ctx.strokeStyle = c.dark;
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-18 + i * 2.5, -32 - i * 22);
+      ctx.quadraticCurveTo(0, -42 - i * 22, 16 - i * 2.5, -30 - i * 22);
+      ctx.stroke();
     }
-    // sừng trên đỉnh
-    poly(
-      ctx,
-      [
-        [-22, -144],
-        [-40, -176],
-        [-14, -150],
-      ],
-      n('#efe3c6'),
-    );
-    poly(
-      ctx,
-      [
-        [22, -144],
-        [40, -176],
-        [14, -150],
-      ],
-      n('#efe3c6'),
-    );
+    // Cánh gió
+    ctx.save();
+    ctx.translate(0, -146);
+    ctx.rotate(t * 1.6);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      poly(
+        ctx,
+        [
+          [0, 0],
+          [6, -10],
+          [3, -46],
+          [-4, -40],
+        ],
+        n('#cfe8df'),
+      );
+    }
+    ctx.restore();
+    glowDot(ctx, 0, -146, 6, c.glow, t);
+    // Vệt gió
+    ctx.save();
+    ctx.strokeStyle = c.glow;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const y = -60 - i * 35;
+      const x = ((t * 60 + i * 40) % 120) - 60;
+      ctx.beginPath();
+      ctx.moveTo(x - 20, y);
+      ctx.quadraticCurveTo(x, y - 6, x + 20, y);
+      ctx.stroke();
+    }
+    ctx.restore();
   },
 
-  /** Forest Elves: cây thiêng tán xanh, đốm sáng bay. */
+  /** Hệ Mộc (Thanh Mộc Lâm): cây thiêng tán xanh, đốm sáng bay. */
   elf(ctx, c, t) {
     ctx.fillStyle = n('#6b4a2b');
     ctx.beginPath();
@@ -168,175 +163,212 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.fillRect(-36, -6, 72, 6);
   },
 
-  /** Undead Legion: bia mộ lớn, đầu lâu mắt tím phát sáng. */
+  /** Hệ Ám (Hội Bóng Đêm): tháp đá đen nhọn, con mắt tím mở giữa thân, khói bóng tối. */
   undead(ctx, c, t) {
-    ctx.fillStyle = c.dark;
+    plinth(ctx, c, 36, 16);
+    poly(
+      ctx,
+      [
+        [-24, -20],
+        [24, -20],
+        [12, -150],
+        [0, -176],
+        [-12, -150],
+      ],
+      n('#2a2233'),
+    );
+    poly(
+      ctx,
+      [
+        [-6, -22],
+        [6, -22],
+        [2, -168],
+        [0, -172],
+      ],
+      c.dark,
+    );
+    // Con mắt
+    ctx.save();
+    ctx.fillStyle = c.glow;
+    ctx.shadowColor = c.glow;
+    ctx.shadowBlur = 14;
+    const open = 0.6 + 0.4 * Math.abs(Math.sin(t * 0.8));
     ctx.beginPath();
-    ctx.moveTo(-34, 0);
-    ctx.lineTo(-34, -100);
-    ctx.arc(0, -100, 34, Math.PI, 0);
-    ctx.lineTo(34, 0);
-    ctx.closePath();
+    ctx.ellipse(0, -100, 13, 6 * open, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = c.stone;
-    ctx.fillRect(-4, -110, 8, 70);
-    ctx.fillRect(-20, -92, 40, 8);
-    // đầu lâu
-    circle(ctx, 0, -150, 22, n('#eee8d8'));
-    ctx.fillStyle = n('#eee8d8');
-    ctx.fillRect(-12, -136, 24, 14);
-    glowDot(ctx, -8, -152, 5, '#a855f7', t);
-    glowDot(ctx, 8, -152, 5, '#a855f7', t, 1);
-    ctx.fillStyle = n('#3a3030');
-    for (let i = -2; i <= 2; i++) ctx.fillRect(i * 5 - 1, -130, 2, 7);
+    ctx.restore();
+    circle(ctx, 0, -100, 3.5, '#120a1c');
+    for (let i = 0; i < 4; i++) glowDot(ctx, -20 + i * 13, -40 - ((t * 20 + i * 30) % 100), 2, c.glow, t, i);
   },
 
-  /** Ronin Order: chùa tháp ba tầng mái cong. */
-  samurai(ctx, c) {
-    plinth(ctx, c, 40, 14);
-    const roof = (y: number, w: number) => {
-      ctx.fillStyle = n('#7a2b22');
-      ctx.beginPath();
-      ctx.moveTo(-w - 10, y + 4);
-      ctx.quadraticCurveTo(-w * 0.5, y - 4, 0, y - 16);
-      ctx.quadraticCurveTo(w * 0.5, y - 4, w + 10, y + 4);
-      ctx.lineTo(w, y + 8);
-      ctx.lineTo(-w, y + 8);
-      ctx.closePath();
-      ctx.fill();
-    };
-    const tiers: [number, number][] = [
-      [-20, 34],
-      [-66, 28],
-      [-108, 22],
-    ];
-    for (const [y, w] of tiers) {
-      ctx.fillStyle = c.stone;
-      ctx.fillRect(-w + 6, y - 36, (w - 6) * 2, 36);
-      ctx.fillStyle = c.dark;
-      ctx.fillRect(-6, y - 26, 12, 26);
-      roof(y - 40, w);
+  /** Hệ Lôi (Lôi Kiếm Các): cột thu lôi ba tầng, tia sét chớp giữa hai sừng kim loại. */
+  samurai(ctx, c, t) {
+    plinth(ctx, c, 36, 18);
+    for (let i = 0; i < 3; i++) {
+      const w = 22 - i * 5;
+      const y = -24 - i * 40;
+      ctx.fillStyle = i % 2 ? c.stone : c.dark;
+      ctx.fillRect(-w, y - 36, w * 2, 36);
+      ctx.fillStyle = n('#3a3a52');
+      ctx.fillRect(-w - 6, y - 40, w * 2 + 12, 5);
     }
-    ctx.fillStyle = n('#d4a017');
-    ctx.fillRect(-2, -190, 4, 34);
-    circle(ctx, 0, -192, 4, n('#d4a017'));
+    ctx.strokeStyle = n('#9aa0b8');
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-12, -144);
+    ctx.lineTo(-18, -178);
+    ctx.moveTo(12, -144);
+    ctx.lineTo(18, -178);
+    ctx.stroke();
+    // Tia sét nhấp nháy giữa hai sừng
+    if (Math.sin(t * 7) > -0.3) {
+      ctx.save();
+      ctx.strokeStyle = c.glow;
+      ctx.shadowColor = c.glow;
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-18, -176);
+      const j = Math.sin(t * 23) * 5;
+      ctx.lineTo(-8, -166 + j);
+      ctx.lineTo(-2, -176 - j);
+      ctx.lineTo(6, -166 + j);
+      ctx.lineTo(18, -176);
+      ctx.stroke();
+      ctx.restore();
+    }
+    glowDot(ctx, 0, -110, 4, c.glow, t);
   },
 
-  /** Storm Raiders: đá khắc rune, đội mũ sừng. */
+  /** Hệ Huyết (Huyết Nguyệt Giáo): bàn thờ đá, vầng trăng máu lơ lửng phía trên, máu chảy theo rãnh. */
   viking(ctx, c, t) {
     poly(
       ctx,
       [
-        [-30, 0],
-        [-24, -120],
-        [0, -132],
-        [24, -120],
-        [30, 0],
+        [-44, 0],
+        [-34, -40],
+        [34, -40],
+        [44, 0],
       ],
       c.dark,
     );
-    ctx.strokeStyle = c.glow;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t * 2);
-    ctx.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const y = -30 - i * 22;
-      ctx.moveTo(-10, y);
-      ctx.lineTo(0, y - 12);
-      ctx.lineTo(10, y);
-      ctx.moveTo(0, y - 12);
-      ctx.lineTo(0, y + 6);
+    ctx.fillStyle = c.stone;
+    ctx.fillRect(-38, -50, 76, 12);
+    for (const x of [-26, 26]) {
+      ctx.fillStyle = c.stone;
+      ctx.fillRect(x - 6, -110, 12, 62);
+      poly(
+        ctx,
+        [
+          [x - 9, -110],
+          [x, -124],
+          [x + 9, -110],
+        ],
+        c.dark,
+      );
     }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    // mũ sừng
-    ctx.fillStyle = n('#9aa3ad');
-    ctx.beginPath();
-    ctx.arc(0, -132, 26, Math.PI, 0);
-    ctx.fill();
-    ctx.fillStyle = n('#6b7480');
-    ctx.fillRect(-28, -134, 56, 8);
-    for (const s of [-1, 1]) {
-      ctx.strokeStyle = n('#efe3c6');
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(s * 24, -140);
-      ctx.quadraticCurveTo(s * 50, -150, s * 44, -186);
-      ctx.stroke();
-    }
-    ctx.lineCap = 'butt';
+    // Rãnh máu
+    ctx.fillStyle = n('#a3101e');
+    ctx.fillRect(-2, -40, 4, 40);
+    // Trăng máu
+    ctx.save();
+    ctx.shadowColor = c.glow;
+    ctx.shadowBlur = 24;
+    circle(ctx, 0, -150 + Math.sin(t) * 3, 24, c.glow);
+    ctx.restore();
+    circle(ctx, 9, -156 + Math.sin(t) * 3, 21, c.dark);
   },
 
-  /** Desert Nomads: kim tự tháp, đĩa mặt trời vàng phía trên. */
+  /** Hệ Tinh thể (Tinh Thạch Cốc): viên pha lê khổng lồ lơ lửng xoay trên đế đá, mảnh vụn bay quanh. */
   desert(ctx, c, t) {
+    plinth(ctx, c, 40, 20);
     poly(
       ctx,
       [
-        [-56, 0],
-        [0, -120],
-        [56, 0],
+        [-24, -26],
+        [24, -26],
+        [14, -44],
+        [-14, -44],
+      ],
+      c.dark,
+    );
+    const y = -112 + Math.sin(t * 1.3) * 5;
+    const w = 26 * Math.abs(Math.cos(t * 0.6)) + 8;
+    ctx.save();
+    ctx.shadowColor = c.glow;
+    ctx.shadowBlur = 22;
+    poly(
+      ctx,
+      [
+        [0, y - 56],
+        [w, y - 10],
+        [0, y + 50],
+        [-w, y - 10],
+      ],
+      c.glow,
+    );
+    ctx.restore();
+    poly(
+      ctx,
+      [
+        [0, y - 56],
+        [w * 0.35, y - 10],
+        [0, y + 50],
+      ],
+      'rgba(255,255,255,0.35)',
+    );
+    for (let i = 0; i < 4; i++) {
+      const a = t * 0.9 + (i * Math.PI) / 2;
+      glowDot(ctx, Math.cos(a) * 40, y + Math.sin(a) * 12, 3, c.glow, t, i);
+    }
+  },
+
+  /** Hệ Thạch (Bàn Thạch Bảo): cổng đá cự thạch hai cột một xà, khe nứt hổ phách phát sáng. */
+  steam(ctx, c, t) {
+    for (const x of [-30, 30]) {
+      poly(
+        ctx,
+        [
+          [x - 16, 0],
+          [x - 13, -120],
+          [x + 12, -124],
+          [x + 16, 0],
+        ],
+        x < 0 ? c.stone : c.dark,
+      );
+    }
+    poly(
+      ctx,
+      [
+        [-52, -118],
+        [50, -126],
+        [52, -146],
+        [-48, -144],
       ],
       c.stone,
     );
-    poly(
-      ctx,
-      [
-        [0, -120],
-        [56, 0],
-        [14, 0],
-      ],
-      c.dark,
-    );
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.save();
+    ctx.strokeStyle = c.glow;
+    ctx.shadowColor = c.glow;
+    ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 2);
     ctx.lineWidth = 2;
-    for (let i = 1; i < 5; i++) {
-      const y = -i * 24;
-      const w = 56 - (i * 56) / 5;
-      ctx.beginPath();
-      ctx.moveTo(-w, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-    ctx.save();
-    ctx.shadowColor = '#ffb020';
-    ctx.shadowBlur = 16 + 6 * Math.sin(t * 2);
-    circle(ctx, 0, -150, 20, '#f6c445');
+    ctx.beginPath();
+    ctx.moveTo(-34, -20);
+    ctx.lineTo(-28, -55);
+    ctx.lineTo(-34, -80);
+    ctx.moveTo(28, -40);
+    ctx.lineTo(34, -70);
+    ctx.lineTo(29, -100);
+    ctx.moveTo(-20, -132);
+    ctx.lineTo(0, -136);
+    ctx.lineTo(14, -130);
+    ctx.stroke();
     ctx.restore();
-    circle(ctx, 0, -150, 8, '#c8811a');
+    glowDot(ctx, 0, -70, 6, c.glow, t);
   },
 
-  /** Iron Empire: tháp sắt với bánh răng quay và ống khói. */
-  steam(ctx, c, t) {
-    ctx.fillStyle = c.dark;
-    ctx.fillRect(-34, -110, 68, 110);
-    ctx.fillStyle = c.stone;
-    ctx.fillRect(-28, -104, 56, 8);
-    ctx.fillRect(-28, -20, 56, 8);
-    // ống khói + khói
-    ctx.fillStyle = n('#3f444c');
-    ctx.fillRect(14, -160, 14, 52);
-    for (let i = 0; i < 3; i++) {
-      const k = (t * 0.5 + i / 3) % 1;
-      ctx.globalAlpha = 0.45 * (1 - k);
-      circle(ctx, 21 + k * 18, -166 - k * 40, 7 + k * 10, n('#8a8a8a'));
-    }
-    ctx.globalAlpha = 1;
-    // bánh răng
-    ctx.save();
-    ctx.translate(-4, -62);
-    ctx.rotate(t * 0.8);
-    ctx.fillStyle = n('#b08a3a');
-    for (let i = 0; i < 8; i++) {
-      ctx.rotate(Math.PI / 4);
-      ctx.fillRect(-5, -30, 10, 10);
-    }
-    circle(ctx, 0, 0, 22, n('#c99a3e'));
-    circle(ctx, 0, 0, 8, c.dark);
-    ctx.restore();
-  },
-
-  /** Mountain Dwarves: đe sắt trên tảng đá, búa lớn, rune phát sáng. */
+  /** Hệ Kim (Thiết Lò Môn): đe sắt trên tảng đá, búa lớn, ấn phát sáng. */
   dwarf(ctx, c, t) {
     poly(
       ctx,
@@ -382,7 +414,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     glowDot(ctx, 26, -28, 4, '#ffb347', t, 2);
   },
 
-  /** Tide Folk: đinh ba khổng lồ trên vỏ ốc. */
+  /** Hệ Thủy (Thủy Nguyệt Cung): đinh ba khổng lồ trên vỏ ốc. */
   tide(ctx, c, t) {
     ctx.fillStyle = c.stone;
     ctx.beginPath();
@@ -418,7 +450,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     glowDot(ctx, 0, -110, 5, '#7df9ff', t);
   },
 
-  /** Dragon Brood: đầu rồng đá há miệng, lửa bập bùng. */
+  /** Hệ Hỏa (Viêm Long Môn): đầu rồng đá há miệng, lửa bập bùng. */
   dragon(ctx, c, t) {
     plinth(ctx, c, 42, 24);
     ctx.fillStyle = c.dark;
@@ -472,7 +504,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
     ctx.restore();
   },
 
-  /** Frost Kin: cụm tinh thể băng trong suốt. */
+  /** Hệ Băng (Hàn Băng Cung): cụm tinh thể băng trong suốt. */
   frost(ctx, c, t) {
     const crystal = (x: number, h: number, w: number, tilt: number) => {
       ctx.save();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { FACTIONS, type FactionId } from '@stickman-war/core';
-import { civDesc } from '@stickman-war/i18n/content';
+import { civDesc, civName } from '@stickman-war/i18n/content';
 import { computed } from 'vue';
 import CivEmblem from './CivEmblem.vue';
 
@@ -13,7 +13,7 @@ const fd = computed(() => FACTIONS[props.faction]);
   <div class="civ-show" :style="{ '--faction': fd.color }">
     <CivEmblem class="civ-show-icon" :faction="faction" :size="58" />
     <div class="civ-show-text">
-      <h2>{{ fd.name }}</h2>
+      <h2>{{ civName(props.faction) }}</h2>
       <p>{{ civDesc(faction) }}</p>
     </div>
   </div>

@@ -17,7 +17,7 @@ export type Arch =
   | 'builder'
   | 'tower'
   | 'wall';
-/** Mã loại quân: Blade Clan dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
+/** Mã loại quân: Thánh Quang Điện (tribe) dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
 export type UnitKind = string;
 export type Stance = 'defend' | 'attack' | 'garrison' | 'hold';
 export type Formation = 'free' | 'line' | 'spread' | 'wedge' | 'wall';
@@ -105,7 +105,7 @@ export const ALL_ARCHS: Arch[] = [...ARCH_ORDER, 'tower', 'wall'];
 
 type Base = Omit<UnitStats, 'arch' | 'faction' | 'name' | 'desc' | 'counter' | 'look'>;
 
-/** Chỉ số gốc của từng khung (chính là quân Blade Clan trước khi áp nội tại tộc). */
+/** Chỉ số gốc của từng khung (chính là quân Thánh Quang Điện (tribe) trước khi áp nội tại tộc). */
 const BASE: Record<Arch, Base> = {
   miner: {
     cost: 150,

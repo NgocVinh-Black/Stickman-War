@@ -2,6 +2,7 @@
 import { FACTIONS, UNITS, roster, type FactionId } from '@stickman-war/core';
 import { unitName } from '@stickman-war/i18n/content';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { CLOTH } from '../game/render/palette';
 import { viewScale } from '../game/render/renderer';
 import { drawShowcase, unitBox } from '../game/showcase';
 
@@ -62,7 +63,7 @@ function frame(now: number): void {
     ctx.fill();
     ctx.translate(x, y);
     ctx.scale(s, s);
-    drawShowcase(ctx, k, sec, now, { accent: fd.value.color });
+    drawShowcase(ctx, k, sec, now, { accent: CLOTH[UNITS[k].faction] ?? fd.value.color });
   }
   raf = requestAnimationFrame(frame);
 }

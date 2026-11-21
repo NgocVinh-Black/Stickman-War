@@ -14,20 +14,39 @@ export const GEAR_HI = '#352c4a';
 /** Màu đêm dùng để pha tối mọi màu gốc. */
 export const NIGHT = '#0d0a16';
 
-/** Màu năng lượng (vũ khí, phép, cửa sổ, hoa văn) của từng nền văn minh: sáng, bão hoà hơn màu giao diện. */
+/** Màu năng lượng của từng hệ (vũ khí, phép, cửa sổ, hoa văn): sáng, bão hoà hơn màu giao diện. */
 export const ENERGY: Record<FactionId, string> = {
-  tribe: '#5aa9ff',
-  orc: '#8ae04a',
-  elf: '#3dffa0',
+  tribe: '#ffe08a',
+  orc: '#c6fff0',
+  elf: '#7dff6a',
   undead: '#b388ff',
-  samurai: '#ff4d5e',
-  viking: '#5fd4ff',
-  desert: '#ffd24a',
-  steam: '#ffa94d',
+  samurai: '#fff36b',
+  viking: '#ff2d3c',
+  desert: '#ff8af0',
+  steam: '#e8b46a',
   dwarf: '#ff8c3a',
-  tide: '#2ef2d0',
-  dragon: '#ff5a1f',
-  frost: '#9fdcff',
+  tide: '#4fd2ff',
+  dragon: '#ff7a1a',
+  frost: '#e3f6ff',
+};
+
+/**
+ * Màu vải (áo choàng, khăn), mắt và viền sáng của lính từng nền văn minh — cùng bộ màu với docs/art/unit-prompts.md.
+ * Phe không phân biệt bằng màu lính nữa mà bằng thanh máu (xanh lá phe mình, đỏ phe địch).
+ */
+export const CLOTH: Record<FactionId, string> = {
+  tribe: '#f1ead2',
+  orc: '#3fae86',
+  elf: '#2e8b3a',
+  undead: '#4a1f7a',
+  samurai: '#e0b400',
+  viking: '#a3101e',
+  desert: '#b0249e',
+  steam: '#7a5c3e',
+  dwarf: '#56606e',
+  tide: '#1d5fd1',
+  dragon: '#d9381e',
+  frost: '#9cc9f5',
 };
 
 type RGB = [number, number, number];

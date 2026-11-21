@@ -28,7 +28,7 @@ import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { router } from '../router';
 import { t } from '@stickman-war/i18n';
-import { civPassive, levelIntro, levelName } from '@stickman-war/i18n/content';
+import { civName, civPassive, levelIntro, levelName } from '@stickman-war/i18n/content';
 import { useOnline } from './online';
 import { useSettings } from './settings';
 import { useUi, type DialogButton } from './ui';
@@ -450,7 +450,7 @@ export const useGame = defineStore('game', () => {
       const buttons: DialogButton[] = next
         ? [
             {
-              label: t('campaign.playCiv', { icon: FACTIONS[next].icon, name: FACTIONS[next].name }),
+              label: t('campaign.playCiv', { icon: FACTIONS[next].icon, name: civName(next) }),
               primary: true,
               action: () => startCampaign(Math.min(st.progress[next].unlocked, LEVELS.length - 1), next),
             },
@@ -533,7 +533,7 @@ export const useGame = defineStore('game', () => {
     if (s && s.mode.type !== 'menu' && !isNet(s.mode) && !s.endShown) s.running = true;
   }
 
-  const factionName = (f: FactionId) => `${FACTIONS[f].icon} ${FACTIONS[f].name}`;
+  const factionName = (f: FactionId) => `${FACTIONS[f].icon} ${civName(f)}`;
 
   return {
     session,
