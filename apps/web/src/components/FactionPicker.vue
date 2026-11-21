@@ -7,6 +7,8 @@ import { chooseFaction } from '../lib/faction';
 import { useSettings } from '../stores/settings';
 import { useUi } from '../stores/ui';
 import UnitIcon from './UnitIcon.vue';
+import { ENERGY } from '../game/render/palette';
+import CivEmblem from './CivEmblem.vue';
 
 /** Bảng chọn nền văn minh: mỗi nền văn minh kèm điểm mạnh, điểm yếu và hình vài quân tiêu biểu. */
 const props = defineProps<{ onPick?: () => void }>();
@@ -38,9 +40,9 @@ function pick(id: FactionId): void {
       @click="pick(id)"
     >
       <div class="faction-head">
-        <span class="faction-icon">{{ FACTIONS[id].icon }}</span><b>{{ FACTIONS[id].name }}</b>
+        <CivEmblem :faction="id" :size="36" /><b>{{ FACTIONS[id].name }}</b>
       </div>
-      <div class="faction-preview"><UnitIcon v-for="a in preview" :key="a" :kind="kindOf(id, a)" /></div>
+      <div class="faction-preview"><UnitIcon v-for="a in preview" :key="a" :kind="kindOf(id, a)" :accent="ENERGY[id]" /></div>
       <p>{{ civDesc(id) }}</p>
       <p class="faction-passive">✨ {{ civPassive(id) }}</p>
       <p class="faction-vs">

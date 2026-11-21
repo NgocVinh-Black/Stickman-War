@@ -6,6 +6,7 @@ import { t } from '@stickman-war/i18n';
 import { levelName } from '@stickman-war/i18n/content';
 import { useGame } from '../../stores/game';
 import { useSettings } from '../../stores/settings';
+import CivEmblem from '../../components/CivEmblem.vue';
 
 /**
  * Chơi đơn: chiến dịch chia 12 tab theo tộc. Ở tab nào thì cầm đúng tộc đó, đi 3 vòng × 11 màn từ dễ tới khó,
@@ -45,7 +46,7 @@ function pickFaction(f: FactionId): void {
       :aria-selected="f === settings.campFaction"
       @click="pickFaction(f)"
     >
-      <span class="camp-tab-icon">{{ FACTIONS[f].icon }}</span>
+      <CivEmblem class="camp-tab-icon" :faction="f" :size="36" />
       <span class="camp-tab-name">{{ FACTIONS[f].name }}</span>
       <small>{{ settings.progress[f].completed ? '👑' : '★' }} {{ settings.factionStars(f) }}/{{ settings.tabMax }}</small>
     </button>

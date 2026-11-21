@@ -74,7 +74,9 @@
 }
 .faction-chip.active {
   background: color-mix(in srgb, var(--faction) 26%, transparent);
-  box-shadow: 0 0 0 2px var(--faction);
+  box-shadow:
+    0 0 0 2px var(--faction),
+    0 0 14px color-mix(in srgb, var(--faction) 55%, transparent);
 }
 .seat-factions {
   width: 100%;
@@ -109,10 +111,13 @@
 }
 .faction-card.active {
   background: color-mix(in srgb, var(--faction) 22%, transparent);
-  box-shadow: 0 0 0 2px var(--faction);
+  box-shadow:
+    0 0 0 2px var(--faction),
+    0 0 18px color-mix(in srgb, var(--faction) 55%, transparent);
 }
 .faction-head {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   font-size: 16px;
