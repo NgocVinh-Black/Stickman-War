@@ -5,14 +5,15 @@ Phong cách **bắt buộc theo 2 ảnh mẫu** trong `docs/art/reference/`:
 `mau-1-kiem-ao-choang-do.png` (tóc dựng, áo choàng đỏ rách, kiếm rực đỏ cam) và
 `mau-2-katana-toc-xanh.png` (tóc nhuộm xanh, khăn dài, katana xanh có tia điện).
 Tên lính, vũ khí, thú cưỡi lấy từ lõi game (`packages/core/src/factions.ts`); màu lấy từ `apps/web/src/game/render/palette.ts`
-(`CLOTH` = màu vải, `ENERGY` = màu phát sáng). Đổi tên, vũ khí hay màu trong game thì sửa luôn file này cho khớp.
+(`CLOTH` = màu vải, `ENERGY` = màu phát sáng). File này sinh tự động, sửa dữ liệu trong game rồi sinh lại cho khớp.
 
 ## Quy tắc phong cách (rút từ 2 ảnh mẫu, áp cho mọi lính)
 
 1. **Bảng 3 góc nhìn** cạnh nhau trên nền xám rất nhạt có vài đường kẻ ngang mờ: TỪ TRƯỚC (FRONT VIEW), TỪ TRÊN XUỐNG (TOP-DOWN VIEW),
    TỪ BÊN PHẢI (RIGHT SIDE VIEW), chữ đen đậm in hoa phía trên mỗi hình.
 2. **Thân đen tuyền** cho mọi hệ: tay chân mảnh, đầu tròn, bàn tay tròn đơn giản, **không có mặt** (không mũi, miệng),
-   **không vẽ chi tiết giáp / da / cơ**. Tóc, mũ, sừng, tinh thể… là **hình bóng đen** nối liền thân, chỉ có viền sáng.
+   **không vẽ da / cơ**. Tóc, mũ, sừng, tinh thể… là **hình bóng đen** hoặc tô màu vải, chỉ có viền sáng.
+   Trang bị tối giản: giáp vai nhỏ theo hệ, thắt lưng da, bao cổ tay (không giáp kín người).
 3. **Đôi mắt xếch sắc** phát sáng (lõi trắng, viền màu), là chi tiết duy nhất trên mặt.
 4. **Hình đầu theo hệ** là dấu hiệu nhận diện chính (tóc lửa, tóc tia sét, hào quang, mũ đá…).
 5. **Vải chỉ một màu** (màu vải của hệ): áo choàng và / hoặc khăn, **gấu rách**, bay theo gió, tô phẳng.
@@ -30,8 +31,8 @@ Một prompt = **[A] Phong cách chung** + **[B] Hệ** + **[C] Lính**, dán li
 Character turnaround sheet in the exact style of a stickman anime game reference: three views side by side on a very light grey
 background with a few faint horizontal guide lines, labelled above in bold black caps "FRONT VIEW", "TOP-DOWN VIEW", "RIGHT SIDE VIEW".
 The character is a stickman with a solid pitch-black silhouette body: thin limbs, round head, simple round hands, no face except two
-sharp slanted glowing eyes (white core). No armour detail, no skin, no muscles: hair, helmets, horns and accessories are flat black
-silhouette shapes with only a thin glowing rim. Cloth (cape and/or scarf or sash) in one single strong colour with torn ragged edges
+sharp slanted glowing eyes (white core). No skin, no muscles, minimal gear (small shoulder guards, leather belt, bracers): hair,
+helmets, horns and accessories are flat shapes with only a thin glowing rim. Cloth (cape and/or scarf or sash) in one single strong colour with torn ragged edges
 flowing in the wind, flat cel shading. The weapon glows with a white-hot core, a coloured neon edge and soft bloom, with small
 elemental effects. Clean 2D cel-shaded game art, crisp dark outlines. Same character, same proportions and colours in all three views.
 Full body, feet visible, no scenery.
@@ -40,7 +41,7 @@ Full body, feet visible, no scenery.
 Negative prompt:
 
 ```
-realistic, 3d render, detailed face, mouth, nose, skin, muscles, armour texture, metal shading, coloured body, extra limbs, extra fingers,
+realistic, 3d render, detailed face, mouth, nose, skin, muscles, full plate armour, metal texture, coloured body, extra limbs, extra fingers,
 multiple cloth colours, busy background, scenery, cropped feet, inconsistent views, watermark
 ```
 
@@ -56,11 +57,12 @@ Không cần vẽ hai bản màu phe.
 Hệ Quang. Đạo quân ánh sáng kỷ luật: cân bằng, dễ chơi, đủ mọi loại quân.
 
 - Đầu: tóc dựng nhọn + vầng hào quang mỏng sau đầu
+- Giáp vai: giáp vai vàng
 - Vải: trắng ngà `#f1ead2`
 - Phát sáng: vàng ánh sáng `#ffe08a` — tia sáng và bụi sáng lấp lánh
 
 ```
-[B] Element: Light (Temple of Light). Head silhouette: spiky hair with a thin glowing halo ring behind the head. Cloth colour: ivory white (#f1ead2).
+[B] Element: Light (Temple of Light). Head silhouette: spiky hair with a thin glowing halo ring behind the head. Shoulder gear: small gold shoulder plates. Cloth colour: ivory white (#f1ead2).
 Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glittering motes.
 ```
 
@@ -167,11 +169,12 @@ Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glitteri
 Hệ Phong. Bầy quân gió lốc: càng đông càng mạnh, đứng lẻ thì yếu.
 
 - Đầu: tóc dài bay ngược gió
+- Giáp vai: giáp vai da
 - Vải: ngọc bích `#3fae86`
 - Phát sáng: trắng ngọc `#c6fff0` — vệt gió xoáy, lá và bụi cuốn
 
 ```
-[B] Element: Wind (Gale Horde). Head silhouette: long hair streaming back in the wind. Cloth colour: jade green (#3fae86).
+[B] Element: Wind (Gale Horde). Head silhouette: long hair streaming back in the wind. Shoulder gear: small leather shoulder pads. Cloth colour: jade green (#3fae86).
 Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streaks, leaves and dust.
 ```
 
@@ -278,11 +281,12 @@ Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streak
 Hệ Mộc. Người giữ rừng: bắn xa, tự hồi máu, mỏng manh khi bị áp sát.
 
 - Đầu: mũ trùm lá, tai nhọn
+- Giáp vai: giáp vai lá
 - Vải: xanh lá rừng `#2e8b3a`
 - Phát sáng: xanh lá non `#7dff6a` — lá sáng và đom đóm
 
 ```
-[B] Element: Wood (Verdant Grove). Head silhouette: leaf hood and pointed ears. Cloth colour: forest green (#2e8b3a).
+[B] Element: Wood (Verdant Grove). Head silhouette: leaf hood and pointed ears. Shoulder gear: leaf-shaped shoulder guards. Cloth colour: forest green (#2e8b3a).
 Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and fireflies.
 ```
 
@@ -389,11 +393,12 @@ Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and
 Hệ Ám. Giáo phái bóng tối: quân rẻ, yếu, rất đông. Càng giết càng giàu.
 
 - Đầu: mũ trùm kín có hai sừng nhỏ, khói tím bốc lên
+- Giáp vai: giáp vai gai nhọn
 - Vải: tím than `#4a1f7a`
 - Phát sáng: tím ma `#b388ff` — khói bóng tối, mép thân tan thành khói
 
 ```
-[B] Element: Shadow (Shadow Cult). Head silhouette: closed hood with two small horns, violet smoke rising. Cloth colour: deep violet (#4a1f7a).
+[B] Element: Shadow (Shadow Cult). Head silhouette: closed hood with two small horns, violet smoke rising. Shoulder gear: spiked shoulder guards. Cloth colour: deep violet (#4a1f7a).
 Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body edges dissolving into smoke.
 ```
 
@@ -500,11 +505,12 @@ Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body ed
 Hệ Lôi. Kiếm khách sấm sét: ra đòn nhanh và chí mạng.
 
 - Đầu: tóc dựng gấp khúc như tia sét (giống mẫu 2)
+- Giáp vai: giáp vai tấm kiểu sode
 - Vải: vàng sấm `#e0b400`
 - Phát sáng: vàng chớp `#fff36b` — tia sét lách tách quanh vũ khí (như mẫu 2)
 
 ```
-[B] Element: Lightning (Thunder Blade Hall). Head silhouette: spiky zig-zag hair shaped like lightning bolts, like reference 2. Cloth colour: thunder yellow (#e0b400).
+[B] Element: Lightning (Thunder Blade Hall). Head silhouette: spiky zig-zag hair shaped like lightning bolts, like reference 2. Shoulder gear: layered sode shoulder plates. Cloth colour: thunder yellow (#e0b400).
 Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning around the weapon, like reference 2.
 ```
 
@@ -611,11 +617,12 @@ Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning
 Hệ Huyết. Giáo phái trăng máu: cận chiến hung bạo, càng đau càng điên.
 
 - Đầu: tóc dài rối bù + băng trán đỏ bay
+- Giáp vai: giáp vai lông thú
 - Vải: đỏ máu `#a3101e`
 - Phát sáng: đỏ tươi `#ff2d3c` — giọt máu bay, hơi đỏ cuồng nộ
 
 ```
-[B] Element: Blood (Blood Moon Cult). Head silhouette: long wild hair with a fluttering red headband. Cloth colour: blood red (#a3101e).
+[B] Element: Blood (Blood Moon Cult). Head silhouette: long wild hair with a fluttering red headband. Shoulder gear: fur shoulder mantle. Cloth colour: blood red (#a3101e).
 Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red rage steam.
 ```
 
@@ -722,11 +729,12 @@ Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red
 Hệ Tinh thể. Thung lũng pha lê: giàu vàng, tượng vững, có chiến xa và tư tế tinh quang.
 
 - Đầu: ba mảnh tinh thể mọc trên đầu
+- Giáp vai: giáp vai tinh thể
 - Vải: hồng tím `#b0249e`
 - Phát sáng: hồng pha lê `#ff8af0` — mảnh pha lê lấp lánh, ánh khúc xạ
 
 ```
-[B] Element: Crystal (Crystal Vale). Head silhouette: three crystal shards growing from the head. Cloth colour: magenta (#b0249e).
+[B] Element: Crystal (Crystal Vale). Head silhouette: three crystal shards growing from the head. Shoulder gear: crystal shoulder guards. Cloth colour: magenta (#b0249e).
 Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shards, refracted light.
 ```
 
@@ -833,11 +841,12 @@ Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shard
 Hệ Thạch. Pháo đài đá tảng: giáp dày, súng đá và máy phóng. Đắt và chậm.
 
 - Đầu: mũ đá thô gồ ghề, vết nứt sáng
+- Giáp vai: giáp vai thép tán đinh
 - Vải: nâu đất `#7a5c3e`
 - Phát sáng: hổ phách `#e8b46a` — bụi đá, khe nứt hổ phách
 
 ```
-[B] Element: Stone (Stone Bastion). Head silhouette: rough rock helmet with a glowing crack. Cloth colour: earth brown (#7a5c3e).
+[B] Element: Stone (Stone Bastion). Head silhouette: rough rock helmet with a glowing crack. Shoulder gear: riveted steel pauldrons. Cloth colour: earth brown (#7a5c3e).
 Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
 ```
 
@@ -944,11 +953,12 @@ Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
 Hệ Kim. Môn phái lò rèn: lì lợm, càng về cuối trận càng mạnh.
 
 - Đầu: mũ sắt có mào và tấm che mũi
+- Giáp vai: giáp vai thép tán đinh
 - Vải: xám thép `#56606e`
 - Phát sáng: cam lò rèn `#ff8c3a` — tia lửa đe rèn, kim loại nung đỏ
 
 ```
-[B] Element: Metal (Iron Forge Sect). Head silhouette: iron helmet with a crest and nose guard. Cloth colour: steel grey (#56606e).
+[B] Element: Metal (Iron Forge Sect). Head silhouette: iron helmet with a crest and nose guard. Shoulder gear: riveted steel pauldrons. Cloth colour: steel grey (#56606e).
 Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot metal.
 ```
 
@@ -1055,11 +1065,12 @@ Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot m
 Hệ Thủy. Cung điện trăng nước: đánh lâu không mệt nhờ hút máu.
 
 - Đầu: tóc dài uốn như con sóng, giọt nước sáng
+- Giáp vai: giáp vai vỏ sò
 - Vải: xanh biển `#1d5fd1`
 - Phát sáng: xanh nước `#4fd2ff` — bọt nước, gợn sóng
 
 ```
-[B] Element: Water (Tidal Moon Court). Head silhouette: long hair curling like a wave, glowing water droplets. Cloth colour: ocean blue (#1d5fd1).
+[B] Element: Water (Tidal Moon Court). Head silhouette: long hair curling like a wave, glowing water droplets. Shoulder gear: seashell shoulder guards. Cloth colour: ocean blue (#1d5fd1).
 Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
 ```
 
@@ -1166,11 +1177,12 @@ Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
 Hệ Hỏa. Môn phái rồng lửa: mọi đòn đều để lại lửa.
 
 - Đầu: tóc dựng như ngọn lửa, đầu tóc cháy sáng
+- Giáp vai: giáp vai vảy rồng
 - Vải: đỏ cam lửa `#d9381e`
 - Phát sáng: cam lửa `#ff7a1a` — lửa bập bùng, tàn lửa (như mẫu 1)
 
 ```
-[B] Element: Fire (Flame Dragon Sect). Head silhouette: spiky hair shaped like flames with burning tips. Cloth colour: flame red-orange (#d9381e).
+[B] Element: Fire (Flame Dragon Sect). Head silhouette: spiky hair shaped like flames with burning tips. Shoulder gear: dragon-scale shoulder guards. Cloth colour: flame red-orange (#d9381e).
 Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and embers, like reference 1.
 ```
 
@@ -1277,11 +1289,12 @@ Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and em
 Hệ Băng. Cung điện băng giá: khống chế địch bằng giá lạnh.
 
 - Đầu: tóc dựng + vương miện băng nhọn
+- Giáp vai: giáp vai băng
 - Vải: xanh băng nhạt `#9cc9f5`
 - Phát sáng: trắng băng `#e3f6ff` — bông tuyết, hơi lạnh
 
 ```
-[B] Element: Ice (Frost Palace). Head silhouette: spiky hair with a sharp ice crown. Cloth colour: pale ice blue (#9cc9f5).
+[B] Element: Ice (Frost Palace). Head silhouette: spiky hair with a sharp ice crown. Shoulder gear: ice shoulder guards. Cloth colour: pale ice blue (#9cc9f5).
 Eyes, weapon and magic glow: icy white (#e3f6ff) with snowflakes and cold mist.
 ```
 
