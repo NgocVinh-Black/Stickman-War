@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FACTIONS, FACTION_ORDER, kindOf, type FactionId } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
-import { civDesc, civName, civPassive, civWeakness } from '@stickman-war/i18n/content';
+import { civDesc, civName, civPassive, ultDesc, ultName, civWeakness } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
 import { chooseFaction } from '../lib/faction';
 import { useSettings } from '../stores/settings';
@@ -45,6 +45,7 @@ function pick(id: FactionId): void {
       <div class="faction-preview"><UnitIcon v-for="a in preview" :key="a" :kind="kindOf(id, a)" :accent="ENERGY[id]" /></div>
       <p>{{ civDesc(id) }}</p>
       <p class="faction-passive">✨ {{ civPassive(id) }}</p>
+      <p class="faction-passive">🌟 {{ ultName(id) }}: {{ ultDesc(id) }}</p>
       <p class="faction-vs">
         <span class="bad">⚠️ {{ civWeakness(id) }}</span>
       </p>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ARCH_ORDER, FACTIONS, UNITS, kindOf, roster, wallKind, type FactionId, type UnitKind } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
-import { unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
+import { unitCounter, unitDesc, unitName, unitSkillDesc, unitSkillName } from '@stickman-war/i18n/content';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { armorLabel, dmgLabel, roleKey, traits } from '../lib/guide';
 import { sound } from '../lib/sound';
 import UnitIcon from './UnitIcon.vue';
 import UnitPreview from './UnitPreview.vue';
+import { battleScale } from '../game/render/renderer';
+import { giantBox, unitBox } from '../game/showcase';
 
 /**
  * Cẩm nang: lướt từng quân của một nền văn minh (12 quân + trạm vàng + tường), mỗi quân một thẻ lớn:
@@ -23,6 +25,25 @@ watch(
 const kind = computed(() => units.value[idx.value]);
 const s = computed(() => UNITS[kind.value]);
 const color = computed(() => FACTIONS[props.faction].color);
+/**
+ * Tỉ lệ vẽ chung (điểm ảnh / đơn vị thế giới): cỡ trong trận, nhưng màn nhỏ thì thu đều để khổng lồ to nhất vẫn vừa
+ * chiều cao tối đa cho phép và bề ngang khung. Khung hình thì cao vừa đúng con đang xem (thợ mỏ thấp, khổng lồ cao).
+ */
+const hero = ref<HTMLElement>();
+const px = ref(1);
+const fitHero = () => {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  // Chiều cao tối đa của khung theo cỡ màn (khớp bố cục trong styles/responsive.css)
+  const maxH = H <= 520 && W > 560 ? H * 0.72 : W <= 560 ? H * 0.38 : W <= 960 ? H * 0.46 : Math.min(620, H * 0.64);
+  const g = giantBox();
+  const width = hero.value?.clientWidth || W * 0.4;
+  px.value = Math.min(battleScale(), (maxH - 22) / g.h, (width - 8) / g.w);
+};
+const heroH = computed(() => {
+  const b = unitBox(kind.value);
+  return Math.round(Math.max(110, (b.y1 - b.y0) * UNITS[kind.value].scale * px.value + 28));
+});
 
 function go(d: number): void {
   sound.click();
@@ -78,15 +99,22 @@ const up = (e: PointerEvent) => {
   if (swipeX !== null && Math.abs(e.clientX - swipeX) > 40) go(e.clientX < swipeX ? 1 : -1);
   swipeX = null;
 };
-onMounted(() => document.addEventListener('keydown', onKey));
-onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
+onMounted(() => {
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', fitHero);
+  fitHero();
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKey);
+  window.removeEventListener('resize', fitHero);
+});
 </script>
 
 <template>
   <div class="unit-card" :style="{ '--faction': color }" @pointerdown="down" @pointerup="up">
     <button class="uc-nav uc-prev" :aria-label="t('guide.prev')" @click="go(-1)">‹</button>
-    <div class="uc-hero">
-      <UnitPreview :kind="kind" />
+    <div ref="hero" class="uc-hero" :style="{ height: `${heroH}px` }">
+      <UnitPreview :kind="kind" :px="px" />
       <span class="uc-count">{{ idx + 1 }}/{{ units.length }}</span>
     </div>
     <div class="uc-info">
@@ -105,7 +133,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
         </div>
       </dl>
       <h4>{{ t('guide.specialTitle') }}</h4>
-      <p>{{ traits(s).join(' · ') || t('guide.none') }}</p>
+      <p v-if="s.skill" class="uc-skill">
+        <b>✦ {{ unitSkillName(kind) }}</b> — {{ unitSkillDesc(kind) }}
+      </p>
+      <p v-if="traits(s).length">{{ traits(s).join(' · ') }}</p>
+      <p v-else-if="!s.skill">{{ t('guide.none') }}</p>
       <h4>{{ t('guide.counterTitle') }}</h4>
       <p>{{ unitCounter(kind) || t('guide.none') }}</p>
     </div>

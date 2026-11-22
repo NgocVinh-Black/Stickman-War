@@ -1,13 +1,5 @@
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
-import {
-  FACTION_ORDER,
-  LEVELS,
-  SOLO_LOSE_GAP_SECONDS,
-  SOLO_LOSE_XU,
-  XU_PERFECT_TAB,
-  XU_PER_STAR,
-  type FactionId,
-} from '@stickman-war/core';
+import { LEVELS, SOLO_LOSE_GAP_SECONDS, SOLO_LOSE_XU, XU_PERFECT_TAB, XU_PER_STAR, toFactionId, type FactionId } from '@stickman-war/core';
 import { OPTIONS, WALLET_STORE, type ServerOptions } from '../common/tokens';
 import type { WalletStore } from '../database/store.types';
 
@@ -28,7 +20,7 @@ export const validWalletId = (id: unknown): id is string => typeof id === 'strin
 @Injectable()
 export class WalletsService implements OnModuleDestroy {
   private balances = new Map<string, number>();
-  /** Sao chiến dịch đã thưởng theo ví: "tộc:màn" → số sao (nạp từ DB lần đầu cần). */
+  /** Sao chiến dịch đã thưởng theo ví: "hệ:màn" → số sao (nạp từ DB lần đầu cần). */
   private stars = new Map<string, Map<string, number>>();
   /** Lần cuối trả xu thua chơi đơn theo ví (ms). */
   private lastSoloLose = new Map<string, number>();
@@ -71,11 +63,13 @@ export class WalletsService implements OnModuleDestroy {
 
   /**
    * Thắng màn chiến dịch: thưởng XU_PER_STAR cho mỗi sao mới (chơi lại không nhận lại), đủ 3 sao mọi màn
-   * của tộc thì thêm XU_PERFECT_TAB. Phải đã thắng màn trước đó mới nhận màn sau. Trả về số xu vừa cộng.
+   * của hệ thì thêm XU_PERFECT_TAB. Phải đã thắng màn trước đó mới nhận màn sau. Trả về số xu vừa cộng.
    */
   async claimCampaign(id: string, faction: unknown, level: unknown, stars: unknown): Promise<number> {
     if (id.startsWith('tmp-')) return 0;
-    if (!FACTION_ORDER.includes(faction as FactionId)) return 0;
+    const f = toFactionId(faction);
+    if (!f) return 0;
+    faction = f;
     if (!Number.isInteger(level) || (level as number) < 0 || (level as number) >= LEVELS.length) return 0;
     if (!Number.isInteger(stars) || (stars as number) < 1 || (stars as number) > 3) return 0;
     const lv = level as number;

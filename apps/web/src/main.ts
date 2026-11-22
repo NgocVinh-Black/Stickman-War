@@ -4,6 +4,11 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { router } from './router';
 
+// Dev: Client ID Google chỉ đăng ký origin localhost; mở bằng 127.0.0.1 sẽ bị origin_mismatch → chuyển sang localhost
+if (import.meta.env.DEV && location.hostname === '127.0.0.1') {
+  location.replace(location.href.replace('//127.0.0.1', '//localhost'));
+}
+
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);

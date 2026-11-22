@@ -57,7 +57,7 @@ apps/admin/src/      Vue 3 + Rspack: views/, components/, lib/, styles/
 - Hộp thoại dựng từ dữ liệu qua `useUi().show(...)` (không dùng `v-html`).
 - CSS: thêm vào file đúng khu vực trong `styles/`; file mới thì thêm `@import` vào `styles/index.css` (thứ tự = độ ưu tiên).
   Xoá giao diện thì xoá luôn CSS không còn dùng.
-- Hướng dẫn chi tiết (điểm mạnh / yếu tộc, cách chơi) chỉ để ở **Cẩm nang**; các màn khác giữ gọn.
+- Hướng dẫn chi tiết (điểm mạnh / yếu từng hệ, cách chơi) chỉ để ở **Cẩm nang**; các màn khác giữ gọn.
 
 ### Server (`apps/server`)
 
@@ -65,7 +65,7 @@ apps/admin/src/      Vue 3 + Rspack: views/, components/, lib/, styles/
 - Tính năng mới = module mới (`x.module.ts` + controller / service), import vào `AppModule.forRoot`; không khai báo thẳng vào AppModule.
 - Kiểm tra dữ liệu vào bằng Zod (`ZodPipe`); lỗi trả `{ error: '…' }` tiếng Việt. Câu mới máy chủ gửi cho người chơi (lỗi, dòng hệ thống)
   phải thêm mẫu tiếng Anh ở `packages/i18n/src/server.ts` (test i18n báo câu thiếu).
-- Thông tin người chơi không được thấy (tộc đối thủ trong phòng chờ…) phải lọc ở server, không chỉ ẩn ở client.
+- Thông tin người chơi không được thấy (hệ của đối thủ trong phòng chờ…) phải lọc ở server, không chỉ ẩn ở client.
 
 ### Admin (`apps/admin`)
 
@@ -78,7 +78,7 @@ pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build
 ```
 
 - Sửa lối chơi / chỉ số: thêm test ở `packages/core/src/core.test.ts`; viết test tái hiện lỗi trước rồi mới sửa.
-- Đổi cân bằng (`factions.ts`, `levels.ts`): test chiến dịch cho bot đánh mỗi màn 32 trận với tộc ngẫu nhiên, phải thắng ≥ 50%
+- Đổi cân bằng (`factions.ts`, `levels.ts`): test chiến dịch cho bot đánh mỗi màn 32 trận với hệ ngẫu nhiên, phải thắng ≥ 50%
   (màn trùm ≥ 1/8). Đo nhanh bằng file probe tạm `*.probe.test.ts`, xong thì xoá.
 - Đổi giao thức online: thêm test ở `apps/server/test/server.test.ts`.
 - Vite dev đôi khi phục vụ bản cũ của file trong `packages/core` (trang trắng, lỗi "does not provide an export"): kiểm tra bằng

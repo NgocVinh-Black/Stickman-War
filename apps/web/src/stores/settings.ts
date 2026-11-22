@@ -1,4 +1,4 @@
-import { FACTION_ORDER, LEVELS, campaignFactions, cleanName, type FactionId } from '@stickman-war/core';
+import { FACTION_ORDER, LEVELS, campaignFactions, cleanName, toFactionId, type FactionId } from '@stickman-war/core';
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
 import { prefs } from '../lib/prefs';
@@ -11,9 +11,9 @@ export const MENU_TABS: MenuTab[] = ['home', 'offline', 'online', 'arena', 'guid
 /** Cài đặt và tiến độ người chơi lưu trong trình duyệt. */
 export const useSettings = defineStore('settings', () => {
   const name = ref(load('name', `Stickman ${Math.floor(100 + Math.random() * 900)}`));
-  const savedFaction = load<FactionId>('faction', 'tribe');
-  const faction = ref<FactionId>(FACTION_ORDER.includes(savedFaction) ? savedFaction : 'tribe');
-  /** Tiến độ chiến dịch một tộc. Lần đầu thì xáo thứ tự tộc địch. */
+  // Nhận cả mã hệ cũ (tên tộc) đã lưu trước khi đổi sang 12 nguyên tố
+  const faction = ref<FactionId>(toFactionId(load<string>('faction', 'light')) ?? 'light');
+  /** Tiến độ chiến dịch một hệ. Lần đầu thì xáo thứ tự hệ địch. */
   function initProgress(f: FactionId): Progress {
     const p = loadProgress(f);
     if (p.seed === undefined) {
@@ -22,10 +22,9 @@ export const useSettings = defineStore('settings', () => {
     }
     return p;
   }
-  /** Chiến dịch chia theo tộc: mỗi tộc một tab, mở sẵn cả 12, tiến độ màn riêng. */
+  /** Chiến dịch chia theo hệ: mỗi hệ một tab, mở sẵn cả 12, tiến độ màn riêng. */
   const progress = reactive(Object.fromEntries(FACTION_ORDER.map((f) => [f, initProgress(f)])) as Record<FactionId, Progress>);
-  const savedCamp = load<FactionId>('campFaction', faction.value);
-  const campFaction = ref<FactionId>(FACTION_ORDER.includes(savedCamp) ? savedCamp : faction.value);
+  const campFaction = ref<FactionId>(toFactionId(load<string>('campFaction', faction.value)) ?? faction.value);
   const savedTab = load<MenuTab>('tab', 'home');
   const tab = ref<MenuTab>(MENU_TABS.includes(savedTab) ? savedTab : 'home');
   const agree = ref(load('agree', false));
@@ -51,17 +50,17 @@ export const useSettings = defineStore('settings', () => {
 
   const current = computed(() => progress[campFaction.value]);
   const nextLevel = computed(() => Math.min(current.value.unlocked, LEVELS.length - 1));
-  /** Sao một tab tộc: đủ 3 sao mọi màn (99) thì thưởng thêm 1 sao cho tròn 100. */
+  /** Sao một tab hệ: đủ 3 sao mọi màn (99) thì thưởng thêm 1 sao cho tròn 100. */
   const fullStars = LEVELS.length * 3;
   const tabMax = fullStars + 1;
   function factionStars(f: FactionId): number {
     const n = progress[f].stars.reduce((a, b) => a + (b ?? 0), 0);
     return n >= fullStars ? tabMax : n;
   }
-  /** Tổng sao của mọi chiến dịch tộc, và số sao tối đa. */
+  /** Tổng sao của mọi chiến dịch hệ, và số sao tối đa. */
   const stars = computed(() => FACTION_ORDER.reduce((sum, f) => sum + factionStars(f), 0));
   const maxStars = FACTION_ORDER.length * tabMax;
-  /** Tộc địch từng màn trong chiến dịch của tộc đang chọn. */
+  /** Hệ địch từng màn trong chiến dịch của hệ đang chọn. */
   const enemyFactions = computed(() => campaignFactions(campFaction.value, current.value.seed ?? 1));
 
   function setName(raw: string): void {
@@ -72,7 +71,7 @@ export const useSettings = defineStore('settings', () => {
     muted.value = sound.toggle();
   }
 
-  /** Thắng màn chiến dịch của tộc `f`: lưu sao, mở màn tiếp, đánh dấu hoàn thành ở màn cuối. */
+  /** Thắng màn chiến dịch của hệ `f`: lưu sao, mở màn tiếp, đánh dấu hoàn thành ở màn cuối. */
   function recordWin(f: FactionId, level: number, starCount: number): { wasDone: boolean } {
     const p = progress[f];
     const wasDone = !!p.completed;

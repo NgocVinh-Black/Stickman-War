@@ -21,7 +21,7 @@ const full = computed(() => !!wait.value?.seats.every((x) => x));
 const allReady = computed(() => full.value && !!wait.value?.seats.every((x) => x!.ready));
 const players = computed<[string, string]>(() => [wait.value?.seats[0]?.name ?? '…', wait.value?.seats[1]?.name ?? '…']);
 const settings = useSettings();
-/** Nền văn minh ở ghế: máy chủ giấu tộc đối thủ với người chơi (chỉ người xem thấy cả hai). */
+/** Nền văn minh ở ghế: máy chủ giấu hệ đối thủ với người chơi (chỉ người xem thấy cả hai). */
 const factionOf = (seat: Team) => {
   const f = wait.value?.seats[seat]?.faction;
   return f ? FACTIONS[f] : { icon: '❓', name: t('civ.secret') };

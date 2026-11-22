@@ -1,17 +1,58 @@
 /* Điện thoại: thu gọn thanh trên / dưới */
 
-/* Điện thoại: thu gọn thanh trên/dưới */
-@media (max-width: 720px) {
+/* Cẩm nang, máy tính bảng / màn hẹp: thẻ quân 1 cột (hình trên, thông tin dưới) */
+@media (max-width: 960px) {
   .unit-card {
     grid-template-columns: 1fr;
-    padding: 10px 38px;
+    padding: 10px 40px;
   }
-  .uc-hero {
-    min-height: 180px;
+}
+
+/* Cẩm nang, điện thoại dọc: chỉ số 1 cột, chữ gọn, hình nhỏ lướt ngang thành một hàng */
+@media (max-width: 560px) {
+  .unit-card {
+    padding: 8px 30px;
+    gap: 8px;
+  }
+  .uc-nav {
+    width: 26px;
+    height: 44px;
+    font-size: 24px;
+  }
+  .uc-info h3 {
+    font-size: 19px;
+  }
+  .uc-info p {
+    font-size: 13px;
   }
   .uc-stats {
     grid-template-columns: 1fr;
   }
+  .uc-bar {
+    width: 44px;
+  }
+  .uc-thumbs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .uc-thumb {
+    flex: none;
+  }
+}
+
+/* Cẩm nang, điện thoại xoay ngang (thấp mà rộng): giữ 2 cột, hình cao gần hết màn */
+@media (max-height: 520px) and (min-width: 561px) {
+  .unit-card {
+    grid-template-columns: minmax(200px, 40%) 1fr;
+    align-items: start;
+  }
+}
+
+/* Điện thoại: thu gọn thanh trên/dưới */
+@media (max-width: 720px) {
   .camp-tabs {
     grid-template-columns: repeat(4, 1fr);
   }

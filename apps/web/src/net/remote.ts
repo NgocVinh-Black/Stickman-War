@@ -87,7 +87,7 @@ export class RemoteWorld implements WorldView {
 
   constructor() {
     const empty = (): TeamState => ({
-      faction: 'tribe',
+      faction: 'light',
       formation: 'free',
       formX: NaN,
       holdX: 0,
@@ -105,6 +105,7 @@ export class RemoteWorld implements WorldView {
       wallPlan: NaN,
       wallBuilder: -1,
       wallT: 0,
+      ult: 0,
     });
     this.teams = [empty(), empty()];
   }
@@ -119,20 +120,23 @@ export class RemoteWorld implements WorldView {
       team.statueHp = t.hp;
       team.statueMax = t.max;
       team.stance = STANCES[t.stance] ?? 'defend';
-      team.queue = t.queue.map(([k, time]) => ({ kind: UNIT_ORDER[k], t: time }));
+      team.queue = t.queue.map(([k, time, slot]) =>
+        slot === undefined ? { kind: UNIT_ORDER[k], t: time } : { kind: UNIT_ORDER[k], t: time, slot },
+      );
       team.kills = t.kills;
       team.centerMine = t.cm === 1;
-      team.faction = FACTION_ORDER[t.f] ?? 'tribe';
+      team.faction = FACTION_ORDER[t.f] ?? 'light';
       team.formation = FORMATIONS[t.fm] ?? 'free';
       team.holdX = t.hx ?? 0;
       if (t.ms?.length === 3) team.mineSplit = [t.ms[0], t.ms[1], t.ms[2]];
       team.wallPlan = t.wp ?? NaN;
       team.wallT = t.wt ?? 0;
+      team.ult = t.ul ?? 0;
     });
 
     const prev = new Map(this.units.map((u) => [u.id, u]));
     this.units = s.units.map((a) => {
-      const [id, kind, team, x, lane, hp, maxHp, facing, flags, walk, attackT, deadT, mineT, hitFlash, rank] = a;
+      const [id, kind, team, x, lane, hp, maxHp, facing, flags, walk, attackT, deadT, mineT, hitFlash, rank, buildSlot] = a;
       const old = prev.get(id);
       const u: RemoteUnit = old ?? {
         id,
@@ -178,6 +182,15 @@ export class RemoteWorld implements WorldView {
         mining: false,
         mineT: 0,
         carrying: 0,
+        stunT: 0,
+        guardT: 0,
+        guard: 0,
+        hasteT: 0,
+        haste: 0,
+        sunderT: 0,
+        sunder: 0,
+        skillT: 0,
+        skillUsed: false,
         targetX: x,
       };
       u.targetX = x;
@@ -196,6 +209,10 @@ export class RemoteWorld implements WorldView {
       u.hidden = (flags & FLAG.hidden) !== 0;
       u.slowT = flags & FLAG.slowed ? 1 : 0;
       u.poisonT = flags & FLAG.poisoned ? 1 : 0;
+      u.stunT = flags & FLAG.stunned ? 1 : 0;
+      u.guardT = flags & FLAG.guarded ? 1 : 0;
+      u.hasteT = flags & FLAG.hasted ? 1 : 0;
+      u.sunderT = flags & FLAG.sundered ? 1 : 0;
       u.kind = UNIT_ORDER[kind];
       // Chỉ sửa pha bước chân khi lệch nhiều, tránh giật hình
       if (Math.abs(u.walk - walk) > 1.5) u.walk = walk;
@@ -204,6 +221,7 @@ export class RemoteWorld implements WorldView {
       u.mineT = mineT;
       u.hitFlash = hitFlash;
       u.rank = rank ?? 0;
+      u.buildSlot = buildSlot ?? -1;
       return u;
     });
 

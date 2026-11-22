@@ -33,7 +33,7 @@ const player = (unlocked: UnitKind[], gold = 400): TeamSetup => ({
 const BASE: Level[] = [
   {
     name: 'Trận đầu tiên',
-    enemyFaction: 'tribe',
+    enemyFaction: 'light',
     intro: 'Cho thợ mỏ đào vàng, xây kiếm sĩ rồi bấm Tấn công để phá tượng địch.',
     player: player(BASIC, 500),
     enemy: { gold: 0, statueHp: 1200, incomeMult: 0.55, unlocked: BASIC, start: ['miner', 'miner'] },
@@ -41,7 +41,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Mưa tên',
-    enemyFaction: 'elf',
+    enemyFaction: 'wood',
     intro: 'Cung thủ bắn từ xa. Cho cung thủ đứng sau hàng kiếm sĩ là mạnh nhất.',
     newUnits: ['archer'],
     player: player(WITH_ARCHER),
@@ -50,7 +50,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Bức tường khiên',
-    enemyFaction: 'orc',
+    enemyFaction: 'wind',
     intro: 'Địch đông hơn. Giáo binh giáp dày chịu đòn thay cả đội, thầy thuốc đứng sau hồi máu cho họ.',
     newUnits: ['spear', 'healer'],
     player: player(WITH_SPEAR),
@@ -59,7 +59,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Đột kích',
-    enemyFaction: 'viking',
+    enemyFaction: 'blood',
     intro:
       'Địch đánh úp rất sớm, có cả kỵ binh! Giữ phòng thủ, dùng giáo binh chặn kỵ, thợ xây dựng trạm vàng cạnh mỏ để có thêm vàng và thêm chốt bắn.',
     newUnits: ['cavalry', 'builder'],
@@ -75,7 +75,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Phép thuật',
-    enemyFaction: 'undead',
+    enemyFaction: 'shadow',
     intro: 'Địch kéo đến rất đông. Pháp sư nổ diện rộng trị đám đông, tay trống làm quân đánh mạnh hơn.',
     newUnits: ['mage', 'banner'],
     player: player(WITH_MAGE, 500),
@@ -84,7 +84,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Bước chân khổng lồ',
-    enemyFaction: 'samurai',
+    enemyFaction: 'thunder',
     intro: 'Địch có tường khiên vững. Khổng lồ của bạn đập quét cả hàng.',
     newUnits: ['giant'],
     player: player(WITH_GIANT, 600),
@@ -93,7 +93,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Bóng đêm ám sát',
-    enemyFaction: 'desert',
+    enemyFaction: 'crystal',
     intro: 'Địch giàu vàng, tượng dày, còn tranh mỏ kim cương giữa bản đồ. Ninja lướt qua tiền tuyến ám sát thợ mỏ và cung thủ của chúng.',
     newUnits: ['ninja'],
     player: player(WITH_NINJA, 600),
@@ -115,7 +115,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Công thành',
-    enemyFaction: 'steam',
+    enemyFaction: 'stone',
     intro: 'Đủ mọi loại quân! Máy bắn đá phá tượng gấp 3 nhưng cần quân che chắn.',
     newUnits: ['catapult'],
     player: player(ALL, 800),
@@ -138,7 +138,7 @@ const BASE: Level[] = [
   // ---------- Đủ quân, mỗi màn máy một lối đánh ----------
   {
     name: 'Phản công chớp nhoáng',
-    enemyFaction: 'viking',
+    enemyFaction: 'blood',
     intro: 'Địch dồn quân đánh sớm và liên tục. Giữ nhà bằng trạm vàng và giáo binh, thắng một trận giữ nhà rồi phản công.',
     player: player(ALL, 700),
     enemy: { gold: 300, statueHp: 3000, incomeMult: 0.64, unlocked: ALL, start: ['miner', 'miner', 'miner', 'sword', 'sword'] },
@@ -153,7 +153,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Pháo đài',
-    enemyFaction: 'steam',
+    enemyFaction: 'stone',
     intro: 'Địch rùa trong nhà với trạm vàng và khiên. Máy bắn đá bắn xa hơn trạm, pháp sư đốt giáp nặng; phá trạm để cắt vàng của họ.',
     player: player(ALL, 700),
     enemy: {
@@ -175,7 +175,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Mưa tên lửa',
-    enemyFaction: 'elf',
+    enemyFaction: 'wood',
     intro: 'Địch toàn quân bắn xa. Kỵ binh và ninja lao vào hàng sau, đội hình Tản rộng đỡ phép nổ.',
     player: player(ALL, 700),
     enemy: {
@@ -197,7 +197,7 @@ const BASE: Level[] = [
   // ---------- Vòng 2: Chinh phạt ----------
   {
     name: 'Vó ngựa',
-    enemyFaction: 'samurai',
+    enemyFaction: 'thunder',
     intro: 'Kỵ binh địch phi tới cực nhanh. Giáo binh đâm kỵ ×2, đội hình Tường khiên giữ hàng trước.',
     player: player(ALL, 700),
     enemy: { gold: 400, statueHp: 3600, incomeMult: 0.6, unlocked: ALL, start: ['miner', 'miner', 'miner', 'miner', 'cavalry', 'cavalry'] },
@@ -212,7 +212,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Biển người',
-    enemyFaction: 'undead',
+    enemyFaction: 'shadow',
     intro: 'Địch xây thật đông quân rẻ. Pháp sư và khổng lồ đánh lan quét sạch đám đông.',
     player: player(ALL, 700),
     enemy: {
@@ -226,7 +226,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Đoàn quân thép thịt',
-    enemyFaction: 'orc',
+    enemyFaction: 'wind',
     intro: 'Địch kéo khổng lồ và quân trâu. Cung thủ bắn xuyên khổng lồ, cắm cờ lùi dần để thả diều.',
     player: player(ALL, 700),
     enemy: { gold: 500, statueHp: 4000, incomeMult: 0.46, unlocked: ALL, start: ['miner', 'miner', 'miner', 'miner', 'spear'] },
@@ -241,7 +241,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Tranh mỏ kim cương',
-    enemyFaction: 'desert',
+    enemyFaction: 'crystal',
     intro: 'Địch chiếm mỏ kim cương giữa bản đồ từ sớm. Đánh chiếm giữa bản đồ, ninja quấy thợ mỏ của chúng.',
     player: player(ALL, 800),
     enemy: {
@@ -262,7 +262,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Sói đêm',
-    enemyFaction: 'samurai',
+    enemyFaction: 'thunder',
     intro: 'Ninja và kỵ binh địch liên tục quấy thợ mỏ. Giữ vài quân canh mỏ, dựng trạm vàng làm chốt bắn.',
     player: player(ALL, 800),
     enemy: {
@@ -284,7 +284,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Gọng kìm',
-    enemyFaction: 'viking',
+    enemyFaction: 'blood',
     intro: 'Địch tràn lên rất sớm rồi đánh liên tục không nghỉ. Giữ nhà thật chắc trước khi nghĩ tới phản công.',
     player: player(ALL, 700),
     enemy: { gold: 400, statueHp: 3800, incomeMult: 0.6, unlocked: ALL, start: ['miner', 'miner', 'miner', 'sword', 'sword', 'cavalry'] },
@@ -299,7 +299,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Rừng giáo',
-    enemyFaction: 'steam',
+    enemyFaction: 'stone',
     intro: 'Tường khiên dày, thầy thuốc hồi máu phía sau, máy bắn đá yểm trợ. Đánh lan và bắn xa để phá thế rùa.',
     player: player(ALL, 800),
     enemy: {
@@ -321,7 +321,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Bão phép',
-    enemyFaction: 'elf',
+    enemyFaction: 'wood',
     intro: 'Pháp sư và cung thủ địch bắn từ xa sau hàng giáo. Tản đội hình, cho ninja và kỵ binh cắt vào hàng sau.',
     player: player(ALL, 800),
     enemy: {
@@ -343,7 +343,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Bước chân người khổng lồ',
-    enemyFaction: 'orc',
+    enemyFaction: 'wind',
     intro: 'Cả đoàn khổng lồ kéo tới cùng tay trống. Cung thủ bắn xuyên giáp dày, đừng để khổng lồ chạm tượng.',
     player: player(ALL, 800),
     enemy: {
@@ -365,7 +365,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Đại quân',
-    enemyFaction: 'undead',
+    enemyFaction: 'shadow',
     intro: 'Địch giàu, tranh mỏ giữa và xây đủ mọi loại quân. Một trận dài: giữ kinh tế, đánh khi có lợi.',
     player: player(ALL, 900),
     enemy: {
@@ -388,7 +388,7 @@ const BASE: Level[] = [
   },
   {
     name: 'Vua chiến trường',
-    enemyFaction: 'tribe',
+    enemyFaction: 'light',
     intro: 'Trận trùm! Địch đủ mọi loại quân, đánh có đội hình. Kết hợp mọi thứ bạn đã học.',
     player: player(ALL, 900),
     enemy: {
@@ -411,7 +411,7 @@ const BASE: Level[] = [
   },
 ];
 
-/** Số màn mỗi vòng chiến dịch = số tộc đối thủ: mỗi vòng gặp đủ 11 tộc còn lại. */
+/** Số màn mỗi vòng chiến dịch = số hệ đối thủ: mỗi vòng gặp đủ 11 hệ còn lại. */
 export const ROUND = FACTION_ORDER.length - 1;
 
 /** Vòng 3 (Thử thách): làm lại các màn vòng 2 nhưng máy giàu hơn, tượng dày hơn, đánh sớm và lì hơn. */
@@ -435,8 +435,15 @@ function harder(lv: Level): Level {
   };
 }
 
-/** Chiến dịch mỗi tộc: 3 vòng × 11 màn, khó dần; màn cuối mỗi vòng 2 và 3 là trùm. */
-export const LEVELS: Level[] = [...BASE, ...BASE.slice(ROUND).map(harder)];
+/** Chiến dịch mỗi hệ: 3 vòng × 11 màn, khó dần; màn cuối mỗi vòng 2 và 3 là trùm. */
+/**
+ * Độ khó thêm cho máy theo từng màn soạn tay (nhân thu nhập của máy): đo bằng bot người chơi đơn giản,
+ * mục tiêu màn thường thắng khoảng 60–70%, màn trùm 25–35%; hai màn đầu để làm quen nên giữ dễ.
+ */
+const TOUGH = [1, 1.1, 1.15, 1.1, 1.2, 1.2, 1, 1, 1.15, 1.1, 1.2, 1.15, 1.1, 1.15, 1, 1.25, 1.25, 1.1, 1.1, 1.3, 1, 1];
+const TUNED = BASE.map((lv, i) => ({ ...lv, enemy: { ...lv.enemy, incomeMult: (lv.enemy.incomeMult ?? 1) * TOUGH[i] } }));
+
+export const LEVELS: Level[] = [...TUNED, ...TUNED.slice(ROUND).map(harder)];
 
 /** Màn trùm: màn cuối vòng 2 và vòng 3. */
 export const isBoss = (i: number) => i >= 2 * ROUND - 1 && (i + 1) % ROUND === 0;
@@ -489,8 +496,8 @@ export const SKIRMISH: Record<Difficulty, { label: string; player: TeamSetup; en
 };
 
 /**
- * Thứ tự tộc địch trong chiến dịch của tộc `player`, xáo theo `seed`: mỗi vòng 11 màn liền nhau gặp đủ
- * 11 tộc còn lại, không bao giờ gặp chính mình, không gặp lại tộc vừa đánh. Mỗi người chơi / mỗi tộc một thứ tự.
+ * Thứ tự hệ địch trong chiến dịch của hệ `player`, xáo theo `seed`: mỗi vòng 11 màn liền nhau gặp đủ
+ * 11 hệ còn lại, không bao giờ gặp chính mình, không gặp lại hệ vừa đánh. Mỗi người chơi / mỗi hệ một thứ tự.
  */
 export function campaignFactions(player: FactionId, seed: number): FactionId[] {
   let r = seed >>> 0;
@@ -515,7 +522,7 @@ export function campaignFactions(player: FactionId, seed: number): FactionId[] {
   return out.slice(0, LEVELS.length);
 }
 
-/** Màn `index` trong chiến dịch của tộc `player`, tộc địch lấy theo thứ tự xáo từ `seed`. */
+/** Màn `index` trong chiến dịch của hệ `player`, hệ địch lấy theo thứ tự xáo từ `seed`. */
 export function campaignLevel(index: number, player: FactionId, seed = 1): Level {
   return { ...LEVELS[index], enemyFaction: campaignFactions(player, seed)[index] };
 }

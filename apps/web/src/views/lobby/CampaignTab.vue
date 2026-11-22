@@ -9,8 +9,8 @@ import { useSettings } from '../../stores/settings';
 import CivEmblem from '../../components/CivEmblem.vue';
 
 /**
- * Chơi đơn: chiến dịch chia 12 tab theo tộc. Ở tab nào thì cầm đúng tộc đó, đi 3 vòng × 11 màn từ dễ tới khó,
- * mỗi vòng gặp đủ 11 tộc còn lại (thứ tự xáo riêng cho từng tộc).
+ * Chơi đơn: chiến dịch chia 12 tab theo hệ. Ở tab nào thì cầm đúng hệ đó, đi 3 vòng × 11 màn từ dễ tới khó,
+ * mỗi vòng gặp đủ 11 hệ còn lại (thứ tự xáo riêng cho từng hệ).
  */
 const settings = useSettings();
 const game = useGame();
@@ -19,7 +19,7 @@ const skirmishDiffs = Object.keys(SKIRMISH) as Difficulty[];
 const mine = computed(() => FACTIONS[settings.campFaction]);
 const enemyOf = (i: number): FactionId => settings.enemyFactions[i];
 
-/** 3 vòng, mỗi vòng gặp đủ 11 tộc còn lại. */
+/** 3 vòng, mỗi vòng gặp đủ 11 hệ còn lại. */
 const range = (from: number) => Array.from({ length: ROUND }, (_, k) => from + k);
 const PARTS = [
   { title: 'campaign.round1', desc: 'campaign.round1Desc', levels: range(0) },

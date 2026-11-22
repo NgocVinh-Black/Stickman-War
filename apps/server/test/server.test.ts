@@ -108,6 +108,36 @@ describe('Máy chủ online', () => {
     expect(st.s.teams[0].gold).toBeLessThan(500);
   }, 15000);
 
+  it('chiêu tượng thần: chưa đầy nộ thì lệnh bị bỏ qua; người chơi bên phải gửi toạ độ đã lật gương', async () => {
+    const a = await connect('A');
+    const b = await connect('B');
+    a.send({ t: 'quick' });
+    await a.waitFor('room');
+    b.send({ t: 'quick' });
+    await b.waitFor('start');
+    const st = await b.waitFor('state', (m) => m.s.time > 0.2, 8000);
+    expect(st.s.teams[0].ul).toBeLessThan(1);
+    b.send({ t: 'ult', x: 500 });
+    const later = await b.waitFor('state', (m) => m.s.time > st.s.time + 0.5);
+    expect(later.s.events.some((e) => e.type === 'ult')).toBe(false);
+  }, 15000);
+
+  it('thợ xây kèm ô đền: ô hợp lệ được giữ trong hàng chờ, ô sai thì bỏ qua (lấy ô trống đầu tiên)', async () => {
+    const a = await connect('A');
+    const b = await connect('B');
+    a.send({ t: 'quick' });
+    await a.waitFor('room');
+    b.send({ t: 'quick' });
+    await b.waitFor('start');
+    await b.waitFor('state', (m) => m.s.time > 0.2, 8000);
+    b.send({ t: 'train', kind: 'builder', slot: 3 });
+    const mine = await b.waitFor('state', (m) => m.s.teams[0].queue.length === 1);
+    expect(mine.s.teams[0].queue[0][2]).toBe(3);
+    a.send({ t: 'train', kind: 'builder', slot: 99 });
+    const bad = await a.waitFor('state', (m) => m.s.teams[0].queue.length === 1);
+    expect(bad.s.teams[0].queue[0]).toHaveLength(2);
+  }, 15000);
+
   it('đặt xây tường: người chơi bên phải gửi toạ độ đã lật gương, hai bên thấy đúng chỗ, trừ vàng', async () => {
     const a = await connect('A');
     const b = await connect('B');
@@ -181,7 +211,7 @@ describe('Máy chủ online', () => {
     expect((await a.waitFor('start')).opponent).toBe('Khách');
   }, 15000);
 
-  it('phòng chờ: đổi tộc được, hai người chơi không thấy tộc của nhau, người xem thấy cả hai', async () => {
+  it('phòng chờ: đổi hệ được, hai người chơi không thấy hệ của nhau, người xem thấy cả hai', async () => {
     const a = await connect('Chủ');
     const b = await connect('Khách');
     const w = await connect('Xem');
@@ -190,39 +220,39 @@ describe('Máy chủ online', () => {
     b.send({ t: 'join', code, as: 'play' });
     await b.waitFor('waitroom', (m) => !!m.seats[1]);
     w.send({ t: 'join', code, as: 'watch' });
-    a.send({ t: 'faction', id: 'orc' });
-    b.send({ t: 'faction', id: 'elf' });
-    const ra = await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'orc' && !!m.seats[1]);
+    a.send({ t: 'faction', id: 'wind' });
+    b.send({ t: 'faction', id: 'wood' });
+    const ra = await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'wind' && !!m.seats[1]);
     expect(ra.seats[1]?.faction).toBeNull();
-    const rb = await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'elf');
+    const rb = await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'wood');
     expect(rb.seats[0]?.faction).toBeNull();
-    const rw = await w.waitFor('waitroom', (m) => m.seats[0]?.faction === 'orc' && m.seats[1]?.faction === 'elf');
+    const rw = await w.waitFor('waitroom', (m) => m.seats[0]?.faction === 'wind' && m.seats[1]?.faction === 'wood');
     expect(rw.you.role).toBe('watcher');
-    // Vào trận thì mỗi bên dùng đúng tộc đã chọn
-    expect((await begin(a, b)).factions).toEqual(['elf', 'orc']);
+    // Vào trận thì mỗi bên dùng đúng hệ đã chọn
+    expect((await begin(a, b)).factions).toEqual(['wood', 'wind']);
   }, 15000);
 
-  it('chọn được tộc thêm sau (frost, dwarf); lệnh xây thợ xây kèm chỗ (client cũ) vẫn được nhận', async () => {
+  it('chọn được hệ thêm sau (ice, metal); lệnh xây thợ xây kèm chỗ (client cũ) vẫn được nhận', async () => {
     const a = await connect('Chủ');
     const b = await connect('Khách');
     a.send({ t: 'create' });
     const { code } = await a.waitFor('waitroom');
     b.send({ t: 'join', code, as: 'play' });
-    a.send({ t: 'faction', id: 'frost' });
-    b.send({ t: 'faction', id: 'dwarf' });
-    await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'frost');
-    await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'dwarf');
-    expect((await begin(a, b)).factions).toEqual(['dwarf', 'frost']);
+    a.send({ t: 'faction', id: 'ice' });
+    b.send({ t: 'faction', id: 'metal' });
+    await a.waitFor('waitroom', (m) => m.seats[0]?.faction === 'ice');
+    await b.waitFor('waitroom', (m) => m.seats[1]?.faction === 'metal');
+    expect((await begin(a, b)).factions).toEqual(['metal', 'ice']);
     await b.waitFor('state', (m) => m.s.time > 0.2, 8000);
     // Client cũ còn gửi x (chỗ dựng tháp): server bỏ qua, vẫn xây thợ xây
-    (b as unknown as { send: (m: unknown) => void }).send({ t: 'train', kind: 'dwarf-builder', x: 3000 });
+    (b as unknown as { send: (m: unknown) => void }).send({ t: 'train', kind: 'metal-builder', x: 3000 });
     await b.waitFor('state', (m) => m.s.teams[0].queue.length === 1);
   }, 15000);
 
   it('làm sạch tên và bỏ qua tin nhắn rác', async () => {
     const a = await connect('<script>alert(1)</script>Kẻ xấu có cái tên rất là dài');
     const b = await connect('B');
-    (a as unknown as { send: (m: unknown) => void }).send({ t: 'train', kind: 'dragon' });
+    (a as unknown as { send: (m: unknown) => void }).send({ t: 'train', kind: 'fire' });
     a.send({ t: 'quick' });
     await a.waitFor('room');
     b.send({ t: 'quick' });
@@ -318,20 +348,20 @@ describe('Máy chủ online', () => {
       const a = await connect('A', WALLET);
       const start = (await a.waitFor('wallet')).xu;
       const gains = () => a.msgs.filter((m) => m.t === 'wallet' && m.gain).map((m) => (m as { gain: number }).gain);
-      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 2 });
+      a.send({ t: 'campaignWin', faction: 'fire', level: 0, stars: 2 });
       expect((await a.waitFor('wallet', (m) => !!m.gain)).xu).toBe(start + 2 * XU_PER_STAR);
-      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 2 }); // chơi lại, không thêm sao
-      a.send({ t: 'campaignWin', faction: 'dragon', level: 5, stars: 3 }); // nhảy cóc màn
-      a.send({ t: 'campaignWin', faction: 'dragon', level: 0, stars: 3 }); // thêm 1 sao
+      a.send({ t: 'campaignWin', faction: 'fire', level: 0, stars: 2 }); // chơi lại, không thêm sao
+      a.send({ t: 'campaignWin', faction: 'fire', level: 5, stars: 3 }); // nhảy cóc màn
+      a.send({ t: 'campaignWin', faction: 'fire', level: 0, stars: 3 }); // thêm 1 sao
       await a.waitFor('wallet', () => gains().length === 2);
       expect(gains()).toEqual([2 * XU_PER_STAR, XU_PER_STAR]);
-      for (let i = 1; i < LEVELS.length; i++) a.send({ t: 'campaignWin', faction: 'dragon', level: i, stars: 3 });
+      for (let i = 1; i < LEVELS.length; i++) a.send({ t: 'campaignWin', faction: 'fire', level: i, stars: 3 });
       const last = await a.waitFor('wallet', () => gains().length === LEVELS.length + 1);
       expect(last.gain).toBe(3 * XU_PER_STAR + XU_PERFECT_TAB);
       expect(last.xu).toBe(start + LEVELS.length * 3 * XU_PER_STAR + XU_PERFECT_TAB);
       // Dữ liệu rác bị bỏ qua
       a.send({ t: 'campaignWin', faction: 'nope' as never, level: 0, stars: 3 });
-      a.send({ t: 'campaignWin', faction: 'elf', level: 0, stars: 9 });
+      a.send({ t: 'campaignWin', faction: 'wood', level: 0, stars: 9 });
       a.send({ t: 'ping', c: 1 });
       await a.waitFor('pong');
       expect(gains()).toHaveLength(LEVELS.length + 1);

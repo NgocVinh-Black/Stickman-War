@@ -16,18 +16,18 @@ export const NIGHT = '#0d0a16';
 
 /** Màu năng lượng của từng hệ (vũ khí, phép, cửa sổ, hoa văn): sáng, bão hoà hơn màu giao diện. */
 export const ENERGY: Record<FactionId, string> = {
-  tribe: '#ffe08a',
-  orc: '#c6fff0',
-  elf: '#7dff6a',
-  undead: '#b388ff',
-  samurai: '#fff36b',
-  viking: '#ff2d3c',
-  desert: '#ff8af0',
-  steam: '#e8b46a',
-  dwarf: '#ff8c3a',
-  tide: '#4fd2ff',
-  dragon: '#ff7a1a',
-  frost: '#e3f6ff',
+  light: '#ffe08a',
+  wind: '#c6fff0',
+  wood: '#7dff6a',
+  shadow: '#b388ff',
+  thunder: '#fff36b',
+  blood: '#ff2d3c',
+  crystal: '#ff8af0',
+  stone: '#e8b46a',
+  metal: '#ff8c3a',
+  water: '#4fd2ff',
+  fire: '#ff7a1a',
+  ice: '#e3f6ff',
 };
 
 /**
@@ -35,18 +35,18 @@ export const ENERGY: Record<FactionId, string> = {
  * Phe không phân biệt bằng màu lính nữa mà bằng thanh máu (xanh lá phe mình, đỏ phe địch).
  */
 export const CLOTH: Record<FactionId, string> = {
-  tribe: '#f1ead2',
-  orc: '#3fae86',
-  elf: '#2e8b3a',
-  undead: '#4a1f7a',
-  samurai: '#e0b400',
-  viking: '#a3101e',
-  desert: '#b0249e',
-  steam: '#7a5c3e',
-  dwarf: '#56606e',
-  tide: '#1d5fd1',
-  dragon: '#d9381e',
-  frost: '#9cc9f5',
+  light: '#f1ead2',
+  wind: '#3fae86',
+  wood: '#2e8b3a',
+  shadow: '#4a1f7a',
+  thunder: '#e0b400',
+  blood: '#a3101e',
+  crystal: '#b0249e',
+  stone: '#7a5c3e',
+  metal: '#56606e',
+  water: '#1d5fd1',
+  fire: '#d9381e',
+  ice: '#9cc9f5',
 };
 
 type RGB = [number, number, number];

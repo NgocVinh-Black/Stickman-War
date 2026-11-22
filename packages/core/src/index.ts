@@ -4,6 +4,7 @@
  */
 export * from './units';
 export * from './factions';
+export * from './skills';
 export * from './world';
 export * from './ai';
 export * from './levels';

@@ -3,6 +3,7 @@ import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import {
   BET_SECONDS,
   CHAT_KEEP,
+  DEPOT_SLOTS,
   FORMATIONS,
   LOBBY_MAX_ROOMS,
   MAX_SPECTATORS,
@@ -22,7 +23,7 @@ import {
   cleanChat,
   cleanName,
   encodeSnapshot,
-  validFaction,
+  toFactionId,
   type ChatLine,
   type ClientMsg,
   type EndReason,
@@ -114,7 +115,7 @@ export class LobbyService implements OnModuleDestroy {
       role: 'player',
       lobby: false,
       team: 0,
-      faction: 'tribe',
+      faction: 'light',
       account: null,
       alive: true,
       msgWindow: Date.now(),
@@ -194,7 +195,7 @@ export class LobbyService implements OnModuleDestroy {
       for (const p of room.watchers) this.send(p, { t: 'room', ...info, watching: true });
       return;
     }
-    // Người chơi chỉ thấy tộc của mình; người xem thấy tộc cả hai bên
+    // Người chơi chỉ thấy hệ của mình; người xem thấy hệ cả hai bên
     const seat = (t: Team, viewer: Player): Seat | null => {
       const x = room.players.find((q) => q.team === t);
       if (!x) return null;
@@ -476,7 +477,7 @@ export class LobbyService implements OnModuleDestroy {
     room.ready.clear();
     // Kèo đặt từ phòng chờ được giữ nguyên, mở tiếp đến hết betSeconds đầu trận
     room.betsClosed = false;
-    const factionOf = (t: Team) => room.players.find((x) => x.team === t)?.faction ?? 'tribe';
+    const factionOf = (t: Team) => room.players.find((x) => x.team === t)?.faction ?? 'light';
     const setup = (t: Team) => ({ ...PVP_SETUP, gold: room.settings.gold, faction: factionOf(t) });
     room.world = new World([setup(0), setup(1)]);
     room.events = [];
@@ -553,7 +554,7 @@ export class LobbyService implements OnModuleDestroy {
     this.settleBets(room, winner);
     const side = (t: Team): Side => {
       const x = room.players.find((q) => q.team === t);
-      return { id: x?.account ?? null, name: x?.name ?? '?', faction: room.world?.teams[t].faction ?? 'tribe' };
+      return { id: x?.account ?? null, name: x?.name ?? '?', faction: room.world?.teams[t].faction ?? 'light' };
     };
     this.accounts.recordMatch([side(0), side(1)], winner).catch((e: Error) => this.opts.log(`không ghi được kết quả trận: ${e.message}`));
     this.opts.log(`room ${room.code}: end (${reason})`);
@@ -662,11 +663,12 @@ export class LobbyService implements OnModuleDestroy {
     return room;
   }
 
-  /** Chào máy chủ: tên, ví, tộc; còn phiên đăng nhập thì dùng tên + ví của tài khoản. */
+  /** Chào máy chủ: tên, ví, hệ; còn phiên đăng nhập thì dùng tên + ví của tài khoản. */
   private async hello(p: Player, msg: Extract<ClientMsg, { t: 'hello' }>): Promise<void> {
     p.name = cleanName(msg.name);
     if (validWalletId(msg.wallet)) p.wallet = msg.wallet;
-    if (validFaction(msg.faction)) p.faction = msg.faction;
+    const faction = toFactionId(msg.faction);
+    if (faction) p.faction = faction;
     const acc = await this.accounts.bySession(msg.session);
     p.account = acc?.id ?? null;
     if (acc) {
@@ -808,7 +810,9 @@ export class LobbyService implements OnModuleDestroy {
         break;
       case 'train':
         if (p.role === 'player' && room?.state === 'playing' && UNIT_ORDER.includes(msg.kind as UnitKind)) {
-          room.world!.train(p.team, msg.kind);
+          // Ô đền tính từ tượng nhà nên không cần lật gương; sai kiểu thì bỏ qua ô (lấy ô trống đầu tiên)
+          const slot = Number.isInteger(msg.slot) && msg.slot! >= 0 && msg.slot! < DEPOT_SLOTS.length ? msg.slot : undefined;
+          room.world!.train(p.team, msg.kind, slot);
         }
         break;
       case 'stance':
@@ -828,13 +832,21 @@ export class LobbyService implements OnModuleDestroy {
           room.world!.orderWall(p.team, p.team === 1 ? WORLD_WIDTH - msg.x : msg.x);
         }
         break;
-      case 'faction':
-        // Đổi tộc khi chưa vào trận; phòng chờ thấy ngay
-        if (validFaction(msg.id) && (!room || room.state === 'waiting' || room.state === 'ended')) {
-          p.faction = msg.id;
+      case 'ult':
+        if (p.role === 'player' && room?.state === 'playing' && typeof msg.x === 'number' && Number.isFinite(msg.x)) {
+          // Toạ độ người gửi team 1 bị lật gương như cắm cờ
+          room.world!.unleash(p.team, p.team === 1 ? WORLD_WIDTH - msg.x : msg.x);
+        }
+        break;
+      case 'faction': {
+        // Đổi hệ khi chưa vào trận; phòng chờ thấy ngay
+        const id = toFactionId(msg.id);
+        if (id && (!room || room.state === 'waiting' || room.state === 'ended')) {
+          p.faction = id;
           if (room) this.sendRoom(room);
         }
         break;
+      }
       case 'formation':
         if (p.role === 'player' && room?.state === 'playing' && FORMATIONS.includes(msg.mode)) {
           room.world!.setFormation(p.team, msg.mode);

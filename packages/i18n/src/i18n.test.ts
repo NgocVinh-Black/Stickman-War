@@ -1,8 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { FACTIONS, FACTION_ORDER, LEVELS, ROUND, UNITS, roster } from '@stickman-war/core';
+import { ALL_ARCHS, FACTIONS, FACTION_ORDER, LEVELS, ROUND, UNITS, kindOf, roster } from '@stickman-war/core';
 import { describe, expect, it } from 'vitest';
-import { civName, levelIntro, levelName, unitCounter, unitName } from './content';
+import { civName, levelIntro, levelName, ultDesc, ultName, unitCounter, unitName, unitSkillDesc, unitSkillName } from './content';
 import { LEVEL_EN } from './content-en';
 import { en, lang, t, vi } from './index';
 import { SERVER_EN, serverText } from './server';
@@ -39,14 +39,37 @@ describe('Đa ngôn ngữ', () => {
     expect(levelName(2 * ROUND)).toBe(`${LEVEL_EN[ROUND][0]} (hard)`);
     expect(levelIntro(2 * ROUND)).toBe(LEVEL_EN[ROUND][1]);
     expect(unitName('sword')).toBe('Light swordsman');
-    expect(civName('elf')).toBe('Verdant Grove');
+    expect(civName('wood')).toBe('Verdant Grove');
     expect(unitCounter('spear')).toMatch(/^Strong vs/);
     for (const f of FACTION_ORDER) for (const k of roster(f)) expect(unitName(k), k).not.toBe('');
     lang.value = 'vi';
     expect(levelName(2 * ROUND)).toBe(LEVELS[2 * ROUND].name);
     expect(unitName('sword')).toBe(UNITS.sword.name);
-    expect(civName('elf')).toBe(FACTIONS.elf.name);
+    expect(civName('wood')).toBe(FACTIONS.wood.name);
     expect(unitCounter('spear')).toBe(UNITS.spear.counter);
+  });
+
+  it('kỹ năng riêng của mọi quân có tên và mô tả ở cả hai ngôn ngữ, không sót khoá', () => {
+    for (const l of ['vi', 'en'] as const) {
+      lang.value = l;
+      for (const f of FACTION_ORDER)
+        for (const a of ALL_ARCHS) {
+          const k = kindOf(f, a);
+          expect(unitSkillName(k), k).not.toBe('');
+          const d = unitSkillDesc(k);
+          expect(d, k).toMatch(/: \S/);
+          expect(d, k).not.toMatch(/skill\.|\{/);
+        }
+      for (const f of FACTION_ORDER) {
+        expect(ultName(f), f).not.toBe('');
+        expect(ultDesc(f), f).toMatch(/: \S/);
+        expect(ultDesc(f), f).not.toMatch(/skill\.|\{/);
+      }
+    }
+    lang.value = 'en';
+    expect(unitSkillName('sword')).toBe('Radiant slash');
+    lang.value = 'vi';
+    expect(unitSkillName('sword')).toBe(UNITS.sword.skill!.name);
   });
 
   it('mọi câu máy chủ gửi (lỗi, dòng hệ thống, lỗi API) đều có bản tiếng Anh', () => {

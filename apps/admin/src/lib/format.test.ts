@@ -20,8 +20,8 @@ describe('Định dạng trang admin', () => {
     lang.value = 'vi';
   });
 
-  it('tộc lạ (dữ liệu cũ) vẫn hiển thị được', () => {
-    expect(faction('elf').name).toBe('Thanh Mộc Lâm');
+  it('hệ lạ (dữ liệu cũ) vẫn hiển thị được', () => {
+    expect(faction('wood').name).toBe('Thanh Mộc Lâm');
     expect(faction('unknown' as never).icon).toBe('❔');
   });
 });

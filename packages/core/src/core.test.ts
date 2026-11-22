@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { EnemyAI } from './ai';
 import { campaignFactions, campaignLevel, isBoss, LEVELS, ROUND, SKIRMISH } from './levels';
-import { FACTIONS, FACTION_ORDER, type FactionId } from './factions';
-import { UNITS, UNIT_ORDER, kindOf, roster, wallKind, type UnitKind } from './units';
-import { depotX, statueX, World, WORLD_WIDTH, type Unit } from './world';
+import { FACTIONS, FACTION_ORDER, LEGACY_FACTIONS, toFactionId, type FactionId } from './factions';
+import { ALL_ARCHS, UNITS, UNIT_ORDER, kindOf, roster, wallKind, type UnitKind } from './units';
+import { DEPOT_SLOTS, depotX, freeDepots, statueX, ULT_LOSS, VETERAN_BOUNTY, World, WORLD_WIDTH, type Unit } from './world';
+import { ULTS } from './skills';
 
 function seeded(seed: number) {
   return () => {
@@ -14,6 +15,13 @@ function seeded(seed: number) {
 
 const DT = 1 / 30;
 const RANGED_BEHIND_MIN = 50;
+
+/** Tắt kỹ năng riêng của quân (test đo một cơ chế khác, kỹ năng làm lệch kết quả). */
+export const quiet = (u: Unit): Unit => {
+  u.skillT = 1e9;
+  u.skillUsed = true;
+  return u;
+};
 
 function run(world: World, seconds: number, each?: (w: World) => void) {
   for (let t = 0; t < seconds && world.winner === null; t += DT) {
@@ -49,6 +57,12 @@ export function playerBot(level: number, unlocked: UnitKind[] = LEVELS[level].pl
         if (r < low) [low, pick] = [r, k];
       }
       if (pick) w.train(0, pick);
+    }
+    // Chiêu tượng thần: đầy nộ thì tung vào chỗ địch đứng đông (như người chơi chọn chỗ)
+    if (w.teams[0].ult >= 1) {
+      const foes = w.units.filter((u) => u.team === 1 && !u.dying && !u.inside && u.kind !== kindOf(w.teams[1].faction, 'miner'));
+      const spot = foes.find((f) => foes.filter((e) => Math.abs(e.x - f.x) <= 220).length >= 5);
+      if (spot) w.unleash(0, spot.x);
     }
     const stance = w.teams[0].stance;
     if (mine > theirs * 1.4 + 800 || w.pop(0) >= 36) w.setStance(0, 'attack');
@@ -137,8 +151,8 @@ describe('World', () => {
 
 describe('Màn chơi', () => {
   /**
-   * Số trận bot thắng ở màn `i`: mỗi seed đổi tộc người chơi (tab chiến dịch) và xáo thứ tự tộc địch,
-   * nên mỗi màn được thử với đủ cặp tộc chứ không chỉ một tộc cố định.
+   * Số trận bot thắng ở màn `i`: mỗi seed đổi hệ người chơi (tab chiến dịch) và xáo thứ tự hệ địch,
+   * nên mỗi màn được thử với đủ cặp hệ chứ không chỉ một hệ cố định.
    */
   const campaignWins = (i: number, seeds: number[]) => {
     let wins = 0;
@@ -165,14 +179,14 @@ describe('Màn chơi', () => {
 
   // Nhiều seed: vài màn chỉ thắng quanh 50%, ít seed thì một thay đổi nhỏ cũng làm test chập chờn.
   // Màn trùm (cuối vòng 2 và vòng 3): bot đơn giản chỉ cần thắng được 1/8 số trận, màn khác một nửa.
-  it('chiến dịch: mọi màn thắng được với tộc mình và tộc địch bất kỳ', () => {
+  it('chiến dịch: mọi màn thắng được với hệ mình và hệ địch bất kỳ', () => {
     const seeds = Array.from({ length: 32 }, (_, k) => 11 * (k + 1));
     LEVELS.forEach((_, i) => {
       expect(campaignWins(i, seeds), `màn ${i + 1}`).toBeGreaterThanOrEqual(seeds.length / (isBoss(i) ? 8 : 2));
     });
   }, 600_000);
 
-  it('chiến dịch mỗi tộc: 3 vòng, mỗi vòng 11 màn gặp đủ 11 tộc còn lại, không gặp chính mình, không gặp lại tộc vừa đánh', () => {
+  it('chiến dịch mỗi hệ: 3 vòng, mỗi vòng 11 màn gặp đủ 11 hệ còn lại, không gặp chính mình, không gặp lại hệ vừa đánh', () => {
     expect(ROUND).toBe(FACTION_ORDER.length - 1);
     expect(LEVELS).toHaveLength(3 * ROUND);
     expect(LEVELS.filter((_, i) => isBoss(i))).toHaveLength(2);
@@ -259,8 +273,8 @@ describe('Cơ chế đa dạng chiến thuật', () => {
     const taken = (victim: UnitKind) => {
       const w = new World([empty(), empty()], seeded(1));
       w.setStance(0, 'attack');
-      one(0, 'spear', 1500, w);
-      const v = one(1, victim, 1530, w);
+      quiet(one(0, 'spear', 1500, w));
+      const v = quiet(one(1, victim, 1530, w));
       v.hp = v.maxHp = 99999;
       w.setStance(1, 'attack');
       run(w, 0.6);
@@ -411,10 +425,10 @@ describe('Cơ chế đa dạng chiến thuật', () => {
   });
 });
 
-describe('Tộc và đội hình', () => {
+describe('Hệ và đội hình', () => {
   const side = (faction: FactionId, unlocked: UnitKind[] = []) => ({ faction, gold: 0, statueHp: 5000, unlocked });
 
-  it('12 tộc, mỗi tộc 12 quân xây được + trạm, chỉ số hợp lệ', () => {
+  it('12 hệ, mỗi hệ 12 quân xây được + trạm, chỉ số hợp lệ', () => {
     expect(FACTION_ORDER.length).toBe(12);
     for (const f of FACTION_ORDER) {
       expect(roster(f).length).toBe(12);
@@ -425,7 +439,7 @@ describe('Tộc và đội hình', () => {
         expect(s.hp).toBeGreaterThan(0);
         expect(s.name.length).toBeGreaterThan(0);
       }
-      // Mỗi tộc có điểm yếu thật trong chỉ số và có cách đánh bại
+      // Mỗi hệ có điểm yếu thật trong chỉ số và có cách đánh bại
       const fd = FACTIONS[f];
       expect(fd.weakness.length, f).toBeGreaterThan(0);
       expect(fd.beat.length, f).toBeGreaterThan(0);
@@ -440,35 +454,35 @@ describe('Tộc và đội hình', () => {
     }
   });
 
-  it('cấu hình màn viết theo khung tự đổi sang quân của tộc', () => {
-    const w = new World([{ ...side('viking', ['miner', 'sword']), start: ['sword'] }, side('tribe')], seeded(1));
-    expect(w.units[0].kind).toBe('viking-sword');
+  it('cấu hình màn viết theo khung tự đổi sang quân của hệ', () => {
+    const w = new World([{ ...side('blood', ['miner', 'sword']), start: ['sword'] }, side('light')], seeded(1));
+    expect(w.units[0].kind).toBe('blood-sword');
     expect(w.train(0, 'sword')).toBe(false); // không đủ vàng
     w.teams[0].gold = 1000;
     expect(w.train(0, 'sword')).toBe(true);
-    expect(w.teams[0].queue[0].kind).toBe('viking-sword');
+    expect(w.teams[0].queue[0].kind).toBe('blood-sword');
   });
 
-  it('không có khắc tộc cứng: chọn tộc nào cũng không tự nhiên gây thêm sát thương lên tộc khác', () => {
+  it('không có khắc hệ cứng: chọn hệ nào cũng không tự nhiên gây thêm sát thương lên hệ khác', () => {
     const hit = (attacker: FactionId) => {
-      const w = new World([side(attacker), side('orc')], seeded(2));
+      const w = new World([side(attacker), side('wind')], seeded(2));
       w.setStance(0, 'attack');
-      w.spawn(0, 'sword', 1500).lane = 0.5;
-      const v = w.spawn(1, 'spear', 1525);
+      quiet(w.spawn(0, 'sword', 1500)).lane = 0.5;
+      const v = quiet(w.spawn(1, 'spear', 1525));
       v.hp = v.maxHp = 99999;
       w.setStance(1, 'attack');
       run(w, 0.35); // đúng một nhát chém
       return v.maxHp - v.hp;
     };
-    // Sát thương thực chỉ tuỳ chỉ số quân (đã gồm nội tại tộc), không tuỳ tộc bị đánh
-    const tribe = hit('tribe') / UNITS.sword.damage;
-    const elf = hit('elf') / UNITS['elf-sword'].damage;
+    // Sát thương thực chỉ tuỳ chỉ số quân (đã gồm nội tại hệ), không tuỳ hệ bị đánh
+    const tribe = hit('light') / UNITS.sword.damage;
+    const elf = hit('wood') / UNITS['wood-sword'].damage;
     expect(tribe / elf).toBeCloseTo(1, 1);
   });
 
   it('hàng lối: quân nhanh không bỏ quân chậm lại phía sau', () => {
     const spread = (formation: 'free' | 'line') => {
-      const w = new World([side('tribe'), side('tribe')], seeded(3));
+      const w = new World([side('light'), side('light')], seeded(3));
       w.setFormation(0, formation);
       w.spawn(0, 'cavalry', 700);
       w.spawn(0, 'giant', 700);
@@ -479,12 +493,13 @@ describe('Tộc và đội hình', () => {
       return Math.max(...xs) - Math.min(...xs);
     };
     expect(spread('free')).toBeGreaterThan(600);
-    expect(spread('line')).toBeLessThan(250);
+    // Đội hình hàng lối sâu khoảng 230 (khổng lồ / kỵ binh / khoảng trống / cung thủ)
+    expect(spread('line')).toBeLessThan(280);
   });
 
   it('đội hình tấn công không đứng chờ quân tiếp viện mới xây ở nhà', () => {
     for (const formation of ['line', 'spread', 'wedge', 'wall'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      const w = new World([side('light'), side('light')], seeded(6));
       w.setFormation(0, formation);
       for (const k of ['sword', 'sword', 'archer', 'spear'] as UnitKind[]) w.spawn(0, k, 900);
       w.setStance(0, 'attack');
@@ -498,7 +513,7 @@ describe('Tộc và đội hình', () => {
 
   it('bấm tấn công khi quân mới xây chưa ra tới đội: cả đội vẫn đi, quân mới chạy theo nhập hàng sau', () => {
     for (const formation of ['line', 'spread', 'wedge', 'wall'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      const w = new World([side('light'), side('light')], seeded(6));
       w.setFormation(0, formation);
       for (const k of ['sword', 'sword', 'archer', 'spear'] as UnitKind[]) w.spawn(0, k, 900);
       run(w, 3);
@@ -506,18 +521,21 @@ describe('Tộc và đội hình', () => {
       w.setStance(0, 'attack');
       run(w, 0.1);
       const first = w.teams[0].formX;
-      run(w, 5);
-      expect(w.teams[0].formX - first, formation).toBeGreaterThan(200);
-      // Quân đến muộn đứng sau mọi quân đã có mặt lúc ra lệnh
+      // Trong lúc chạy theo, quân đến muộn xếp chỗ sau mọi quân đã có mặt lúc ra lệnh
       const old = w.units.filter((u) => u.team === 0 && u !== late && u.kind !== 'miner');
       const back = (u: Unit) => w.teams[0].formX - w.slotX(u, w.teams[0].formX);
       expect(back(late), formation).toBeGreaterThan(Math.max(...old.map(back)));
+      run(w, 5);
+      expect(w.teams[0].formX - first, formation).toBeGreaterThan(200);
+      // Đuổi kịp thì nhập đội: đứng đúng chỗ của mình trong hàng
+      run(w, 20);
+      expect(Math.abs(late.x - w.slotX(late, w.teams[0].formX)), formation).toBeLessThan(30);
     }
   });
 
   it('hành quân theo đội hình: quân đi đều, không giật cục đi-đứng, không quay lui lúc xuất phát', () => {
     for (const formation of ['line', 'spread', 'wedge', 'wall'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(9));
+      const w = new World([side('light'), side('light')], seeded(9));
       w.setFormation(0, formation);
       for (const k of ['sword', 'sword', 'archer', 'archer', 'spear', 'healer', 'giant', 'cavalry'] as UnitKind[]) w.spawn(0, k, 500);
       run(w, 15); // dàn trận phòng thủ
@@ -539,15 +557,16 @@ describe('Tộc và đội hình', () => {
   });
 
   it('quân bắn xa đứng sau tiền tuyến, bị đẩy lên trước thì lùi về, bắn từ gần hết tầm', () => {
-    for (const faction of ['tribe', 'steam'] as FactionId[]) {
+    for (const faction of ['light', 'stone'] as FactionId[]) {
       for (const formation of ['free', 'line'] as const) {
-        const w = new World([side(faction), side('orc')], seeded(4));
+        const w = new World([side(faction), side('wind')], seeded(4));
         w.setFormation(0, formation);
-        const front = w.spawn(0, kindOf(faction, 'spear'), 900);
+        // Test đo chỗ đứng: tắt kỹ năng (hất lùi, choáng) để không làm lệch vị trí
+        const front = quiet(w.spawn(0, kindOf(faction, 'spear'), 900));
         front.hp = front.maxHp = 1e6;
-        const mage = w.spawn(0, kindOf(faction, 'mage'), 1000); // lỡ đứng trước hàng giáo
+        const mage = quiet(w.spawn(0, kindOf(faction, 'mage'), 1000)); // lỡ đứng trước hàng giáo
         mage.hp = mage.maxHp = 1e6;
-        for (const k of ['sword', 'sword', 'spear'] as const) w.spawn(1, kindOf('orc', k), 1500).hp = 1e6;
+        for (const k of ['sword', 'sword', 'spear'] as const) quiet(w.spawn(1, kindOf('wind', k), 1500)).hp = 1e6;
         w.setStance(0, 'attack');
         w.setStance(1, 'attack');
         run(w, 4);
@@ -566,7 +585,7 @@ describe('Tộc và đội hình', () => {
 
   it('Dừng: đang tấn công bấm Dừng thì cả đội đứng lại quanh chỗ đã tới, không về nhà cũng không lao lên', () => {
     for (const formation of ['free', 'line'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(12));
+      const w = new World([side('light'), side('light')], seeded(12));
       w.setFormation(0, formation);
       for (const k of ['sword', 'sword', 'archer', 'spear', 'healer'] as UnitKind[]) w.spawn(0, k, 700);
       w.setStance(0, 'attack');
@@ -584,7 +603,7 @@ describe('Tộc và đội hình', () => {
 
   it('cắm cờ: cả đội và quân mới xây ra đứng giữ quanh cờ; không cắm được sát tượng địch', () => {
     for (const formation of ['free', 'line'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(15));
+      const w = new World([side('light'), side('light')], seeded(15));
       w.setFormation(0, formation);
       for (const k of ['sword', 'archer', 'spear'] as UnitKind[]) w.spawn(0, k, 600);
       w.setHold(0, 1200);
@@ -598,7 +617,7 @@ describe('Tộc và đội hình', () => {
       }
       expect(late.x).toBeGreaterThan(1000);
     }
-    const w = new World([side('tribe'), side('tribe')], seeded(16));
+    const w = new World([side('light'), side('light')], seeded(16));
     w.setHold(0, WORLD_WIDTH);
     expect(w.teams[0].holdX).toBeLessThan(statueX(1) - 200);
     w.setHold(1, 0); // phe phải: cờ cũng không cắm vào tượng phe trái
@@ -607,9 +626,9 @@ describe('Tộc và đội hình', () => {
 
   it('đội hình: bắn xa đứng hẳn sau cận chiến, quân cùng hàng không đứng chồng lên nhau', () => {
     for (const formation of ['line', 'wedge', 'spread'] as const) {
-      const w = new World([side('desert'), side('tribe')], seeded(17));
+      const w = new World([side('crystal'), side('light')], seeded(17));
       w.setFormation(0, formation);
-      for (const k of ['spear', 'spear', 'sword', 'archer', 'archer', 'healer'] as const) w.spawn(0, kindOf('desert', k), 900);
+      for (const k of ['spear', 'spear', 'sword', 'archer', 'archer', 'healer'] as const) w.spawn(0, kindOf('crystal', k), 900);
       w.setHold(0, 1300);
       run(w, 20);
       const army = w.units.filter((u) => u.team === 0 && UNITS[u.kind].arch !== 'miner');
@@ -626,7 +645,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('đội hình gặp địch: mũi bám theo quân đang đánh, bắn xa theo sát sau; đánh xong tập hợp rồi đi tiếp', () => {
-    const w = new World([side('tribe'), side('tribe')], seeded(13));
+    const w = new World([side('light'), side('light')], seeded(13));
     w.setFormation(0, 'line');
     for (const k of ['sword', 'sword', 'archer', 'archer', 'spear'] as UnitKind[]) w.spawn(0, k, 700);
     const enemy = w.spawn(1, 'sword', 1500);
@@ -659,7 +678,7 @@ describe('Tộc và đội hình', () => {
 
   it('thầy thuốc trong đội hình theo sát tiền tuyến và hồi máu cho quân đang đánh', () => {
     for (const formation of ['line', 'wedge', 'wall', 'spread'] as const) {
-      const w = new World([side('tribe'), side('tribe')], seeded(18));
+      const w = new World([side('light'), side('light')], seeded(18));
       w.setFormation(0, formation);
       for (const k of ['spear', 'sword', 'archer', 'archer', 'archer', 'healer'] as UnitKind[]) w.spawn(0, k, 700);
       const tank = w.spawn(1, 'giant', 1700);
@@ -676,7 +695,7 @@ describe('Tộc và đội hình', () => {
 
   it('sát thủ không đi xuyên quân địch đứng chắn; chỉ vượt qua bằng cách lướt', () => {
     const setup = () => {
-      const w = new World([side('tribe'), side('tribe')], seeded(19));
+      const w = new World([side('light'), side('light')], seeded(19));
       const wall = w.spawn(1, 'spear', 1300);
       wall.hp = wall.maxHp = 1e6;
       w.spawn(1, 'archer', 1450).hp = 1e6;
@@ -712,7 +731,7 @@ describe('Tộc và đội hình', () => {
 
   it('đội hình tới tượng địch thì cả đội đánh tượng, không đứng treo', () => {
     for (const formation of ['line', 'wedge', 'wall', 'spread'] as const) {
-      const w = new World([side('tribe'), { ...side('tribe'), statueHp: 1e6 }], seeded(21));
+      const w = new World([side('light'), { ...side('light'), statueHp: 1e6 }], seeded(21));
       w.setFormation(0, formation);
       for (const k of ['cavalry', 'sword', 'sword', 'archer', 'archer', 'healer', 'giant'] as UnitKind[]) w.spawn(0, k, 2600);
       w.setStance(0, 'attack');
@@ -728,7 +747,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('mũi nhọn: quân nhanh không bỏ đội lao lên khi thấy địch ở xa, lính trâu vẫn đi đầu', () => {
-    const w = new World([side('tribe'), side('tribe')], seeded(22));
+    const w = new World([side('light'), side('light')], seeded(22));
     w.setFormation(0, 'wedge');
     for (const k of ['cavalry', 'giant', 'sword', 'sword', 'archer'] as UnitKind[]) w.spawn(0, k, 900);
     for (const k of ['sword', 'sword'] as UnitKind[]) w.spawn(1, k, 2000).hp = 1e6;
@@ -746,7 +765,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('rút về: thầy thuốc hồi máu cho quân bị thương trên đường về', () => {
-    const w = new World([side('tribe'), side('tribe')], seeded(23));
+    const w = new World([side('light'), side('light')], seeded(23));
     const hurt = w.spawn(0, 'sword', 1500);
     hurt.hp = 20;
     w.spawn(0, 'healer', 1400);
@@ -761,7 +780,7 @@ describe('Tộc và đội hình', () => {
 
   it('đội hình xếp quân cùng hàng ra các lane khác nhau, mũi nhọn hẹp ở đầu', () => {
     const lanesOf = (formation: 'line' | 'wedge') => {
-      const w = new World([side('tribe'), side('tribe')], seeded(14));
+      const w = new World([side('light'), side('light')], seeded(14));
       w.setFormation(0, formation);
       for (const k of ['cavalry', 'sword', 'sword', 'sword', 'archer', 'archer', 'archer'] as UnitKind[]) w.spawn(0, k, 700);
       w.setStance(0, 'attack');
@@ -781,7 +800,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('mỏ kim cương + phòng thủ: lính ra đứng chắn trước mỏ giữa, tắt thì về giữ tượng', () => {
-    const w = new World([side('tribe', ['miner']), side('tribe')], seeded(7));
+    const w = new World([side('light', ['miner']), side('light')], seeded(7));
     for (const k of ['miner', 'miner', 'sword', 'archer'] as UnitKind[]) w.spawn(0, k);
     w.setCenterMine(0, true);
     run(w, 30);
@@ -793,7 +812,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('thợ xây ra dựng trạm vàng ở 2 chỗ cố định, tối đa 2 trạm', () => {
-    const w = new World([{ ...side('tribe', ['builder']), gold: 5000 }, side('tribe')], seeded(4));
+    const w = new World([{ ...side('light', ['builder']), gold: 5000 }, side('light')], seeded(4));
     for (let i = 0; i < 3; i++) w.train(0, 'builder');
     expect(w.teams[0].queue.length).toBe(2);
     run(w, 60);
@@ -803,7 +822,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('trạm vàng bắn địch đến gần', () => {
-    const w = new World([side('tribe'), side('tribe')], seeded(5));
+    const w = new World([side('light'), side('light')], seeded(5));
     const t = w.spawn(0, 'tower', depotX(0, 0));
     t.buildSlot = 0;
     const e = w.spawn(1, 'sword', depotX(0, 0) + 300);
@@ -814,7 +833,7 @@ describe('Tộc và đội hình', () => {
 
   it('cờ hiệu làm quân quanh đó đánh đau hơn', () => {
     const dmg = (withBanner: boolean) => {
-      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      const w = new World([side('light'), side('light')], seeded(6));
       w.setStance(0, 'attack');
       w.spawn(0, 'sword', 1500).lane = 0.5;
       if (withBanner) w.spawn(0, 'banner', 1460);
@@ -828,7 +847,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('thầy chiêu hồn gọi xác chết dậy thành xương binh tạm thời', () => {
-    const w = new World([side('undead'), side('tribe')], seeded(7));
+    const w = new World([side('shadow'), side('light')], seeded(7));
     w.spawn(0, 'healer', 1450);
     const victim = w.spawn(1, 'miner', 1500);
     victim.hp = 1;
@@ -837,12 +856,12 @@ describe('Tộc và đội hình', () => {
     w.setStance(0, 'attack');
     run(w, 2);
     const summon = w.units.find((u) => u.team === 0 && u.lifeT > 0);
-    expect(summon?.kind).toBe('undead-sword');
-    expect(w.pop(0)).toBe(UNITS['undead-healer'].pop + UNITS['undead-sword'].pop); // quân triệu hồi không tính quân số
+    expect(summon?.kind).toBe('shadow-sword');
+    expect(w.pop(0)).toBe(UNITS['shadow-healer'].pop + UNITS['shadow-sword'].pop); // quân triệu hồi không tính quân số
   });
 
   it('goblin đánh bom tự nổ, gây sát thương lan', () => {
-    const w = new World([side('orc'), side('tribe')], seeded(8));
+    const w = new World([side('wind'), side('light')], seeded(8));
     const g = w.spawn(0, 'ninja', 1400);
     const a = w.spawn(1, 'sword', 1460);
     const b = w.spawn(1, 'sword', 1470);
@@ -856,7 +875,7 @@ describe('Tộc và đội hình', () => {
   });
 
   it('bóng ma tàng hình: địch không nhắm được khi nó chưa ra đòn', () => {
-    const w = new World([side('undead'), side('tribe')], seeded(9));
+    const w = new World([side('shadow'), side('light')], seeded(9));
     const ghost = w.spawn(0, 'ninja', 1500);
     ghost.hp = ghost.maxHp = 9999;
     const archer = w.spawn(1, 'archer', 1800);
@@ -868,7 +887,7 @@ describe('Tộc và đội hình', () => {
   });
 });
 
-describe('12 tộc: nội tại và trạm vàng', () => {
+describe('12 hệ: nội tại và trạm vàng', () => {
   const side = (faction: FactionId, unlocked: UnitKind[] = []) => ({ faction, gold: 0, statueHp: 5000, unlocked });
   const one = (w: World, team: 0 | 1, kind: UnitKind, x: number) => {
     const u = w.spawn(team, kind, x);
@@ -876,18 +895,18 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     return u;
   };
 
-  it('12 tộc có 12 nội tại khác nhau', () => {
+  it('12 hệ có 12 nội tại khác nhau', () => {
     expect(new Set(FACTION_ORDER.map((f) => FACTIONS[f].passive)).size).toBe(12);
-    expect(FACTION_ORDER.slice(8)).toEqual(['dwarf', 'tide', 'dragon', 'frost']);
+    expect(FACTION_ORDER.slice(8)).toEqual(['metal', 'water', 'fire', 'ice']);
   });
 
   /** Sát thương một nhát của quân đầu tiên phe 0 vào một khổng lồ địch đứng yên. */
   const firstHit = (faction: FactionId, allies: number, setup?: (w: World) => void) => {
-    const w = new World([side(faction), side('tribe')], seeded(3));
+    const w = new World([side(faction), side('light')], seeded(3));
     setup?.(w);
-    const me = one(w, 0, kindOf(faction, 'sword'), 1000);
-    for (let i = 0; i < allies; i++) one(w, 0, kindOf(faction, 'sword'), 990 - i * 4);
-    const e = one(w, 1, 'giant', 1020);
+    const me = quiet(one(w, 0, kindOf(faction, 'sword'), 1000));
+    for (let i = 0; i < allies; i++) quiet(one(w, 0, kindOf(faction, 'sword'), 990 - i * 4));
+    const e = quiet(one(w, 1, 'giant', 1020));
     w.setStance(1, 'garrison');
     e.inside = false;
     const hp0 = e.hp;
@@ -898,29 +917,30 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     return { dealt: hp0 - e.hp, w, me, e };
   };
 
-  it('Cuồng phong (orc): đứng giữa đồng đội thì đánh đau hơn đứng một mình', () => {
-    const alone = firstHit('orc', 0).dealt;
-    const pack = firstHit('orc', 5).dealt;
+  it('Cuồng phong (wind): đứng giữa đồng đội thì đánh đau hơn đứng một mình', () => {
+    const alone = firstHit('wind', 0).dealt;
+    const pack = firstHit('wind', 5).dealt;
     expect(pack / alone).toBeGreaterThan(1.1);
     expect(pack / alone).toBeLessThan(1.22);
   });
 
-  it('Lò rèn (dwarf): quân xây càng muộn càng nhiều máu và đánh đau hơn', () => {
-    const w = new World([side('dwarf'), side('tribe')], seeded(2));
-    const early = w.spawn(0, 'dwarf-sword');
+  it('Lò rèn (metal): quân xây càng muộn càng nhiều máu và đánh đau hơn', () => {
+    const w = new World([side('metal'), side('light')], seeded(2));
+    const early = w.spawn(0, 'metal-sword');
     w.time = 180;
-    const late = w.spawn(0, 'dwarf-sword');
-    expect(late.maxHp / early.maxHp).toBeCloseTo(1.15, 2);
+    const late = w.spawn(0, 'metal-sword');
+    const perMin = FACTIONS.metal.forge!.perMin;
+    expect(late.maxHp / early.maxHp).toBeCloseTo(1 + 3 * perMin, 2);
     w.time = 9999;
-    expect(w.spawn(0, 'dwarf-sword').maxHp / early.maxHp).toBeCloseTo(1.4, 2);
-    const a = firstHit('dwarf', 0).dealt;
-    const b = firstHit('dwarf', 0, (x) => (x.time = 180)).dealt;
-    expect(b / a).toBeCloseTo(1.15, 1);
+    expect(w.spawn(0, 'metal-sword').maxHp / early.maxHp).toBeCloseTo(1.4, 2);
+    const a = firstHit('metal', 0).dealt;
+    const b = firstHit('metal', 0, (x) => (x.time = 180)).dealt;
+    expect(b / a).toBeCloseTo(1 + 3 * perMin, 1);
   });
 
-  it('Thủy triều (tide): đánh trúng thì hồi máu', () => {
-    const w = new World([side('tide'), side('tribe')], seeded(3));
-    const u = one(w, 0, 'tide-sword', 1000);
+  it('Thủy triều (water): đánh trúng thì hồi máu', () => {
+    const w = new World([side('water'), side('light')], seeded(3));
+    const u = one(w, 0, 'water-sword', 1000);
     u.hp = u.maxHp / 2;
     const e = one(w, 1, 'giant', 1020);
     w.setStance(1, 'garrison');
@@ -930,21 +950,21 @@ describe('12 tộc: nội tại và trạm vàng', () => {
     expect(u.hp).toBeGreaterThan(hp0);
   });
 
-  it('Lửa rồng (dragon): đòn đánh đốt máu theo thời gian', () => {
-    const { e } = firstHit('dragon', 0);
+  it('Lửa rồng (fire): đòn đánh đốt máu theo thời gian', () => {
+    const { e } = firstHit('fire', 0);
     expect(e.poisonT).toBeGreaterThan(0);
     expect(e.poisonDps).toBeGreaterThan(0);
   });
 
-  it('Giá lạnh (frost): đòn đánh làm chậm mục tiêu', () => {
-    const { e } = firstHit('frost', 0);
+  it('Giá lạnh (ice): đòn đánh làm chậm mục tiêu', () => {
+    const { e } = firstHit('ice', 0);
     expect(e.slowT).toBeGreaterThan(0);
-    expect(firstHit('tribe', 0).e.slowT).toBeLessThanOrEqual(0);
+    expect(firstHit('light', 0).e.slowT).toBeLessThanOrEqual(0);
   });
 
   it('thợ mỏ vàng nộp vàng ở trạm gần mỏ, trạm bị phá thì vác về tượng', () => {
     const deliveries = (withDepot: boolean) => {
-      const w = new World([side('tribe'), side('tribe')], seeded(6));
+      const w = new World([side('light'), side('light')], seeded(6));
       w.setMineSplit(0, [0, 1, 0]);
       for (let i = 0; i < 2; i++) w.spawn(0, 'miner');
       let depot: Unit | null = null;
@@ -992,7 +1012,7 @@ describe('Tường thành', () => {
   };
 
   it('chỉ xây trong nửa nhà, đủ vàng, có thợ mỏ, mỗi phe 1 bức; thợ mỏ gần nhất đi ra dựng rồi quay lại đào', () => {
-    const w = new World([side('tribe', 1000), side('tribe')], seeded(1));
+    const w = new World([side('light', 1000), side('light')], seeded(1));
     const x = statueX(0) + 500;
     expect(w.wallBlock(0, x)).toBe('miner');
     const miner = one(w, 0, 'miner', statueX(0) + 60);
@@ -1000,12 +1020,12 @@ describe('Tường thành', () => {
     expect(w.wallBlock(0, statueX(0) + 1500)).toBe('range');
     expect(w.wallBlock(1, statueX(1) - 500)).toBe('gold'); // phe địch 0 vàng
     expect(w.orderWall(0, x)).toBe(true);
-    expect(w.teams[0].gold).toBe(1000 - UNITS[wallKind('tribe')].cost);
+    expect(w.teams[0].gold).toBe(1000 - UNITS[wallKind('light')].cost);
     expect(w.wallBlock(0, x)).toBe('busy');
     step(w, 6.5); // thợ mỏ đi 440 đơn vị
     expect(Math.abs(miner.x - x)).toBeLessThan(6);
     expect(w.wallOf(0)).toBeNull();
-    step(w, (UNITS[wallKind('tribe')].buildTime ?? 6) + 0.5);
+    step(w, (UNITS[wallKind('light')].buildTime ?? 6) + 0.5);
     const wall = w.wallOf(0)!;
     expect(wall).not.toBeNull();
     expect(wall.x).toBe(x);
@@ -1021,9 +1041,9 @@ describe('Tường thành', () => {
   });
 
   it('chặn quân địch (phải phá tường mới qua), quân nhà đi xuyên qua cổng', () => {
-    const w = new World([side('tribe'), side('tribe')], seeded(2));
+    const w = new World([side('light'), side('light')], seeded(2));
     const wx = statueX(0) + 600;
-    const wall = one(w, 0, wallKind('tribe'), wx);
+    const wall = one(w, 0, wallKind('light'), wx);
     const enemy = one(w, 1, 'sword', wx + 300);
     const mine = one(w, 0, 'sword', wx - 200);
     w.setStance(0, 'attack');
@@ -1033,8 +1053,8 @@ describe('Tường thành', () => {
     expect(minX).toBeGreaterThanOrEqual(wx);
     expect(mine.x).toBeGreaterThan(wx); // quân nhà đã qua cổng
     // Không có quân nhà, quân địch đánh vào tường
-    const w2 = new World([side('tribe'), side('tribe')], seeded(3));
-    const wall2 = one(w2, 0, wallKind('tribe'), wx);
+    const w2 = new World([side('light'), side('light')], seeded(3));
+    const wall2 = one(w2, 0, wallKind('light'), wx);
     const e2 = one(w2, 1, 'sword', wx + 200);
     w2.setStance(1, 'attack');
     step(w2, 8);
@@ -1044,8 +1064,8 @@ describe('Tường thành', () => {
 
   it('máy công thành phá tường ×3', () => {
     const hitWall = (kind: UnitKind) => {
-      const w = new World([side('tribe'), side('tribe')], seeded(4));
-      const wall = one(w, 0, wallKind('tribe'), 1000);
+      const w = new World([side('light'), side('light')], seeded(4));
+      const wall = one(w, 0, wallKind('light'), 1000);
       const s = UNITS[kind];
       (w as unknown as { damageUnit: (u: Unit, d: number, by: 0 | 1, t: string) => void }).damageUnit(wall, 100, 1, s.dmgType);
       return wall.maxHp - wall.hp;
@@ -1055,20 +1075,20 @@ describe('Tường thành', () => {
 
   it('nét riêng: rào gai đâm lại, tường băng làm chậm, tường lửa đốt, tường cây tự hồi máu', () => {
     const attackWall = (faction: FactionId) => {
-      const w = new World([side(faction), side('tribe')], seeded(5));
+      const w = new World([side(faction), side('light')], seeded(5));
       const wall = one(w, 0, wallKind(faction), 1000);
       const e = one(w, 1, 'sword', 1030);
       w.setStance(1, 'attack');
       step(w, 3);
       return { w, wall, e };
     };
-    const orc = attackWall('orc');
+    const orc = attackWall('wind');
     expect(orc.e.hp).toBeLessThan(orc.e.maxHp);
-    expect(attackWall('frost').e.slowT).toBeGreaterThan(0);
-    expect(attackWall('dragon').e.poisonT).toBeGreaterThan(0);
-    expect(attackWall('tribe').e.hp).toBe(UNITS.sword.hp); // tường đá thường không phản đòn
-    const w = new World([side('elf'), side('tribe')], seeded(6));
-    const tree = one(w, 0, wallKind('elf'), 1000);
+    expect(attackWall('ice').e.slowT).toBeGreaterThan(0);
+    expect(attackWall('fire').e.poisonT).toBeGreaterThan(0);
+    expect(attackWall('light').e.hp).toBe(UNITS.sword.hp); // tường đá thường không phản đòn
+    const w = new World([side('wood'), side('light')], seeded(6));
+    const tree = one(w, 0, wallKind('wood'), 1000);
     tree.hp -= 500;
     const before = tree.hp;
     step(w, 2);
@@ -1078,13 +1098,13 @@ describe('Tường thành', () => {
   it('mã tường nối vào cuối UNIT_ORDER (client cũ không lệch chỉ số), mỗi nền văn minh một loại tường', () => {
     const n = FACTION_ORDER.length;
     expect(UNIT_ORDER.slice(-n)).toEqual(FACTION_ORDER.map((f) => wallKind(f)));
-    expect(UNIT_ORDER.indexOf(kindOf('frost', 'tower'))).toBe(n * 13 - 1);
+    expect(UNIT_ORDER.indexOf(kindOf('ice', 'tower'))).toBe(n * 13 - 1);
     expect(new Set(FACTION_ORDER.map((f) => UNITS[wallKind(f)].name)).size).toBe(n);
   });
 });
 
 describe('AI tấn công', () => {
-  const side = (gold = 0) => ({ faction: 'tribe' as FactionId, gold, statueHp: 9999, unlocked: [] as UnitKind[] });
+  const side = (gold = 0) => ({ faction: 'light' as FactionId, gold, statueHp: 9999, unlocked: [] as UnitKind[] });
   const cfg = { miners: 0, mix: {}, attackAt: 100, forceAttackAt: 30, retreatRatio: 0.2, edge: 1.15 };
 
   it('có edge: không lao vào khi quân yếu hơn địch, đủ áp đảo thì đánh; quá giờ lâu vẫn đánh', () => {
@@ -1108,5 +1128,351 @@ describe('AI tấn công', () => {
     const ai2 = new EnemyAI(cfg, 0);
     ai2.update(w2, 1);
     expect(w2.teams[0].stance).toBe('attack');
+  });
+});
+
+describe('Kỹ năng riêng', () => {
+  const side = (faction: FactionId, gold = 0) => ({ faction, gold, statueHp: 50000, unlocked: [] as UnitKind[] });
+  const one = (w: World, team: 0 | 1, kind: UnitKind, x: number) => {
+    const u = w.spawn(team, kind, x);
+    u.lane = 0.5;
+    return u;
+  };
+
+  it('mọi quân của mọi nền văn minh (kể cả thợ mỏ, thợ xây, trạm, tường) có một kỹ năng riêng, tên không trùng', () => {
+    const names = new Set<string>();
+    for (const f of FACTION_ORDER) {
+      for (const a of ALL_ARCHS) {
+        const sk = UNITS[kindOf(f, a)].skill;
+        expect(sk, `${f} ${a}`).toBeDefined();
+        expect(names.has(sk!.name), sk!.name).toBe(false);
+        names.add(sk!.name);
+        if (sk!.on === 'strike' || sk!.on === 'pulse' || sk!.on === 'haul') expect(sk!.every ?? 0, `${f} ${a}`).toBeGreaterThanOrEqual(0);
+      }
+    }
+    expect(names.size).toBe(FACTION_ORDER.length * ALL_ARCHS.length);
+  });
+
+  it('strike: đòn cường hoá làm choáng, choáng xong có khoảng miễn choáng, hồi chiêu mới đánh mạnh lại', () => {
+    const w = new World([side('light'), side('light')], seeded(1));
+    const me = one(w, 0, 'sword', 1000);
+    const foe = quiet(one(w, 1, 'spear', 1030));
+    foe.hp = foe.maxHp = 99999;
+    w.setStance(1, 'garrison');
+    foe.inside = false;
+    w.setStance(0, 'attack');
+    let stunned = false;
+    for (let t = 0; t < 1 && !stunned; t += DT) {
+      w.update(DT);
+      foe.inside = false;
+      stunned = foe.stunT > 0;
+    }
+    expect(stunned).toBe(true);
+    expect(me.skillT).toBeGreaterThan(4);
+  });
+
+  it('low: dưới 40% máu kích một lần (Hộ vệ khiên máu tự hồi máu và giảm sát thương nhận)', () => {
+    const w = new World([side('blood'), side('light')], seeded(2));
+    const u = one(w, 0, 'blood-spear', 1000);
+    const foe = quiet(one(w, 1, 'giant', 1050));
+    foe.cooldownT = 0;
+    u.hp = u.maxHp * 0.42;
+    w.setStance(0, 'hold');
+    w.setStance(1, 'attack');
+    run(w, 3);
+    expect(u.skillUsed).toBe(true);
+    expect(u.guardT > 0 || u.hp > u.maxHp * 0.42).toBe(true);
+  });
+
+  it('khiên giảm và phá giáp tăng sát thương nhận', () => {
+    const hit = (setup: (u: Unit) => void) => {
+      const w = new World([side('light'), side('light')], seeded(3));
+      quiet(one(w, 0, 'sword', 1000));
+      const v = quiet(one(w, 1, 'spear', 1025));
+      v.hp = v.maxHp = 99999;
+      setup(v);
+      w.setStance(0, 'attack');
+      w.setStance(1, 'attack');
+      run(w, 0.6);
+      return v.maxHp - v.hp;
+    };
+    const base = hit(() => {});
+    const guarded = hit((v) => ((v.guardT = 9), (v.guard = 0.5)));
+    const sundered = hit((v) => ((v.sunderT = 9), (v.sunder = 0.5)));
+    expect(base).toBeGreaterThan(0);
+    expect(guarded / base).toBeCloseTo(0.5, 1);
+    expect(sundered / base).toBeCloseTo(1.5, 1);
+  });
+
+  it('pulse: tu sĩ phát ánh sáng hồi máu cho cả nhóm khi đang giao tranh', () => {
+    const w = new World([side('light'), side('light')], seeded(4));
+    const healer = one(w, 0, 'healer', 1000);
+    const a = quiet(one(w, 0, 'sword', 1040));
+    const b = quiet(one(w, 0, 'sword', 960));
+    a.hp = b.hp = 20;
+    one(w, 1, 'sword', 1300).cooldownT = 99;
+    w.update(DT);
+    expect(healer.skillT).toBeGreaterThan(10);
+    const mend = UNITS.healer.skill!.mend!;
+    expect(a.hp).toBeGreaterThanOrEqual(20 + mend);
+    expect(b.hp).toBeGreaterThanOrEqual(20 + mend);
+  });
+
+  it('death: ác linh khổng lồ chết gọi bóng binh dậy (triệu hồi tự tan, không chiếm quân số)', () => {
+    const w = new World([side('shadow'), side('light')], seeded(5));
+    const g = one(w, 0, 'shadow-giant', 1000);
+    const pop = w.pop(0);
+    one(w, 1, 'sword', 1030);
+    g.hp = 1;
+    w.setStance(1, 'attack');
+    run(w, 2);
+    const raised = w.units.filter((u) => u.team === 0 && u.kind === 'shadow-sword' && u.lifeT > 0);
+    expect(raised.length).toBeGreaterThanOrEqual(3);
+    expect(w.pop(0)).toBeLessThanOrEqual(pop);
+  });
+
+  it('haul và built: thợ mỏ / thợ xây Tinh Thạch Cốc mang thêm vàng', () => {
+    const w = new World([side('crystal'), side('light')], seeded(6));
+    const m = one(w, 0, 'crystal-miner', 300);
+    m.carrying = 18;
+    const g0 = w.teams[0].gold;
+    run(w, 2);
+    expect(w.teams[0].gold - g0).toBeGreaterThanOrEqual(18 + UNITS['crystal-miner'].skill!.gold!);
+    const b = one(w, 0, 'crystal-builder', depotX(0, 0));
+    const g1 = w.teams[0].gold;
+    run(w, 6.5);
+    expect(b.kind).toBe('crystal-tower');
+    expect(w.teams[0].gold - g1).toBeGreaterThanOrEqual(80);
+  });
+
+  it('kỹ năng tất định: cùng bộ ngẫu nhiên thì trận ra y hệt', () => {
+    const play = () => {
+      const w = new World([side('ice', 3000), side('thunder', 3000)], seeded(7));
+      for (const k of ['sword', 'archer', 'giant', 'mage', 'spear']) {
+        w.spawn(0, kindOf('ice', k as never), 1400);
+        w.spawn(1, kindOf('thunder', k as never), 2600);
+      }
+      w.setStance(0, 'attack');
+      w.setStance(1, 'attack');
+      run(w, 40);
+      return w.units.map((u) => `${u.kind}:${Math.round(u.hp)}:${Math.round(u.x)}`).join('|');
+    };
+    expect(play()).toBe(play());
+  });
+});
+
+describe('Ô đền', () => {
+  const side = (gold = 0) => ({ faction: 'light' as FactionId, gold, statueHp: 9999, unlocked: ['builder'] as UnitKind[] });
+
+  it('chọn ô đền: thợ xây ra đúng ô đó dựng trạm; ô đã có / đã đặt thì không chọn lại được', () => {
+    const w = new World([side(2000), side()], seeded(1));
+    const far = DEPOT_SLOTS.indexOf(Math.max(...DEPOT_SLOTS));
+    expect(w.train(0, 'builder', far)).toBe(true);
+    expect(freeDepots(w, 0)).not.toContain(far);
+    expect(w.canTrain(0, 'builder', far)).toBe(false); // đã đặt trước trong hàng chờ
+    expect(w.canTrain(0, 'sword', 0)).toBe(false); // chỉ thợ xây mới kèm ô đền
+    run(w, 40);
+    const tower = w.units.find((u) => u.team === 0 && u.kind === 'tower');
+    expect(tower).toBeDefined();
+    expect(Math.abs(tower!.x - depotX(0, far))).toBeLessThan(6);
+    // Không chọn ô: lấy ô trống đầu tiên; tối đa MAX_TOWERS trạm
+    expect(w.train(0, 'builder')).toBe(true);
+    expect(w.train(0, 'builder')).toBe(false);
+  });
+});
+
+describe('Đội hình gặp địch', () => {
+  const army: UnitKind[] = [
+    'sword',
+    'sword',
+    'sword',
+    'archer',
+    'archer',
+    'ninja',
+    'spear',
+    'spear',
+    'cavalry',
+    'healer',
+    'banner',
+    'mage',
+    'catapult',
+    'giant',
+  ];
+  const battle = (formation: 'line' | 'wedge' | 'wall' | 'spread') => {
+    const w = new World(
+      [
+        { faction: 'light' as FactionId, gold: 0, statueHp: 99999, unlocked: [] as UnitKind[] },
+        { faction: 'wind' as FactionId, gold: 0, statueHp: 99999, unlocked: [] as UnitKind[] },
+      ],
+      seeded(3),
+    );
+    for (const k of army) quiet(w.spawn(0, k, 500));
+    for (const k of ['sword', 'sword', 'spear', 'archer'] as UnitKind[]) quiet(w.spawn(1, k, 2300));
+    w.setHold(1, 2300);
+    w.setFormation(0, formation);
+    w.setStance(0, 'attack');
+    return w;
+  };
+
+  it('bấm tấn công là cả đội xuất phát ngay, không đứng chờ tập hợp lâu', () => {
+    for (const f of ['line', 'wedge', 'wall', 'spread'] as const) {
+      const w = battle(f);
+      const x0 = w.teams[0].formX || 0;
+      run(w, 3);
+      expect(w.teams[0].formX - x0, f).toBeGreaterThan(40);
+    }
+  });
+
+  it('giáp địch thì đánh: không quân nào đứng sát địch trong tầm mà không đánh; mũi không vượt qua hàng địch', () => {
+    for (const f of ['line', 'wedge', 'wall', 'spread'] as const) {
+      const w = battle(f);
+      let idle = 0;
+      let overshoot = 0;
+      run(w, 70, (world) => {
+        const foes = world.units.filter((u) => u.team === 1 && !u.dying);
+        if (!foes.length) return;
+        const front = Math.min(...foes.map((e) => e.x));
+        if (world.teams[0].formX > front + 1) overshoot++;
+        for (const u of world.units) {
+          if (u.team !== 0 || u.dying) continue;
+          const s = UNITS[u.kind];
+          if (s.arch === 'healer' || s.arch === 'banner' || s.minRange) continue;
+          const d = Math.min(...foes.map((e) => Math.abs(e.x - u.x)));
+          if (d <= s.range && u.attackT < 0 && !u.moving && u.cooldownT <= 0) idle++;
+        }
+      });
+      expect(world0Done(w), f).toBe(true);
+      expect(idle, f).toBeLessThan(10);
+      expect(overshoot, f).toBe(0);
+    }
+  });
+});
+
+const world0Done = (w: World) => w.units.every((u) => u.team !== 1 || u.dying);
+
+describe('Thích khách', () => {
+  const setup = (f: FactionId, formation: 'line' | 'wedge' | 'free') => {
+    const w = new World(
+      [
+        { faction: f, gold: 0, statueHp: 99999, unlocked: [] as UnitKind[] },
+        { faction: 'stone' as FactionId, gold: 0, statueHp: 99999, unlocked: [] as UnitKind[] },
+      ],
+      seeded(5),
+    );
+    for (const a of ['spear', 'sword', 'sword', 'archer', 'ninja', 'ninja'] as const) quiet(w.spawn(0, kindOf(f, a), 900));
+    for (const a of ['spear', 'spear', 'sword', 'archer', 'archer', 'mage', 'healer'] as const) quiet(w.spawn(1, kindOf('stone', a), 2200));
+    w.setHold(1, 2150);
+    w.setFormation(0, formation);
+    w.setStance(0, 'attack');
+    return w;
+  };
+
+  it('đứng sau hàng cận chiến trong đội hình, chờ tiền tuyến giáp địch rồi mới lướt vào ám sát hàng sau', () => {
+    for (const f of ['light', 'shadow', 'wood'] as FactionId[]) {
+      for (const formation of ['line', 'wedge', 'free'] as const) {
+        const w = setup(f, formation);
+        const ninjas = w.units.filter((u) => u.team === 0 && UNITS[u.kind].arch === 'ninja');
+        const front = () => w.units.filter((u) => u.team === 0 && !u.dying && ['spear', 'sword'].includes(UNITS[u.kind].arch));
+        let frontT = -1;
+        const first: string[] = [];
+        let t = 0;
+        run(w, 40, () => {
+          t += DT;
+          if (frontT < 0 && front().some((u) => u.combat)) frontT = t;
+          // Trước giao tranh thích khách không đứng trước quân cận chiến đi đầu
+          if (frontT < 0 && formation !== 'free' && t > 3)
+            for (const n of ninjas) expect(n.x, `${f} ${formation}`).toBeLessThanOrEqual(Math.max(...front().map((u) => u.x)) + 5);
+          for (const n of ninjas) {
+            if (n.dying || n.attackT < 0 || n.attackT >= DT * 1.5 || first.length >= ninjas.length) continue;
+            expect(frontT, `${f} ${formation}: thích khách ra tay trước khi tiền tuyến giáp địch`).toBeGreaterThan(0);
+            const tg = w.units.find((e) => e.id === n.targetId);
+            if (tg) first.push(UNITS[tg.kind].arch);
+          }
+        });
+        expect(first.length, `${f} ${formation}`).toBeGreaterThan(0);
+        // Đòn đầu nhắm hàng sau (bắn xa / hỗ trợ), không phải giáo binh tiền tuyến
+        for (const a of first) expect(['archer', 'mage', 'healer', 'banner', 'catapult'], `${f} ${formation}`).toContain(a);
+      }
+    }
+  });
+});
+
+describe('Lật kèo: chiêu tượng thần, phục kích kỳ cựu', () => {
+  const side = (faction: FactionId, gold = 0) => ({ faction, gold, statueHp: 9999, unlocked: [] as UnitKind[] });
+
+  it('mất quân thì tượng nạp nộ; chưa đầy thì không tung được, đầy thì tung đúng chỗ và hết nộ', () => {
+    const w = new World([side('fire'), side('light')], seeded(1));
+    expect(w.unleash(0, 1500)).toBe(false);
+    const mine = quiet(w.spawn(0, 'fire-giant', 1500));
+    mine.hp = 1;
+    w.spawn(1, 'sword', 1520).cooldownT = 0;
+    w.setStance(1, 'attack');
+    run(w, 3);
+    expect(mine.dying).toBe(true);
+    expect(w.teams[0].ult).toBeGreaterThanOrEqual(UNITS['fire-giant'].cost / ULT_LOSS - 0.01);
+    w.teams[0].ult = 1;
+    const foes = [w.spawn(1, 'spear', 2000), w.spawn(1, 'archer', 2100), w.spawn(1, 'sword', 2600)];
+    const hp = foes.map((u) => u.hp);
+    expect(w.unleash(0, 2050)).toBe(true);
+    expect(w.teams[0].ult).toBe(0);
+    const r = ULTS.fire.area!;
+    // Trong vùng chiêu thì mất máu, ngoài vùng thì không
+    expect(foes[0].hp).toBeLessThan(hp[0]);
+    expect(foes[1].hp).toBeLessThan(hp[1]);
+    expect(Math.abs(foes[2].x - 2050)).toBeGreaterThan(r);
+    expect(foes[2].hp).toBe(hp[2]);
+    expect(w.unleash(0, 2050)).toBe(false);
+  });
+
+  it('bên thua đợt giao tranh nạp nộ nhanh hơn bên thắng', () => {
+    const w = new World([side('light'), side('light')], seeded(2));
+    for (let i = 0; i < 8; i++) w.spawn(0, 'sword', 1500 - i * 6);
+    for (let i = 0; i < 3; i++) w.spawn(1, 'sword', 1560 + i * 6);
+    w.setStance(0, 'attack');
+    w.setStance(1, 'attack');
+    run(w, 20);
+    expect(w.teams[1].ult).toBeGreaterThan(w.teams[0].ult);
+  });
+
+  it('phục kích kỳ cựu: hạ quân có sao được thưởng vàng theo số sao', () => {
+    const killGold = (rank: number) => {
+      const w = new World([side('light'), side('wind')], seeded(3));
+      const vet = quiet(w.spawn(1, 'wind-spear', 1520));
+      vet.rank = rank;
+      vet.hp = 1;
+      quiet(w.spawn(0, 'giant', 1500));
+      w.setStance(0, 'attack');
+      const g0 = w.teams[0].gold;
+      run(w, 3);
+      expect(vet.dying).toBe(true);
+      return w.teams[0].gold - g0;
+    };
+    const base = killGold(0);
+    expect(killGold(2) - base).toBeCloseTo(Math.round(UNITS['wind-spear'].cost * VETERAN_BOUNTY * 2), -1);
+  });
+});
+
+describe('Mã 12 hệ theo nguyên tố', () => {
+  it('mã mới là 12 nguyên tố; mã cũ (tên tộc) vẫn đổi được sang mã mới, mã lạ thì không', () => {
+    expect(FACTION_ORDER).toEqual([
+      'light',
+      'wind',
+      'wood',
+      'shadow',
+      'thunder',
+      'blood',
+      'crystal',
+      'stone',
+      'metal',
+      'water',
+      'fire',
+      'ice',
+    ]);
+    expect(toFactionId('fire')).toBe('fire');
+    expect(toFactionId('dragon')).toBe('fire');
+    expect(toFactionId('tribe')).toBe('light');
+    expect(toFactionId('x')).toBeNull();
+    expect(toFactionId(3)).toBeNull();
+    expect(new Set(Object.values(LEGACY_FACTIONS)).size).toBe(12);
   });
 });

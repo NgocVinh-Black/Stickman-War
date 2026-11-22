@@ -1,9 +1,10 @@
 import { MAX_TOWERS, UNITS, type Arch, type Formation, type Team } from './units';
 import { dirOf, statueX, type World } from './world';
+import { ULTS } from './skills';
 
 export type AIConfig = {
   miners: number; // số thợ mỏ muốn giữ
-  mix: Partial<Record<Arch, number>>; // tỉ lệ quân muốn xây (theo khung, tự đổi sang quân của tộc)
+  mix: Partial<Record<Arch, number>>; // tỉ lệ quân muốn xây (theo khung, tự đổi sang quân của hệ)
   attackAt: number; // tổng giá trị quân để bắt đầu tấn công
   forceAttackAt: number; // giây: sau mốc này có quân là đánh
   retreatRatio: number; // rút về khi quân còn dưới attackAt * ratio
@@ -19,6 +20,8 @@ export type AIConfig = {
 };
 
 const THINK_EVERY = 0.5;
+/** Máy chỉ tung chiêu tượng thần khi có ít nhất chừng này quân địch trong vùng chiêu. */
+const ULT_CROWD = 5;
 
 /** AI điều khiển một phe (mặc định là địch) bằng đúng các lệnh người chơi có. */
 export class EnemyAI {
@@ -36,6 +39,28 @@ export class EnemyAI {
     this.thinkT = 0;
     this.build(world);
     this.command(world);
+    this.unleash(world);
+  }
+
+  /**
+   * Chiêu tượng thần: đầy nộ thì tung vào chỗ địch dồn đông nhất (ít nhất ULT_CROWD quân trong vùng chiêu),
+   * ưu tiên chỗ gần nhà mình (đang bị đánh) hoặc nơi hai bên đang giáp trận.
+   */
+  private unleash(world: World): void {
+    const t = world.teams[this.team];
+    if (t.ult < 1) return;
+    const r = ULTS[t.faction].area ?? 300;
+    const foes = world.units.filter((u) => u.team !== this.team && !u.dying && !u.inside && !u.hidden && UNITS[u.kind].arch !== 'miner');
+    let best: number | null = null;
+    let most = ULT_CROWD - 1;
+    for (const f of foes) {
+      const n = foes.filter((e) => Math.abs(e.x - f.x) <= r * 0.8).length;
+      if (n > most) {
+        most = n;
+        best = f.x;
+      }
+    }
+    if (best !== null) world.unleash(this.team, best);
   }
 
   private build(world: World): void {

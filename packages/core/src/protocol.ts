@@ -57,7 +57,7 @@ export const SIGNAL_MAX_BYTES = 12 * 1024;
 
 /** Chiến dịch: mỗi sao lần đầu đạt được ở một màn (chơi lại không nhận lại). */
 export const XU_PER_STAR = 10;
-/** Chiến dịch: đủ 3 sao mọi màn của một tộc (tab tròn 100 sao). */
+/** Chiến dịch: đủ 3 sao mọi màn của một hệ (tab tròn 100 sao). */
 export const XU_PERFECT_TAB = 100;
 /** Online: xu nhận sau trận (thua không có), chỉ khi trận dài ít nhất PVP_XU_MIN_SECONDS (chống đầu hàng ngay để cày xu). */
 export const PVP_XU = { win: 60, lose: 0, draw: 30 } as const;
@@ -94,10 +94,11 @@ export type ClientMsg =
   | { t: 'voiceMute'; muted: boolean }
   | { t: 'signal'; to: string; data: SignalData }
   | { t: 'leave' }
-  | { t: 'train'; kind: UnitKind }
+  | { t: 'train'; kind: UnitKind; slot?: number } // slot: ô đền cho thợ xây (chỉ số DEPOT_SLOTS)
   | { t: 'stance'; stance: Stance }
   | { t: 'hold'; x: number } // cắm cờ tập hợp tại x (toạ độ phía người gửi, đã lật nếu là team 1)
   | { t: 'wall'; x: number } // đặt xây tường thành tại x (toạ độ phía người gửi, đã lật nếu là team 1)
+  | { t: 'ult'; x: number } // tung chiêu tượng thần tại x (toạ độ phía người gửi, đã lật nếu là team 1)
   | { t: 'centerMine'; on: boolean }
   | { t: 'mineSplit'; split: number[] } // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
   | { t: 'surrender' }
@@ -138,7 +139,7 @@ export type SignalData = {
 export type VoicePeer = { id: string; name: string; muted: boolean; role: 'player' | 'watcher' };
 
 export type RoomSettings = { gold: number; minutes: number };
-/** faction: null khi người nhận là người chơi bên kia (hai người chơi không thấy tộc của nhau trước trận). */
+/** faction: null khi người nhận là người chơi bên kia (hai người chơi không thấy hệ của nhau trước trận). */
 export type Seat = { name: string; host: boolean; ready: boolean; faction: FactionId | null };
 export type ChatLine = { from: string; text: string; kind: 'player' | 'watcher' | 'system' };
 
@@ -180,7 +181,7 @@ export type ServerMsg =
   // Trả lời hello: tài khoản gắn với phiên đăng nhập (null = khách)
   | { t: 'account'; account: AccountInfo | null }
   | { t: 'room'; code: string; private: boolean; players: string[]; watching: boolean }
-  // factions: [tộc của mình, tộc đối thủ]; người xem: [bên trái, bên phải]
+  // factions: [hệ của mình, hệ đối thủ]; người xem: [bên trái, bên phải]
   | { t: 'start'; opponent: string; countdown: number; minutes: number; factions: [FactionId, FactionId] }
   | {
       t: 'spectate';
@@ -222,15 +223,16 @@ export type TeamSnap = {
   hp: number;
   max: number;
   stance: number;
-  queue: [number, number][]; // [loại, tiến độ giây]
+  queue: number[][]; // [loại, tiến độ giây, ô đền đã chọn (thợ xây, có thể không có)]
   pop: number;
   kills: number;
   cm: number; // 1 = đang đào mỏ giữa
-  f: number; // chỉ số tộc trong FACTION_ORDER
+  f: number; // chỉ số hệ trong FACTION_ORDER
   fm: number; // chỉ số đội hình trong FORMATIONS
   hx: number; // chỗ cắm cờ tập hợp
   ms: number[]; // tỉ lệ chia thợ mỏ [bạc, vàng, kim cương]
   // Tường đang chờ dựng: chỗ đặt và số giây đã dựng (không có khi client cũ / không có tường chờ)
+  ul?: number; // thanh nộ chiêu tượng thần 0..1
   wp?: number;
   wt?: number;
 };
@@ -239,7 +241,7 @@ export type Snapshot = {
   time: number;
   winner: Team | null;
   teams: [TeamSnap, TeamSnap];
-  // [id, loại, team, x, lane, hp, maxHp, facing, cờ, walk, attackT, deadT, mineT, hitFlash, sao]
+  // [id, loại, team, x, lane, hp, maxHp, facing, cờ, walk, attackT, deadT, mineT, hitFlash, sao, ô đền]
   units: number[][];
   // [loại, team, x0, h0, x1, lane, t, duration, arc]
   projectiles: number[][];
@@ -260,6 +262,11 @@ export const FLAG = {
   toCenter: 256, // thợ mỏ đào mỏ kim cương
   dashing: 512,
   gold: 1024, // thợ mỏ đào mỏ vàng (không có cờ nào: mỏ bạc)
+  // Trạng thái do kỹ năng gây ra
+  stunned: 2048,
+  guarded: 4096,
+  hasted: 8192,
+  sundered: 16384,
 } as const;
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -281,7 +288,9 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
       hp: Math.ceil(s.statueHp),
       max: s.statueMax,
       stance: STANCES.indexOf(s.stance),
-      queue: s.queue.map((q) => [UNIT_ORDER.indexOf(q.kind), r2(q.t)]),
+      queue: s.queue.map((q) =>
+        q.slot === undefined ? [UNIT_ORDER.indexOf(q.kind), r2(q.t)] : [UNIT_ORDER.indexOf(q.kind), r2(q.t), q.slot],
+      ),
       pop: world.pop(t),
       kills: s.kills,
       cm: s.centerMine ? 1 : 0,
@@ -289,6 +298,7 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
       fm: FORMATIONS.indexOf(s.formation),
       hx: r1(mx(s.holdX)),
       ms: [...s.mineSplit],
+      ul: r2(s.ult),
       ...(Number.isNaN(s.wallPlan) ? {} : { wp: r1(mx(s.wallPlan)), wt: r1(s.wallT) }),
     };
   };
@@ -317,13 +327,18 @@ export function encodeSnapshot(world: World, viewer: Team, events: WorldEvent[],
         (u.poisonT > 0 ? FLAG.poisoned : 0) |
         (u.toCenter ? FLAG.toCenter : 0) |
         (u.dashT > 0 ? FLAG.dashing : 0) |
-        (u.mine === 1 ? FLAG.gold : 0),
+        (u.mine === 1 ? FLAG.gold : 0) |
+        (u.stunT > 0 ? FLAG.stunned : 0) |
+        (u.guardT > 0 ? FLAG.guarded : 0) |
+        (u.hasteT > 0 ? FLAG.hasted : 0) |
+        (u.sunderT > 0 ? FLAG.sundered : 0),
       r2(u.walk),
       r2(u.attackT),
       r2(u.deadT),
       r2(u.mineT),
       r2(u.hitFlash),
       u.rank,
+      u.buildSlot,
     ]),
     projectiles: world.projectiles.map((p) => [
       PROJECTILES.indexOf(p.kind),
@@ -351,6 +366,8 @@ function mirrorEvent(e: WorldEvent, mirror: boolean): WorldEvent {
     case 'gold':
     case 'statueHit':
     case 'promote':
+    case 'skill':
+    case 'ult':
       return { ...e, x, team: flip(e.team) };
     case 'blink':
       return { ...e, x, x0: WORLD_WIDTH - e.x0 };

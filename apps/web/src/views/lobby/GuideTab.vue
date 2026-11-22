@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import HowToContent from '../../components/HowToContent.vue';
 import UnitCarousel from '../../components/UnitCarousel.vue';
 import { lang, t } from '@stickman-war/i18n';
-import { civBeat, civDesc, civName, civPassive, civWeakness } from '@stickman-war/i18n/content';
+import { civBeat, civDesc, civName, civPassive, ultDesc, ultName, civWeakness } from '@stickman-war/i18n/content';
 import { ARMOR_TYPES, DMG_TYPES, GUIDE_PAGES, armorLabel, dmgLabel, type GuidePage } from '../../lib/guide';
 import { sound } from '../../lib/sound';
 import { useSettings } from '../../stores/settings';
@@ -48,6 +48,9 @@ const go = (p: GuidePage) => {
           <h3>{{ civName(faction) }}</h3>
           <p>{{ civDesc(faction) }}</p>
           <p class="faction-passive">✨ {{ civPassive(faction) }}</p>
+          <p class="faction-passive">
+            🌟 {{ t('civ.ult') }}: <b>{{ ultName(faction) }}</b> — {{ ultDesc(faction) }}
+          </p>
           <p class="bad">{{ t('guide.weakness', { text: civWeakness(faction) }) }}</p>
           <p class="good">{{ t('guide.beat', { text: civBeat(faction) }) }}</p>
         </div>

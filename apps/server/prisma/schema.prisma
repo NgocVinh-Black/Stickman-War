@@ -14,7 +14,7 @@ model Account {
   googleSub String        @unique
   name      String
   picture   String        @default("")
-  faction   String        @default("tribe")
+  faction   String        @default("light")
   rating    Int           @default(1000)
   wins      Int           @default(0)
   losses    Int           @default(0)

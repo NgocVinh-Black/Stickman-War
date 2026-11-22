@@ -1,5 +1,6 @@
 import {
   ARCH_ORDER,
+  DEPOT_SLOTS,
   EnemyAI,
   FACTIONS,
   FACTION_ORDER,
@@ -9,6 +10,8 @@ import {
   UNITS,
   World,
   campaignLevel,
+  depotX,
+  freeDepots,
   kindOf,
   type Difficulty,
   type FactionId,
@@ -28,7 +31,7 @@ import { chooseFaction } from '../lib/faction';
 import { sound } from '../lib/sound';
 import { router } from '../router';
 import { t } from '@stickman-war/i18n';
-import { civName, civPassive, levelIntro, levelName } from '@stickman-war/i18n/content';
+import { civName, civPassive, levelIntro, levelName, ultName } from '@stickman-war/i18n/content';
 import { useOnline } from './online';
 import { useSettings } from './settings';
 import { useUi, type DialogButton } from './ui';
@@ -109,6 +112,8 @@ type Hud = {
   wall: 'none' | 'building' | 'built';
   wallProgress: number;
   wallCost: number;
+  /** Thanh nộ chiêu tượng thần 0..1. */
+  ult: number;
 };
 
 export const useGame = defineStore('game', () => {
@@ -125,12 +130,13 @@ export const useGame = defineStore('game', () => {
     centerMine: false,
     mineSplit: [1, 1, 0],
     miners: [0, 0, 0],
-    factions: ['tribe', 'tribe'],
+    factions: ['light', 'light'],
     units: {},
     countdown: '',
     wall: 'none',
     wallProgress: 0,
     wallCost: 0,
+    ult: 0,
   });
 
   const ui = () => useUi();
@@ -174,6 +180,7 @@ export const useGame = defineStore('game', () => {
     for (const u of v.units) if (u.team === 0 && !u.dying && UNITS[u.kind].arch === 'miner') miners[u.mine] = (miners[u.mine] ?? 0) + 1;
     if (miners.some((n, i) => n !== hud.miners[i])) hud.miners = miners;
     if (hud.factions[0] !== t.faction || hud.factions[1] !== v.teams[1].faction) hud.factions = [t.faction, v.teams[1].faction];
+    hud.ult = t.ult;
     const wk = wallKind(t.faction);
     hud.wallCost = UNITS[wk].cost;
     if (!Number.isNaN(t.wallPlan)) {
@@ -200,8 +207,28 @@ export const useGame = defineStore('game', () => {
   function train(kind: UnitKind): void {
     const s = canCommand();
     if (!s) return;
+    // Thợ xây: chọn ô đền trên chiến trường trước, chạm ô nào thì thợ xây ra ô đó dựng trạm
+    if (UNITS[kind]?.build) {
+      if (depotMode.value === kind) return void cancelPlacing();
+      if (!s.match.canTrain(kind)) return void ui().toast(s.match.whyNot(kind), 1200);
+      if (!freeDepots(s.match.view, 0).length) return void ui().toast(t('game.depotFull'), 1400);
+      cancelPlacing();
+      depotMode.value = kind;
+      if (s.renderer) s.renderer.depotPick = true;
+      sound.click();
+      return;
+    }
     if (s.match.train(kind)) sound.click();
     else ui().toast(s.match.whyNot(kind), 1200);
+  }
+  /** Thợ xây đang chờ chọn ô đền (null = không chọn). */
+  const depotMode = ref<UnitKind | null>(null);
+  /** Chạm cách ô đền trống gần nhất quá khoảng này thì không tính là chọn ô. */
+  const DEPOT_PICK = 260;
+  function stopDepot(): void {
+    depotMode.value = null;
+    const r = session.value?.renderer;
+    if (r) r.depotPick = false;
   }
 
   function trainSlot(slot: number): void {
@@ -228,6 +255,7 @@ export const useGame = defineStore('game', () => {
     if (!canCommand()) return;
     flagMode.value = !flagMode.value;
     wallMode.value = false;
+    stopDepot();
     sound.click();
   }
   /** Đang đặt tường thành: bóng tường đi theo chuột / ngón tay, chạm hoặc thả tay để đặt. */
@@ -242,18 +270,36 @@ export const useGame = defineStore('game', () => {
     }
     wallMode.value = !wallMode.value;
     flagMode.value = false;
+    stopDepot();
     if (!wallMode.value) hoverWall(null);
     sound.click();
   }
-  /** Dời bóng tường tới x (null = ẩn). */
+  /** Dời bóng tường / vùng chiêu tượng thần tới x (null = ẩn). */
   function hoverWall(x: number | null): void {
     const r = session.value?.renderer;
-    if (r) r.wallGhost = x;
+    if (!r) return;
+    r.wallGhost = wallMode.value ? x : null;
+    r.ultGhost = ultMode.value ? x : null;
+  }
+  /** Đang chọn chỗ tung chiêu tượng thần. */
+  const ultMode = ref(false);
+  function toggleUltMode(): void {
+    const s = canCommand();
+    if (!s) return;
+    if (!ultMode.value && s.view.teams[0].ult < 1) {
+      return void ui().toast(t('game.ultCharging', { n: Math.floor(s.view.teams[0].ult * 100) }), 1400);
+    }
+    const on = !ultMode.value;
+    cancelPlacing();
+    ultMode.value = on;
+    sound.click();
   }
   function cancelPlacing(): boolean {
-    if (!flagMode.value && !wallMode.value) return false;
+    if (!flagMode.value && !wallMode.value && !depotMode.value && !ultMode.value) return false;
     flagMode.value = false;
     wallMode.value = false;
+    ultMode.value = false;
+    stopDepot();
     hoverWall(null);
     return true;
   }
@@ -268,6 +314,29 @@ export const useGame = defineStore('game', () => {
       flagMode.value = false;
       s.match.setHold(x);
       sound.click();
+      return true;
+    }
+    if (ultMode.value) {
+      cancelPlacing();
+      if (s.match.unleash(x)) {
+        sound.horn();
+        ui().toast(t('game.ultFired', { name: ultName(s.view.teams[0].faction) }), 1600);
+      }
+      return true;
+    }
+    if (depotMode.value) {
+      // Ô đền trống gần chỗ chạm nhất
+      const kind = depotMode.value;
+      const slot = freeDepots(s.match.view, 0).sort((a, b) => Math.abs(depotX(0, a) - x) - Math.abs(depotX(0, b) - x))[0];
+      if (slot === undefined || Math.abs(depotX(0, slot) - x) > DEPOT_PICK) {
+        ui().toast(t('game.depotPick'), 1400);
+        return true;
+      }
+      cancelPlacing();
+      if (s.match.train(kind, slot)) {
+        sound.click();
+        ui().toast(t('game.depotOrdered', { n: DEPOT_SLOTS[slot] }), 1600);
+      } else ui().toast(s.match.whyNot(kind), 1200);
       return true;
     }
     if (wallMode.value) {
@@ -339,13 +408,13 @@ export const useGame = defineStore('game', () => {
     void router.push('/');
   };
 
-  /** Màn `index` trong chiến dịch của tộc `faction`: người chơi cầm đúng tộc đó, không đổi tộc trước trận. */
+  /** Màn `index` trong chiến dịch của hệ `faction`: người chơi cầm đúng hệ đó, không đổi hệ trước trận. */
   function startCampaign(index: number, faction: FactionId = settings().campFaction): void {
     const st = settings();
     if (faction !== st.campFaction) st.campFaction = faction;
     const lv = campaignLevel(index, faction, st.progress[faction].seed);
     const f = FACTIONS[faction];
-    const enemyFaction = lv.enemyFaction ?? 'tribe';
+    const enemyFaction = lv.enemyFaction ?? 'light';
     const world = new World([
       { ...lv.player, faction },
       { ...lv.enemy, faction: enemyFaction },
@@ -378,7 +447,7 @@ export const useGame = defineStore('game', () => {
     });
   }
 
-  /** Đấu với máy: máy chọn tộc ngẫu nhiên (khác tộc mình); đổi tộc trước trận thì giữ nguyên tộc máy. */
+  /** Đấu với máy: máy chọn hệ ngẫu nhiên (khác hệ mình); đổi hệ trước trận thì giữ nguyên hệ máy. */
   function startSkirmish(diff: Difficulty, enemy?: FactionId): void {
     const st = settings();
     const cfg = SKIRMISH[diff];
@@ -443,7 +512,7 @@ export const useGame = defineStore('game', () => {
     useOnline().claimCampaign(faction, i, stars);
     if (i === LEVELS.length - 1) {
       const f = FACTIONS[faction];
-      // Gợi ý tộc tiếp theo chưa phá đảo, theo thứ tự sau tộc vừa chơi
+      // Gợi ý hệ tiếp theo chưa phá đảo, theo thứ tự sau hệ vừa chơi
       const k = FACTION_ORDER.indexOf(faction);
       const order = FACTION_ORDER.map((_, j) => FACTION_ORDER[(k + 1 + j) % FACTION_ORDER.length]);
       const next = order.find((id) => !st.progress[id].completed);
@@ -547,6 +616,9 @@ export const useGame = defineStore('game', () => {
     setStance,
     flagMode,
     wallMode,
+    depotMode,
+    ultMode,
+    toggleUltMode,
     toggleWallMode,
     hoverWall,
     toggleFlagMode,

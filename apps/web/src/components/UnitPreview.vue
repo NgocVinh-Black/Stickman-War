@@ -3,8 +3,12 @@ import { FACTIONS, UNITS, type UnitKind } from '@stickman-war/core';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { drawShowcase, unitBox } from '../game/showcase';
 
-/** Một quân vẽ động (đi bộ → ra đòn → đứng, lặp lại), co giãn vừa khung và không tràn mép. */
-const props = defineProps<{ kind: UnitKind }>();
+/**
+ * Một quân vẽ động (đi bộ → ra đòn → đứng, lặp lại) đúng cỡ trong trận: tỉ lệ `px` chung cho mọi quân × cỡ thân.
+ * Khung do thẻ quân đặt vừa khít con đang xem.
+ */
+/** px: điểm ảnh cho mỗi đơn vị thế giới (đã gồm cỡ trong trận, chưa nhân cỡ thân quân), do thẻ quân tính. */
+const props = defineProps<{ kind: UnitKind; px: number }>();
 const canvas = ref<HTMLCanvasElement>();
 const LOOP = 3.2;
 let raf = 0;
@@ -29,9 +33,10 @@ function frame(now: number): void {
     ctx.clearRect(0, 0, w, h);
     const k = props.kind;
     const b = unitBox(k);
-    const s = Math.min(3.2, (w - 16) / (b.x1 - b.x0), (h - 18) / (b.y1 - b.y0));
+    // Cỡ trong trận × cỡ thân; phòng hờ khung chưa kịp đổi cỡ thì thu cho khỏi tràn
+    const s = Math.min(props.px * UNITS[k].scale, (w - 8) / (b.x1 - b.x0), (h - 14) / (b.y1 - b.y0));
     const x = w / 2 - ((b.x0 + b.x1) / 2) * s;
-    const y = h - 10 - b.y1 * s;
+    const y = h - 8 - b.y1 * s;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.beginPath();
     ctx.ellipse(w / 2, y, Math.max(18, ((b.x1 - b.x0) * s) / 2.4), 6, 0, 0, Math.PI * 2);

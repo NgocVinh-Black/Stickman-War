@@ -28,8 +28,8 @@ const STEP = 1 / 60;
 export type Match = {
   view: WorldView;
   step: (dt: number) => WorldEvent[];
-  /** Xây quân (thợ xây tự tới chỗ trạm vàng còn trống). */
-  train: (kind: UnitKind) => boolean;
+  /** Xây quân; thợ xây kèm ô đền đã chọn (không có thì lấy ô trống đầu tiên). */
+  train: (kind: UnitKind, slot?: number) => boolean;
   setStance: (s: Stance) => void;
   setHold: (x: number) => void;
   setCenterMine: (on: boolean) => void;
@@ -39,6 +39,8 @@ export type Match = {
   whyNot: (kind: UnitKind) => string;
   /** Đặt xây tường thành ở x (một thợ mỏ đi ra dựng) và lý do không xây được ở x (null = được). */
   orderWall: (x: number) => boolean;
+  /** Tung chiêu tượng thần tại x (thanh nộ phải đầy). */
+  unleash: (x: number) => boolean;
   wallBlock: (x: number) => WallBlock | null;
   pop: () => number;
   unlocked: UnitKind[];
@@ -59,10 +61,11 @@ export function localMatch(world: World, ais: EnemyAI[]): Match {
       }
       return world.drainEvents();
     },
-    train: (k) => world.train(0, k),
+    train: (k, slot) => world.train(0, k, slot),
     setStance: (s) => world.setStance(0, s),
     setHold: (x) => world.setHold(0, x),
     orderWall: (x) => world.orderWall(0, x),
+    unleash: (x) => world.unleash(0, x),
     wallBlock: (x) => world.wallBlock(0, x),
     setCenterMine: (on) => world.setCenterMine(0, on),
     setMineSplit: (split) => world.setMineSplit(0, split),
@@ -120,9 +123,9 @@ export function onlineMatch(
       remote.advance(dt);
       return remote.drainEvents();
     },
-    train: (k) => {
+    train: (k, slot) => {
       if (!match.canTrain(k)) return false;
-      send({ t: 'train', kind: k });
+      send(slot === undefined ? { t: 'train', kind: k } : { t: 'train', kind: k, slot });
       return true;
     },
     setStance: (stance) => send({ t: 'stance', stance }),
@@ -133,6 +136,11 @@ export function onlineMatch(
       return true;
     },
     wallBlock: (x) => (state.started() && !state.ended() ? wallBlockOf(remote, 0, x) : 'over'),
+    unleash: (x) => {
+      if (!state.started() || state.ended() || remote.teams[0].ult < 1) return false;
+      send({ t: 'ult', x });
+      return true;
+    },
     setCenterMine: (on) => send({ t: 'centerMine', on }),
     setMineSplit: (split) => send({ t: 'mineSplit', split }),
     setFormation: (mode) => send({ t: 'formation', mode }),
@@ -164,6 +172,7 @@ export function watchMatch(remote: RemoteWorld): Match {
     setHold: () => {},
     orderWall: () => false,
     wallBlock: () => 'over',
+    unleash: () => false,
     setCenterMine: () => {},
     setMineSplit: () => {},
     setFormation: () => {},

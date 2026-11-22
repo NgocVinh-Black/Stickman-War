@@ -3,7 +3,7 @@ import { FACTIONS, UNITS, roster, type FactionId } from '@stickman-war/core';
 import { unitName } from '@stickman-war/i18n/content';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { CLOTH } from '../game/render/palette';
-import { viewScale } from '../game/render/renderer';
+import { battleScale } from '../game/render/renderer';
 import { drawShowcase, unitBox } from '../game/showcase';
 
 /**
@@ -52,8 +52,8 @@ function frame(now: number): void {
     ctx.clearRect(0, 0, w, h);
     const k = kind.value;
     const b = unitBox(k);
-    // Cỡ trong trận = tỉ lệ chiến trường (theo cửa sổ, như nền sảnh) × cỡ riêng của quân
-    let s = viewScale(window.innerWidth, window.innerHeight) * UNITS[k].scale;
+    // Cỡ trong trận = tỉ lệ chiến trường khi vào trận (trừ thanh trên / thanh quân) × cỡ riêng của quân
+    let s = battleScale() * UNITS[k].scale;
     s = Math.min(s, (w - 16) / (b.x1 - b.x0), (h - LABEL - 6) / (b.y1 - b.y0));
     const x = w / 2 - ((b.x0 + b.x1) / 2) * s;
     const y = h - LABEL - b.y1 * s;

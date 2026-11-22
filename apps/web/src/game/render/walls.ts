@@ -68,7 +68,7 @@ function stakes(ctx: Ctx, color: string, tip: string): void {
 
 const STYLES: Record<FactionId, Style> = {
   // Quang: đá trắng, răng cưa, viền vàng
-  tribe: {
+  light: {
     body: n('#e8e2d0'),
     dark: n('#a8a090'),
     gate: n('#b89a52'),
@@ -79,7 +79,7 @@ const STYLES: Record<FactionId, Style> = {
     top: (ctx) => crenels(ctx, n('#e8e2d0')),
   },
   // Phong: cọc gỗ ngọc bích vót nhọn, gai chĩa ra phía địch
-  orc: {
+  wind: {
     body: n('#5f8f80'),
     dark: n('#3a5a50'),
     gate: n('#2f4a42'),
@@ -95,7 +95,7 @@ const STYLES: Record<FactionId, Style> = {
     },
     top: (ctx) => stakes(ctx, n('#5f8f80'), n('#d9f5ea')),
   },
-  elf: {
+  wood: {
     body: n('#5b7f3a'),
     dark: n('#3f5f28'),
     gate: n('#6b4a2b'),
@@ -119,7 +119,7 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   // Ám: đá hắc thạch, vân tím phát sáng
-  undead: {
+  shadow: {
     body: n('#2a2233'),
     dark: n('#18121f'),
     gate: n('#120c18'),
@@ -145,7 +145,7 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   // Lôi: tường đá xám tím, nẹp kim loại, vạch sét vàng
-  samurai: {
+  thunder: {
     body: n('#4a4866'),
     dark: n('#2c2b40'),
     gate: n('#24233a'),
@@ -164,7 +164,7 @@ const STYLES: Record<FactionId, Style> = {
     top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 4, HALF * 2 + 6, 4, n('#9aa0b8')),
   },
   // Huyết: cọc gỗ đỏ thẫm, đai sẫm, đầu cọc nhuốm máu
-  viking: {
+  blood: {
     body: n('#6b2a30'),
     dark: n('#42181c'),
     gate: n('#3a1418'),
@@ -175,7 +175,7 @@ const STYLES: Record<FactionId, Style> = {
     top: (ctx) => stakes(ctx, n('#6b2a30'), '#a3101e'),
   },
   // Tinh thể: khối pha lê hồng tím, mảnh tinh thể nhọn trên đỉnh
-  desert: {
+  crystal: {
     body: n('#9a5ab0'),
     dark: n('#5e3270'),
     gate: n('#4a2558'),
@@ -196,7 +196,7 @@ const STYLES: Record<FactionId, Style> = {
     },
   },
   // Thạch: đá tảng thô, khe nứt hổ phách
-  steam: {
+  stone: {
     body: n('#8a7560'),
     dark: n('#5a4a3c'),
     gate: n('#3f342a'),
@@ -213,7 +213,7 @@ const STYLES: Record<FactionId, Style> = {
     top: (ctx) => rect(ctx, -HALF - 3, -WALL_H - 5, HALF * 2 + 6, 5, n('#a08a70')),
   },
   // Kim: tấm thép tán đinh, khe lò rèn cam
-  dwarf: {
+  metal: {
     body: n('#7d8590'),
     dark: n('#4b5260'),
     gate: n('#3f444c'),
@@ -225,7 +225,7 @@ const STYLES: Record<FactionId, Style> = {
     },
     top: (ctx) => crenels(ctx, n('#7d8590')),
   },
-  tide: {
+  water: {
     body: n('#2fa596'),
     dark: n('#1d6b62'),
     gate: n('#1d4b47'),
@@ -251,7 +251,7 @@ const STYLES: Record<FactionId, Style> = {
       }
     },
   },
-  dragon: {
+  fire: {
     body: n('#3a2a2a'),
     dark: n('#1e1414'),
     gate: n('#2a1a14'),
@@ -278,7 +278,7 @@ const STYLES: Record<FactionId, Style> = {
       }
     },
   },
-  frost: {
+  ice: {
     body: n('#cfe3f5'),
     dark: n('#8aa8c2'),
     gate: n('#6f8fa8'),
@@ -301,7 +301,7 @@ const STYLES: Record<FactionId, Style> = {
 };
 
 export function drawWall(ctx: Ctx, faction: FactionId, gate: number, flash: boolean, t: number): void {
-  const st = STYLES[faction] ?? STYLES.tribe;
+  const st = STYLES[faction] ?? STYLES.light;
   ctx.save();
   if (flash) ctx.globalAlpha = 0.85;
   // Thân + bóng mặt bên

@@ -30,7 +30,7 @@ export class MemoryAccountStore implements AccountStore {
         googleSub: p.sub,
         name,
         picture: p.picture,
-        faction: 'tribe',
+        faction: 'light',
         rating: 1000,
         wins: 0,
         losses: 0,

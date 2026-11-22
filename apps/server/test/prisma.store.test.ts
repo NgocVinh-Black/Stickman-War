@@ -27,8 +27,8 @@ describe.skipIf(!url)('Kho dữ liệu PostgreSQL (Prisma)', () => {
     expect((await acc.bySession(a.session))?.id).toBe(ids[0]);
     await acc.recordMatch(
       [
-        { id: a.account.id, name: 'An', faction: 'viking' },
-        { id: b.account.id, name: 'Bình', faction: 'elf' },
+        { id: a.account.id, name: 'An', faction: 'blood' },
+        { id: b.account.id, name: 'Bình', faction: 'wood' },
       ],
       0,
     );
@@ -36,8 +36,8 @@ describe.skipIf(!url)('Kho dữ liệu PostgreSQL (Prisma)', () => {
     expect(after).toMatchObject({ rating: 1016, wins: 1 });
     expect(after!.history[0]).toMatchObject({ vs: 'Bình', result: 'win', rating: 16 });
     expect((await acc.leaderboard(100)).some((x) => x.id === ids[0])).toBe(true);
-    await acc.update(a.account.id, { name: '  An <b>  ', faction: 'samurai' });
-    expect(await acc.get(a.account.id)).toMatchObject({ name: 'An b', faction: 'samurai' });
+    await acc.update(a.account.id, { name: '  An <b>  ', faction: 'thunder' });
+    expect(await acc.get(a.account.id)).toMatchObject({ name: 'An b', faction: 'thunder' });
     await acc.signOut(a.session);
     expect(await acc.bySession(a.session)).toBeNull();
   });

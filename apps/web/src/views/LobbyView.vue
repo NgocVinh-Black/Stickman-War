@@ -116,7 +116,7 @@ onBeforeUnmount(() => clearInterval(timer));
 
     <section class="lb-stage">
       <HomeTab v-if="settings.tab === 'home'" @go="goTab" />
-      <div v-else class="lb-panel wood">
+      <div v-else class="lb-panel wood" :class="{ wide: settings.tab === 'guide' }">
         <div class="lb-panel-head">
           <h2>{{ tabLabel }}</h2>
           <button class="lb-close" :title="t('lobby.backHome')" @click="goTab('home')">✕</button>

@@ -12,7 +12,7 @@ import { useSettings } from './stores/settings';
 const settings = useSettings();
 const online = useOnline();
 
-// Đăng nhập rồi thì dùng tên / tộc của tài khoản
+// Đăng nhập rồi thì dùng tên / hệ của tài khoản
 watch(
   () => auth.account,
   (a) => {

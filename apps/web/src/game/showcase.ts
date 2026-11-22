@@ -1,4 +1,4 @@
-import { UNITS, type UnitKind } from '@stickman-war/core';
+import { FACTION_ORDER, UNITS, kindOf, type UnitKind } from '@stickman-war/core';
 import { TEAM_COLORS } from './render/renderer';
 import { drawStickman, type StickPose } from './render/stickman';
 
@@ -70,6 +70,15 @@ export function unitBox(kind: UnitKind): Box {
   boxes.set(kind, box);
   return box;
 }
+
+let giant: { w: number; h: number } | null = null;
+/** Khung bao (đã nhân cỡ thân) của khổng lồ to nhất trong 12 hệ: chuẩn để đặt cỡ khung xem trước quân. */
+export const giantBox = () =>
+  (giant ??= FACTION_ORDER.map((f) => {
+    const k = kindOf(f, 'giant');
+    const b = unitBox(k);
+    return { w: (b.x1 - b.x0) * UNITS[k].scale, h: (b.y1 - b.y0) * UNITS[k].scale };
+  }).reduce((a, b) => ({ w: Math.max(a.w, b.w), h: Math.max(a.h, b.h) })));
 
 /** Quân lướt: đứng chờ tới DASH_START rồi lướt vút tới trong khoảng [DASH_START, DASH_END] trước khi ra đòn. */
 const DASH_START = 0.8;

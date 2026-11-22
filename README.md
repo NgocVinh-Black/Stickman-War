@@ -1,6 +1,6 @@
 # Stickman War
 
-Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 12 tộc, chơi đơn và online 1v1.
+Game chiến thuật stickman: đào vàng, xây quân, chỉ huy đội quân phá tượng địch. 12 hệ, chơi đơn và online 1v1.
 
 **Công nghệ**
 
@@ -37,10 +37,10 @@ Chuyển dữ liệu bản cũ (file `data/wallets.json`, `data/accounts.json`) 
 ```
 packages/core/src/      Lõi game (không DOM, không Node)
 packages/i18n/src/      Từ điển vi / en, nội dung game tiếng Anh, dịch chữ máy chủ
-  units.ts              khung quân gốc, sinh 156 loại quân cho 12 tộc, bảng khắc chế, kỳ cựu
-  factions.ts           dữ liệu 12 tộc: nội tại (12 cơ chế khác nhau), điểm yếu, cách đánh bại, tên / chỉ số / hình dáng từng quân
+  units.ts              khung quân gốc, sinh 156 loại quân cho 12 hệ, bảng khắc chế, kỳ cựu
+  factions.ts           dữ liệu 12 hệ: nội tại (12 cơ chế khác nhau), điểm yếu, cách đánh bại, tên / chỉ số / hình dáng từng quân
   world.ts              mô phỏng: kinh tế, đội hình, đánh, đạn, hiệu ứng, trạm vàng, triệu hồi
-  ai.ts, levels.ts      AI và chiến dịch 3 vòng × 11 màn (mỗi tộc một chiến dịch)
+  ai.ts, levels.ts      AI và chiến dịch 3 vòng × 11 màn (mỗi hệ một chiến dịch)
   protocol.ts           tin nhắn WebSocket, ảnh chụp trạng thái
 apps/web/src/
   views/                LoginView, LobbyView (+ lobby/*Tab.vue), GameView, RoomView
@@ -48,7 +48,7 @@ apps/web/src/
   stores/               Pinia: settings, ui, game (phiên chơi + HUD), online (kết nối, phòng, kèo)
   game/                 match (trận cục bộ / online), session (vòng lặp), camera, render/ (Canvas)
   net/                  account (đăng nhập Google), remote (client WebSocket), voice (WebRTC)
-  lib/                  sound, storage, guide, faction (đổi tộc)
+  lib/                  sound, storage, guide, faction (đổi hệ)
   styles/               index.css import theo thứ tự: base, menu, game, dialog, responsive, … lobby, login
 apps/server/src/        mỗi tính năng một module Nest (*.module.ts), AppModule chỉ ghép lại
   common/               tokens (DI + ServerOptions), zod.pipe, bearer
@@ -72,19 +72,19 @@ NestJS được đóng gói bằng esbuild (tsup / tsx) nên mọi phụ thuộc
 
 ## Chế độ chơi
 
-- **Chơi đơn**: chiến dịch chia 12 tab theo tộc: chơi đúng tộc đó qua 33 màn từ dễ tới khó, chia 3 vòng Làm quen / Chinh phạt / Thử thách, mỗi vòng gặp đủ 11 tộc còn lại; đấu với máy 3 mức Dễ / Thường / Khó (máy chọn tộc ngẫu nhiên).
+- **Chơi đơn**: chiến dịch chia 12 tab theo hệ: chơi đúng hệ đó qua 33 màn từ dễ tới khó, chia 3 vòng Làm quen / Chinh phạt / Thử thách, mỗi vòng gặp đủ 11 hệ còn lại; đấu với máy 3 mức Dễ / Thường / Khó (máy chọn hệ ngẫu nhiên).
 - **Online 1v1**: tìm trận nhanh, hoặc tạo phòng gửi mã / link `?room=MÃ`. Phòng chờ có 2 ghế, người xem, luật phòng, chat, kèo.
 - **Đấu trường**: danh sách phòng đang mở (chơi / xem) và bảng xếp hạng Elo.
 - **Bắt kèo**: người xem cược xu ảo 🪙 (không phải tiền thật) trong 60 giây đầu trận.
 - **Tường thành**: nút 🧱 (phím T) chọn chỗ ở nửa nhà (bóng xanh / đỏ), thợ mỏ đi ra dựng; quân nhà qua cổng, địch phải phá tường (công thành ×3). Mỗi nền văn minh một kiểu tường (gai, tự mọc lại, lửa, băng…).
-- **Kiếm xu**: mỗi sao mới ở chiến dịch +10 xu, đủ 100★ một tộc +100 (máy chủ ghi sao đã thưởng theo ví nên chơi lại không cày được);
+- **Kiếm xu**: mỗi sao mới ở chiến dịch +10 xu, đủ 100★ một hệ +100 (máy chủ ghi sao đã thưởng theo ví nên chơi lại không cày được);
   online thắng +60 / hoà +30 / thua 0 nếu trận dài ≥ 2 phút; chơi đơn thua trận ≥ 2 phút +15 (máy chủ trả tối đa 1 lần / phút).
 - **Thoại**: WebRTC giữa các trình duyệt, máy chủ chỉ chuyển tin bắt tay.
 - **Tài khoản Google**: điểm Elo, lịch sử trận, ví xu theo tài khoản. Chỉ lưu mã Google, tên, ảnh đại diện; không lưu email.
 
 ## Cách chơi
 
-- 12 tộc × 12 loại quân (phím `1`–`9`, `0`, `-`, `=`), mỗi tộc một nội tại riêng và một điểm yếu.
+- 12 hệ × 12 loại quân (phím `1`–`9`, `0`, `-`, `=`), mỗi hệ một nội tại riêng và một điểm yếu.
 - Khắc chế kiểu đòn × kiểu giáp (`DAMAGE_TABLE`): giáo đâm kỵ ×2, tên vào khổng lồ ×1.5, phép đốt giáp nặng ×1.3…
 - Đội hình (`F`): Tự do / Hàng lối / Tản rộng. Mỏ giữa (`R`). Lệnh: Rút về `Q` · Phòng thủ `W` · Tấn công `E`.
 - Thợ xây dựng tối đa 2 trạm vàng ở chỗ cố định (thợ mỏ nộp vàng ở trạm, trạm bắn địch); cờ hiệu tăng sức đánh quân quanh mình; quân kỳ cựu lên ★ khi hạ đủ địch.

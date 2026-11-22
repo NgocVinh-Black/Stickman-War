@@ -1,4 +1,4 @@
-import type { FactionId } from '@stickman-war/core';
+import { LEGACY_FACTIONS, type FactionId } from '@stickman-war/core';
 
 const PREFIX = 'stickman-war:';
 /** Tiền tố trước khi đổi tên game: vẫn đọc để không mất tên, tiến độ, ví xu đã lưu. */
@@ -21,7 +21,7 @@ export function save(key: string, value: unknown): void {
   }
 }
 
-/** seed: thứ tự tộc địch trong chiến dịch của tộc này (xáo một lần, giữ cố định để chơi lại màn vẫn gặp đúng tộc đó). */
+/** seed: thứ tự hệ địch trong chiến dịch của hệ này (xáo một lần, giữ cố định để chơi lại màn vẫn gặp đúng hệ đó). */
 export type Progress = { unlocked: number; stars: number[]; completed?: boolean; seed?: number };
 
 /** Mã ví xu bắt kèo: sinh một lần, máy chủ giữ số dư theo mã này. */
@@ -37,8 +37,11 @@ export function walletId(): string {
   return id;
 }
 
-// Mỗi tộc một chiến dịch riêng (khoá cũ `progress`, `progress-normal`, `progress-hard` của 3 mức khó không dùng nữa)
+// Mỗi hệ một chiến dịch riêng (khoá cũ `progress`, `progress-normal`, `progress-hard` của 3 mức khó không dùng nữa)
 const progressKey = (f: FactionId) => `camp-${f}`;
+/** Mã hệ cũ (tên tộc) của từng hệ: tiến độ lưu trước khi đổi sang 12 nguyên tố nằm ở khoá `camp-<mã cũ>`. */
+const LEGACY_OF = Object.fromEntries(Object.entries(LEGACY_FACTIONS).map(([old, f]) => [f, old])) as Record<FactionId, string>;
 
-export const loadProgress = (f: FactionId): Progress => load<Progress>(progressKey(f), { unlocked: 0, stars: [] });
+export const loadProgress = (f: FactionId): Progress =>
+  load<Progress | null>(progressKey(f), null) ?? load<Progress>(`camp-${LEGACY_OF[f]}`, { unlocked: 0, stars: [] });
 export const saveProgress = (f: FactionId, p: Progress) => save(progressKey(f), p);

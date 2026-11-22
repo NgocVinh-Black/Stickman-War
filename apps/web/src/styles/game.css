@@ -337,3 +337,26 @@
   cursor: default;
   opacity: 0.75;
 }
+
+/* Chiêu tượng thần: viền nạp nộ quanh nút, đầy thì sáng nhấp nháy */
+.ult-btn {
+  position: relative;
+  background:
+    linear-gradient(var(--panel-2), var(--panel-2)) padding-box,
+    conic-gradient(var(--gold) var(--charge, 0%), rgba(255, 255, 255, 0.12) 0) border-box;
+  border: 3px solid transparent;
+}
+.ult-btn.ready {
+  animation: ult-ready 1s ease-in-out infinite alternate;
+}
+.ult-btn.picking {
+  outline: 2px solid var(--gold);
+}
+@keyframes ult-ready {
+  from {
+    box-shadow: 0 0 4px rgba(255, 210, 63, 0.4);
+  }
+  to {
+    box-shadow: 0 0 16px rgba(255, 210, 63, 0.95);
+  }
+}

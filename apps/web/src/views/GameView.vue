@@ -7,7 +7,7 @@ import UnitIcon from '../components/UnitIcon.vue';
 import { bindCamera, panByKeys } from '../game/camera';
 import { isNet } from '../game/session';
 import { t } from '@stickman-war/i18n';
-import { unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
+import { ultDesc, ultName, unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
 import { FORMATION_CYCLE, FORMATION_INFO, MINE_INFO, MINE_PRESETS, STANCES, archIndex, useGame } from '../stores/game';
 import { MINES, MINE_KINDS, type MineSplit } from '@stickman-war/core';
@@ -123,6 +123,7 @@ const onKey = (e: KeyboardEvent) => {
   if (k === 'r') game.cycleMinePreset();
   if (k === 'f') game.cycleFormation();
   if (k === 't') game.toggleWallMode();
+  if (k === 'u') game.toggleUltMode();
   const st = STANCES.find((x) => x.key.toLowerCase() === k);
   if (st) game.setStance(st.id);
 };
@@ -146,7 +147,7 @@ onMounted(() => {
     mini.value,
     () => game.session?.renderer ?? null,
     (x) => game.placeAt(x),
-    () => game.wallMode,
+    () => game.wallMode || game.ultMode,
     (x) => game.hoverWall(x),
   );
   raf = requestAnimationFrame(frame);
@@ -205,9 +206,11 @@ onBeforeUnmount(() => {
     </header>
     <canvas ref="mini" class="minimap" />
     <section class="stage">
-      <canvas ref="view" :class="{ 'flag-cursor': game.flagMode || game.wallMode }" />
+      <canvas ref="view" :class="{ 'flag-cursor': game.flagMode || game.wallMode || game.depotMode || game.ultMode }" />
       <div v-if="game.flagMode" class="flag-hint">{{ t('game.flagHint') }}</div>
       <div v-else-if="game.wallMode" class="flag-hint">{{ t('game.wallHint') }}</div>
+      <div v-else-if="game.depotMode" class="flag-hint">{{ t('game.depotHint') }}</div>
+      <div v-else-if="game.ultMode" class="flag-hint">{{ t('game.ultHint', { name: ultName(game.hud.factions[0]) }) }}</div>
       <div :key="game.hud.countdown" class="countdown" :class="{ pop: !!game.hud.countdown }">{{ game.hud.countdown }}</div>
     </section>
 
@@ -264,6 +267,15 @@ onBeforeUnmount(() => {
                 ? t('game.wallBuilt')
                 : `${t('game.wall')} ${game.hud.wallCost}`
           }}</small>
+        </button>
+        <button
+          class="stance-btn ult-btn"
+          :class="{ ready: game.hud.ult >= 1, picking: game.ultMode }"
+          :style="{ '--charge': `${Math.floor(game.hud.ult * 100)}%` }"
+          :title="`${ultName(game.hud.factions[0])} (U): ${ultDesc(game.hud.factions[0])}`"
+          @click="game.toggleUltMode()"
+        >
+          <span>🌟</span><small>{{ game.hud.ult >= 1 ? t('game.ultReady') : `${t('game.ult')} ${Math.floor(game.hud.ult * 100)}%` }}</small>
         </button>
         <div class="formation-wrap">
           <button

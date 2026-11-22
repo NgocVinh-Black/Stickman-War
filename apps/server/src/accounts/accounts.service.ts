@@ -26,7 +26,7 @@ export const accountWallet = (id: string) => `acct-${id}`.slice(0, 64);
 
 /**
  * Tài khoản người chơi: đăng nhập Google, phiên, hồ sơ, Elo và lịch sử trận.
- * Chỉ lưu mã Google, tên, ảnh đại diện, tộc, thành tích, cờ admin. Không lưu email.
+ * Chỉ lưu mã Google, tên, ảnh đại diện, hệ, thành tích, cờ admin. Không lưu email.
  */
 @Injectable()
 export class AccountsService {

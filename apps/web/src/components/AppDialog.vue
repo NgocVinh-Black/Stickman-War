@@ -2,7 +2,7 @@
 import { UNITS } from '@stickman-war/core';
 import { computed } from 'vue';
 import { t } from '@stickman-war/i18n';
-import { unitCounter, unitDesc, unitName } from '@stickman-war/i18n/content';
+import { unitCounter, unitDesc, unitName, unitSkillDesc, unitSkillName } from '@stickman-war/i18n/content';
 import { sound } from '../lib/sound';
 import { useUi } from '../stores/ui';
 import FactionPicker from './FactionPicker.vue';
@@ -53,6 +53,7 @@ function back(): void {
           <div>
             <small>{{ t('game.newUnit') }}</small><b>{{ unitName(unit) }}</b>
             <span>{{ unitDesc(unit) }} · {{ t('common.gold', { n: UNITS[unit].cost }) }}</span>
+            <span class="skill">✦ {{ unitSkillName(unit) }}: {{ unitSkillDesc(unit) }}</span>
             <span class="counter">{{ unitCounter(unit) }}</span>
           </div>
         </div>

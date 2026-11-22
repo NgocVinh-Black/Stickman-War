@@ -34,7 +34,7 @@ export type Theme = {
 
 export const THEMES: Record<FactionId, Theme> = {
   // Hệ Quang: bình minh vàng sau dãy núi tím, đền trắng thắp đèn
-  tribe: {
+  light: {
     sky: ['#0d0b1f', '#3a2f5c', '#f0c36a'],
     moon: '#fff7dc',
     haze: '#ffe08a',
@@ -48,7 +48,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'embers',
   },
   // Hệ Phong: thung lũng gió ngọc bích, bụi cuốn
-  orc: {
+  wind: {
     sky: ['#06141a', '#1d4a4f', '#8fd6c2'],
     moon: '#effff9',
     haze: '#c6fff0',
@@ -62,7 +62,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'dust',
   },
   // Hệ Mộc: rừng già đêm, lá bay
-  elf: {
+  wood: {
     sky: ['#03121a', '#0f3a2a', '#45ad6a'],
     moon: '#e8ffe2',
     haze: '#7dff6a',
@@ -76,7 +76,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'leaves',
   },
   // Hệ Ám: vực bóng đêm tím, khói đen trôi
-  undead: {
+  shadow: {
     sky: ['#0a0517', '#2e1652', '#8f62cc'],
     moon: '#f1e8ff',
     haze: '#c29bff',
@@ -90,7 +90,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'smoke',
   },
   // Hệ Lôi: đồi bão tím, chớp vàng
-  samurai: {
+  thunder: {
     sky: ['#08071a', '#26245a', '#7b7ad8'],
     moon: '#fffbe0',
     haze: '#fff36b',
@@ -104,7 +104,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'none',
   },
   // Hệ Huyết: đêm trăng máu, núi đỏ thẫm
-  viking: {
+  blood: {
     sky: ['#12030a', '#4a0a1a', '#c4283a'],
     moon: '#ffb3b3',
     haze: '#ff5a6a',
@@ -118,7 +118,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'dust',
   },
   // Hệ Tinh thể: thung lũng pha lê hồng tím
-  desert: {
+  crystal: {
     sky: ['#0f0618', '#3b1450', '#c86fd8'],
     moon: '#ffe8ff',
     haze: '#ff8af0',
@@ -132,7 +132,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'dust',
   },
   // Hệ Thạch: hẻm núi đá hổ phách, bụi đá
-  steam: {
+  stone: {
     sky: ['#0e0c0a', '#3a2e22', '#b8874e'],
     moon: '#ffe6c2',
     haze: '#e8b46a',
@@ -146,7 +146,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'dust',
   },
   // Hệ Kim: núi sắt lò rèn, tàn lửa
-  dwarf: {
+  metal: {
     sky: ['#0c0b10', '#2e2a33', '#a8734a'],
     moon: '#ffe2c4',
     haze: '#ff9a5a',
@@ -160,7 +160,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'embers',
   },
   // Hệ Thủy: biển đêm xanh thẳm, bong bóng
-  tide: {
+  water: {
     sky: ['#020a1c', '#0a2f5e', '#3a8fd8'],
     moon: '#e6f6ff',
     haze: '#4fd2ff',
@@ -174,7 +174,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'bubbles',
   },
   // Hệ Hỏa: núi lửa, dung nham
-  dragon: {
+  fire: {
     sky: ['#14040a', '#4c0e14', '#ff6326'],
     moon: '#ffd4a6',
     haze: '#ff7a3a',
@@ -188,7 +188,7 @@ export const THEMES: Record<FactionId, Theme> = {
     deco: 'embers',
   },
   // Hệ Băng: xứ tuyết, tuyết rơi
-  frost: {
+  ice: {
     sky: ['#060c20', '#1d3262', '#90bef2'],
     moon: '#ffffff',
     haze: '#b4dcff',

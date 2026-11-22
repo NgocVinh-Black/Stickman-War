@@ -1,4 +1,5 @@
 import { FACTIONS, type FactionId } from './factions';
+import { LOW_HP, SKILL_SPLASH, ULTS, type Skill } from './skills';
 import {
   MAX_QUEUE,
   MAX_TOWERS,
@@ -45,9 +46,9 @@ export const MINES: Record<MineKind, { offset: number; time: number; yield: numb
 /** Chia thợ mỏ mặc định [bạc, vàng, kim cương] (tỉ lệ). */
 export const DEFAULT_MINE_SPLIT: MineSplit = [1, 1, 0];
 // Tỉ lệ chia có thể là số thợ thật ở từng mỏ, nên cho tới quân số tối đa
-export const MINE_SPLIT_MAX = 40;
+export const MINE_SPLIT_MAX = 60;
 export type MineSplit = [number, number, number];
-const MINE_TIME = MINES.silver.time; // mốc để tính tốc độ đào riêng của tộc (mineTime)
+const MINE_TIME = MINES.silver.time; // mốc để tính tốc độ đào riêng của hệ (mineTime)
 const PASSIVE_INCOME = 1.5;
 const DEFEND_DISTANCE = 720;
 const DEFEND_CHASE = 320;
@@ -62,6 +63,13 @@ const SPLASH_MAX = 6;
 const STATUE_RANGE = 480;
 const STATUE_DAMAGE = 14;
 const STATUE_COOLDOWN = 1.1;
+// Chiêu tượng thần: thanh nộ (0..1) đầy khi mất chừng này vàng quân, hoặc tượng mất chừng này phần máu,
+// hoặc tự nạp sau chừng này giây. Bên đang thua mất quân nhiều nên nạp nhanh hơn: cơ hội lật kèo.
+export const ULT_LOSS = 2000;
+export const ULT_STATUE = 0.3;
+export const ULT_TIME = 300;
+// Phục kích kỳ cựu: hạ quân địch có sao được thưởng tỉ lệ giá quân này cho mỗi sao
+export const VETERAN_BOUNTY = 0.3;
 // Mỏ kim cương giữa bản đồ: mỗi phe đào một bên mỏ
 export const CENTER_MINE_X = WORLD_WIDTH / 2;
 const CENTER_MINE_GAP = 45;
@@ -78,6 +86,8 @@ const BLINK_COOLDOWN = 7;
 const DASH_TIME = 0.22;
 const ASSASSIN_SIGHT = 620;
 const ASSASSIN_PRIORITY = 350; // ưu tiên hàng sau như thể gần hơn chừng này
+const LURK_BEHIND = 60; // thích khách chờ giao tranh: đứng sau quân cận chiến đi đầu chừng này
+const BRAWL_SIGHT = 620; // không có địch trong khoảng này quanh quân mình thì thích khách khỏi chờ
 const HEALER_SIGHT = 520;
 // Đội hình tấn công: quân cận chiến chỉ lao vào địch ở trong khoảng này phía trước chỗ của mình,
 // để quân nhanh không bỏ đội xông lên trước; tới gần tượng địch chừng này thì đội hình tan, cả đội đánh tượng
@@ -98,13 +108,21 @@ const REVEAL_TIME = 1.6;
 const REVEAL_NEAR = 40;
 // Hiệu ứng
 const SLOW_FACTOR = 0.55;
-const CALM_TIME = 4; // nội tại hồi máu của tộc: không bị đánh chừng này giây
+const CALM_TIME = 4; // nội tại hồi máu của hệ: không bị đánh chừng này giây
 const SUMMON_LIFE = 25;
+// Kỹ năng: hết choáng chừng này giây mới bị choáng lại (không khoá chết); khổng lồ / tháp / tường ít bị khống chế
+const STUN_IMMUNE = 1;
+const GIANT_STUN = 0.5;
+// Kỹ năng phát quanh mình (pulse) hỗ trợ đồng đội: kích hoạt khi có địch trong khoảng area + chừng này
+const PULSE_SUPPORT = 250;
 const RAISE_RANGE = 260;
 const MAX_SUMMONS = 8;
-// Thợ xây: dựng trạm vàng (kiêm tháp canh) ở các chỗ cố định cách tượng chừng này:
-// trạm 0 giữa mỏ bạc và mỏ vàng, trạm 1 trên đường tới mỏ kim cương giữa bản đồ.
-const DEPOT_SLOTS = [430, 1150];
+/**
+ * Ô đền: chỗ thợ xây dựng trạm vàng (kiêm tháp canh), tính từ tượng nhà. Người chơi chọn ô khi xây thợ xây
+ * (không chọn thì lấy ô trống đầu tiên). 0: giữa mỏ bạc và mỏ vàng, 1: đường tới mỏ kim cương,
+ * 2: ngay sau mỏ vàng, 3: sát mỏ kim cương giữa bản đồ. Chỉ số được dùng trong lệnh online: thêm ô thì nối vào cuối.
+ */
+export const DEPOT_SLOTS = [430, 1150, 800, 1500];
 const BUILD_TIME = 6;
 /**
  * Hình đội hình. Mỗi loại quân một hàng (ROW / FORMATION_ROW), hàng đông thì chia thành nhiều lớp.
@@ -127,6 +145,14 @@ const LANE_SPEED = 0.6;
 const LANE_MIN = 0.25;
 // Đội hình tấn công: gặp địch thì cả đội dừng lại đánh; hết địch chừng này giây thì tập hợp lại rồi mới đi tiếp
 const REGROUP_TIME = 1.2;
+// Địch gần mũi đội hình trong khoảng này: đội tiến lên giáp trận ngay, không đứng chờ quân tụt lại / không lập lại đội hình
+const ENGAGE_AHEAD = 460;
+// Đang hành quân mà quân tụt sau chỗ của mình dưới khoảng này: đội vẫn đi nhưng chậm một nửa (khỏi đứng khựng chờ)
+const STRAGGLE = 170;
+// Quân tụt lại mà chạy nhanh hơn tốc độ hành quân chừng này lần thì tự đuổi kịp, đội không cần chờ
+const CATCH_UP = 1.15;
+// Quân tụt sau chỗ của mình trong đội hình đang hành quân được chạy nhanh hơn chừng này lần để bắt kịp hàng
+const FORMATION_BOOST = 1.35;
 // Cờ tập hợp (Cắm cờ): không cho cắm sát tượng địch hơn chừng này
 const HOLD_MARGIN = 220;
 // Quân lệch quá xa vị trí trong đội hình (vd. quân mới xây) thì chưa tính là đã nhập đội:
@@ -153,7 +179,8 @@ export const ROW: Record<Arch, number> = {
   tower: 0,
   wall: 0,
   sword: 1,
-  ninja: 1,
+  // Thích khách núp ngay sau hàng cận chiến (trước hàng hỗ trợ), chờ giao tranh rồi lướt ra hàng sau địch
+  ninja: 1.4,
   cavalry: 1,
   builder: 1,
   miner: 1,
@@ -167,9 +194,9 @@ export const ROW: Record<Arch, number> = {
 /** Đội hình có thứ tự hàng riêng (không có thì dùng ROW). */
 const FORMATION_ROW: Partial<Record<Formation, Partial<Record<Arch, number>>>> = {
   // Mũi nhọn: quân nhanh / to xác mở đường, cận chiến theo sát, bắn xa và hỗ trợ sau
-  wedge: { cavalry: 0, ninja: 0, giant: 0, spear: 1, sword: 1, healer: 1.5, banner: 1.5, archer: 2, mage: 2, catapult: 3 },
+  wedge: { cavalry: 0, giant: 0, spear: 1, sword: 1, ninja: 1.4, healer: 1.5, banner: 1.5, archer: 2, mage: 2, catapult: 3 },
   // Tường khiên: mọi quân cận chiến đứng chung hàng đầu, bắn xa núp sát ngay sau
-  wall: { spear: 0, giant: 0, sword: 0, ninja: 0, cavalry: 0, healer: 0.5, banner: 0.5, archer: 1, mage: 1, catapult: 2 },
+  wall: { spear: 0, giant: 0, sword: 0, cavalry: 0, ninja: 0.4, healer: 0.5, banner: 0.5, archer: 1, mage: 1, catapult: 2 },
 };
 
 export type Rng = () => number;
@@ -209,7 +236,7 @@ export type Unit = {
   lifeT: number; // > 0: quân triệu hồi, hết giờ thì tan
   lastStruck: number; // mục tiêu của đòn trước (nhất kích)
   buildSlot: number; // thợ xây / trạm: chỗ trạm (chỉ số trong DEPOT_SLOTS)
-  forge: number; // hệ số lò rèn lúc xây ra (Thiết Lò Môn, dwarf), 1 = không có
+  forge: number; // hệ số lò rèn lúc xây ra (Thiết Lò Môn, metal), 1 = không có
   combat: boolean; // đang đánh quân địch (không tính đánh tượng)
   // thợ mỏ
   mine: number;
@@ -220,6 +247,16 @@ export type Unit = {
   // ninja đang lướt: còn dashT giây, lướt tới dashX
   dashT: number;
   dashX: number;
+  // Kỹ năng riêng (skills.ts) và các trạng thái nó gây ra; các mốc giờ đếm lùi qua 0
+  stunT: number; // > 0: choáng; <= -STUN_IMMUNE: lại choáng được
+  guardT: number;
+  guard: number; // giảm tỉ lệ sát thương nhận khi guardT > 0
+  hasteT: number;
+  haste: number; // chạy và đánh nhanh hơn khi hasteT > 0
+  sunderT: number;
+  sunder: number; // nhận thêm tỉ lệ sát thương khi sunderT > 0
+  skillT: number; // hồi chiêu kỹ năng
+  skillUsed: boolean; // kỹ năng một lần (máu thấp) đã dùng
 };
 
 export type Projectile = {
@@ -238,6 +275,7 @@ export type Projectile = {
   dtype: DamageType;
   sourceId: number;
   srcKind: UnitKind | null; // để áp hiệu ứng (độc, chậm, hất) kể cả khi người bắn đã chết
+  skill?: boolean; // phát bắn cường hoá bởi kỹ năng strike của người bắn
 };
 
 /** Túi vàng rơi trên đất. */
@@ -257,7 +295,9 @@ export type WorldEvent =
   | { type: 'gold'; team: Team; x: number; amount: number }
   | { type: 'trained'; team: Team; kind: UnitKind }
   | { type: 'statueHit'; team: Team; x: number }
-  | { type: 'swing'; x: number; kind: UnitKind };
+  | { type: 'swing'; x: number; kind: UnitKind }
+  | { type: 'skill'; x: number; lane: number; team: Team; kind: UnitKind }
+  | { type: 'ult'; x: number; team: Team; faction: FactionId };
 
 export type TeamState = {
   faction: FactionId;
@@ -268,7 +308,7 @@ export type TeamState = {
   formation: Formation;
   formX: number; // mũi đội hình khi tấn công (NaN = chưa lập)
   holdX: number; // chỗ đứng giữ khi Dừng
-  queue: { kind: UnitKind; t: number }[];
+  queue: { kind: UnitKind; t: number; slot?: number }[];
   incomeMult: number;
   unlocked: UnitKind[];
   kills: number;
@@ -280,6 +320,8 @@ export type TeamState = {
   /** Thợ mỏ đang đi dựng tường (id, -1 = chưa có) và số giây đã dựng. */
   wallBuilder: number;
   wallT: number;
+  /** Thanh nộ của chiêu tượng thần, 0..1 (đầy thì tung được). */
+  ult: number;
 };
 
 export type TeamSetup = {
@@ -287,7 +329,7 @@ export type TeamSetup = {
   gold: number;
   statueHp: number;
   incomeMult?: number;
-  /** Quân được xây: viết theo tên khung ('sword') sẽ tự đổi sang quân của tộc. */
+  /** Quân được xây: viết theo tên khung ('sword') sẽ tự đổi sang quân của hệ. */
   unlocked: UnitKind[];
   start?: UnitKind[];
 };
@@ -309,6 +351,14 @@ export const mineX = (team: Team, i: number) => (i === 2 ? centerMineX(team) : s
 export const defendX = (team: Team) => statueX(team) + dirOf(team) * DEFEND_DISTANCE;
 /** Chỗ trạm vàng thứ slot của phe team. */
 export const depotX = (team: Team, slot: number) => statueX(team) + dirOf(team) * DEPOT_SLOTS[slot];
+
+/** Các ô đền còn trống của phe `team`: chưa có trạm / thợ xây đang tới, chưa có thợ xây trong hàng chờ đặt trước. */
+export function freeDepots(view: WorldView, team: Team): number[] {
+  const used = new Set<number>();
+  for (const u of view.units) if (u.team === team && !u.dying && u.buildSlot >= 0) used.add(u.buildSlot);
+  for (const q of view.teams[team].queue) if (q.slot !== undefined) used.add(q.slot);
+  return DEPOT_SLOTS.map((_, i) => i).filter((i) => !used.has(i));
+}
 /** Chỗ thợ mỏ của mỗi phe đứng đào ở mỏ giữa (mỗi phe một bên mỏ). */
 export const centerMineX = (team: Team) => CENTER_MINE_X - dirOf(team) * CENTER_MINE_GAP;
 const BACKLINE: Arch[] = ['archer', 'mage', 'healer', 'banner', 'catapult', 'miner'];
@@ -316,6 +366,8 @@ const other = (team: Team): Team => (team === 0 ? 1 : 0);
 /** Quân đánh xa (bắn tên, phép, công thành), không tính hỗ trợ. */
 const isShooter = (u: Unit) => UNITS[u.kind].range >= RANGED_REACH && !isSupport(u);
 const isSupport = (u: Unit) => arch(u) === 'healer' || arch(u) === 'banner';
+/** Thích khách ám sát (lướt hoặc tàng hình): chờ giao tranh rồi mới vào hàng sau địch. Bom tự nổ, cuồng huyết thì lao thẳng. */
+const isAssassin = (s: UnitStats) => s.arch === 'ninja' && (!!s.blink || !!s.stealth) && !s.kamikaze;
 const arch = (u: Unit): Arch => UNITS[u.kind].arch;
 
 /**
@@ -355,7 +407,7 @@ export class World {
     private rng: Rng = Math.random,
   ) {
     const init = (s: TeamSetup, team: Team): TeamState => {
-      const faction = s.faction ?? 'tribe';
+      const faction = s.faction ?? 'light';
       const hp = Math.round(s.statueHp * (FACTIONS[faction].statueMult ?? 1));
       return {
         faction,
@@ -376,6 +428,7 @@ export class World {
         wallPlan: NaN,
         wallBuilder: -1,
         wallT: 0,
+        ult: 0,
       };
     };
     this.teams = [init(setups[0], 0), init(setups[1], 1)];
@@ -384,7 +437,7 @@ export class World {
 
   // ---------- Lệnh của người chơi / AI ----------
 
-  /** Tên khung ('sword') đổi sang quân của tộc phe đó; mã quân đầy đủ giữ nguyên. */
+  /** Tên khung ('sword') đổi sang quân của hệ phe đó; mã quân đầy đủ giữ nguyên. */
   kindFor(team: Team, k: UnitKind): UnitKind {
     return isArch(k) ? kindOf(this.teams[team].faction, k) : k;
   }
@@ -396,12 +449,13 @@ export class World {
     return n;
   }
 
-  canTrain(team: Team, kind: UnitKind): boolean {
+  canTrain(team: Team, kind: UnitKind, slot?: number): boolean {
     kind = this.kindFor(team, kind);
     const t = this.teams[team];
     const s = UNITS[kind];
     if (!s) return false;
     if (s.build && this.towerCount(team) >= MAX_TOWERS) return false;
+    if (slot !== undefined && (!s.build || !freeDepots(this, team).includes(slot))) return false;
     return (
       this.winner === null &&
       t.unlocked.includes(kind) &&
@@ -445,11 +499,12 @@ export class World {
   }
 
   /** Xây quân (thợ xây tự tới chỗ trạm còn trống, người chơi không chọn chỗ). */
-  train(team: Team, kind: UnitKind): boolean {
+  /** Xây quân; thợ xây có thể kèm ô đền `slot` (chỉ số trong DEPOT_SLOTS) để dựng trạm ở đó. */
+  train(team: Team, kind: UnitKind, slot?: number): boolean {
     kind = this.kindFor(team, kind);
-    if (!this.canTrain(team, kind)) return false;
+    if (!this.canTrain(team, kind, slot)) return false;
     this.teams[team].gold -= UNITS[kind].cost;
-    this.teams[team].queue.push({ kind, t: 0 });
+    this.teams[team].queue.push(slot === undefined ? { kind, t: 0 } : { kind, t: 0, slot });
     return true;
   }
 
@@ -495,6 +550,49 @@ export class World {
     t.formation = formation;
   }
 
+  /** Tung chiêu tượng thần tại x (thanh nộ phải đầy). Trả về true nếu tung được. */
+  unleash(team: Team, x: number): boolean {
+    const t = this.teams[team];
+    if (this.winner !== null || t.ult < 1 || !Number.isFinite(x)) return false;
+    x = Math.max(0, Math.min(WORLD_WIDTH, x));
+    t.ult = 0;
+    const sk = ULTS[t.faction];
+    const r = sk.area ?? 300;
+    if (sk.dmg || sk.stun || sk.slow || sk.knock || sk.dot || sk.sunder) {
+      for (const e of this.units) {
+        if (e.team === team || e.dying || e.inside || Math.abs(e.x - x) > r) continue;
+        if (sk.dmg) this.damageUnit(e, sk.dmg, team, 'none');
+        this.afflict(e, sk, team);
+      }
+    }
+    for (const a of this.units) {
+      if (a.team !== team || a.dying || a.inside || Math.abs(a.x - x) > r) continue;
+      if (sk.mend && !UNITS[a.kind].wall) this.restore(a, sk.mend);
+      if (sk.guard) {
+        a.guard = a.guardT > 0 ? Math.max(a.guard, sk.guard.mult) : sk.guard.mult;
+        a.guardT = Math.max(a.guardT, sk.guard.dur);
+      }
+      if (sk.haste) {
+        a.haste = a.hasteT > 0 ? Math.max(a.haste, sk.haste.mult) : sk.haste.mult;
+        a.hasteT = Math.max(a.hasteT, sk.haste.dur);
+      }
+    }
+    if (sk.gold) {
+      t.gold += sk.gold;
+      this.events.push({ type: 'gold', team, x, amount: sk.gold });
+    }
+    if (sk.summon) {
+      const kind = kindOf(t.faction, sk.summon.arch);
+      for (let i = 0; i < sk.summon.count; i++) {
+        const z = this.spawn(team, kind, x + (i - (sk.summon.count - 1) / 2) * 24);
+        z.lifeT = sk.summon.life;
+        this.events.push({ type: 'raise', x: z.x, lane: z.lane });
+      }
+    }
+    this.events.push({ type: 'ult', team, x, faction: t.faction });
+    return true;
+  }
+
   /** Bật / tắt cho một nửa số thợ mỏ sang đào mỏ giữa bản đồ. */
   setCenterMine(team: Team, on: boolean): void {
     this.setMineSplit(team, on ? [1, 1, 2] : DEFAULT_MINE_SPLIT);
@@ -516,13 +614,15 @@ export class World {
     return n;
   }
 
-  spawn(team: Team, kind: UnitKind, x = statueX(team) + dirOf(team) * 50): Unit {
+  spawn(team: Team, kind: UnitKind, x = statueX(team) + dirOf(team) * 50, slot?: number): Unit {
     kind = this.kindFor(team, kind);
     const s = UNITS[kind];
     let buildSlot = -1;
     if (s.build || (s.stationary && !s.wall)) {
+      // Ô đã chọn nếu còn trống, không thì ô trống đầu tiên (không tính các ô quân đang chờ trong hàng đã đặt trước)
       const used = new Set(this.units.filter((u) => u.team === team && !u.dying && u.buildSlot >= 0).map((u) => u.buildSlot));
-      buildSlot = DEPOT_SLOTS.findIndex((_, i) => !used.has(i));
+      const reserved = new Set(this.teams[team].queue.flatMap((q) => (q.slot === undefined ? [] : [q.slot])));
+      buildSlot = slot !== undefined && !used.has(slot) ? slot : DEPOT_SLOTS.findIndex((_, i) => !used.has(i) && !reserved.has(i));
     }
     // Lò rèn: quân xây ra ở phút thứ m được +perMin·m máu và sát thương
     const fg = FACTIONS[s.faction].forge;
@@ -572,6 +672,15 @@ export class World {
       mining: false,
       mineT: 0,
       carrying: 0,
+      stunT: -STUN_IMMUNE,
+      guardT: 0,
+      guard: 0,
+      hasteT: 0,
+      haste: 0,
+      sunderT: 0,
+      sunder: 0,
+      skillT: 0,
+      skillUsed: false,
     };
     this.units.push(u);
     return u;
@@ -586,13 +695,14 @@ export class World {
     for (const team of [0, 1] as Team[]) {
       const t = this.teams[team];
       t.gold += PASSIVE_INCOME * t.incomeMult * dt;
+      t.ult = Math.min(1, t.ult + dt / ULT_TIME);
       const q = t.queue[0];
       if (q) {
         q.t += dt;
         if (q.t >= UNITS[q.kind].trainTime) {
           t.queue.shift();
           const n = UNITS[q.kind].spawnCount ?? 1;
-          for (let i = 0; i < n; i++) this.spawn(team, q.kind, statueX(team) + dirOf(team) * (50 + i * 14));
+          for (let i = 0; i < n; i++) this.spawn(team, q.kind, statueX(team) + dirOf(team) * (50 + i * 14), q.slot);
           this.events.push({ type: 'trained', team, kind: q.kind });
         }
       }
@@ -721,24 +831,29 @@ export class World {
     }
     const dir = dirOf(team);
     if (!members.length) return;
-    // Đang đánh: mũi đứng yên. Đánh xong: chờ một chút rồi lập lại đội hình từ chỗ quân đang đứng
-    const fighting = members.filter((u) => joined.has(u.id) && u.combat);
+    const foe = this.frontFoe(team);
+    // Tiền tuyến giáp địch: mũi đứng yên. Đánh xong: chờ một chút rồi đi tiếp / lập lại đội hình.
+    // Chỉ quân cận chiến tiền tuyến mới tính: bắn xa đấu tầm, thích khách lướt sâu đánh lẻ thì đội vẫn tiến lên,
+    // không thì cả đội đứng nhìn cung thủ hai bên bắn nhau còn quân cận chiến bị giữ hàng không lao vào được.
+    const fighting = members.filter(
+      (u) => joined.has(u.id) && u.combat && !isShooter(u) && !isSupport(u) && !UNITS[u.kind].blink && !isAssassin(UNITS[u.kind]),
+    );
     if (fighting.length) {
-      // Đang đánh: mũi không tự tiến, nhưng bám theo quân cận chiến đang đánh ở đầu,
-      // để bắn xa / hỗ trợ tiến lên ngay sau tiền tuyến thay vì bị bỏ lại phía sau.
+      // Mũi không tự tiến, nhưng bám theo quân tiền tuyến đang đánh ở đầu, để bắn xa / hỗ trợ tiến lên ngay sau;
+      // không bao giờ vượt quá hàng địch đầu tiên (kỵ binh lao xuyên qua địch không kéo cả đội chạy qua đầu địch).
       this.fightT[team] = REGROUP_TIME;
-      for (const u of fighting) {
-        if (isShooter(u) || isSupport(u)) continue;
-        if ((u.x - t.formX) * dir > 0) t.formX = u.x;
-      }
+      for (const u of fighting) if ((u.x - t.formX) * dir > 0) t.formX = u.x;
+      if (foe !== null && (t.formX - foe) * dir > 0) t.formX = foe;
       const cap = statueX(other(team)) - dir * 30;
       if ((t.formX - cap) * dir > 0) t.formX = cap;
       return;
     }
+    const near = foe !== null && (foe - t.formX) * dir < ENGAGE_AHEAD;
     if (this.fightT[team] > 0) {
       this.fightT[team] -= dt;
       if (this.fightT[team] > 0) return;
-      t.formX = NaN;
+      // Địch còn ở gần phía trước: đi tiếp từ chỗ cũ, không lập lại đội hình rồi đứng chờ tập hợp
+      if (!near) t.formX = NaN;
     }
     if (Number.isNaN(t.formX)) {
       // Lập đội hình sao cho mọi quân đã đứng sau (hoặc đúng) vị trí của mình: không ai phải
@@ -748,12 +863,16 @@ export class World {
       const need = (u: Unit) => u.x + (u.x - this.slotX(u, u.x)); // mũi tối thiểu để vị trí của u không ở sau u
       const lead = members.reduce((best, u) => ((need(u) - best) * dir > 0 ? need(u) : best), need(members[0]));
       const present = members.filter((u) => (this.slotX(u, lead) - u.x) * dir <= FORMATION_LATE);
-      t.formX = present.reduce((best, u) => ((need(u) - best) * dir > 0 ? need(u) : best), need(present[0]));
+      // Mũi đặt theo quân chậm nhất: chúng đứng đúng chỗ ngay, cả đội xuất phát luôn; quân nhanh hơn tụt lại
+      // thì tự đuổi kịp, quân lỡ đứng trước chỗ của mình thì đứng chờ hàng tới (không quay lui)
+      const slow = Math.min(...present.map((u) => this.speedOf(u)));
+      const anchors = present.filter((u) => this.speedOf(u) < slow * CATCH_UP);
+      t.formX = anchors.reduce((best, u) => ((need(u) - best) * dir > 0 ? need(u) : best), need(anchors[0]));
       joined.clear();
       for (const u of present) joined.add(u.id);
     }
     let slowest = Infinity;
-    let behind = 0;
+    const lag: { u: Unit; d: number }[] = [];
     for (const u of members) {
       if (!joined.has(u.id)) {
         // Quân tiếp viện: chạy lên tới gần vị trí thì mới nhập đội, đội hình không đứng chờ
@@ -762,22 +881,73 @@ export class World {
       }
       if (u.engaged) continue;
       slowest = Math.min(slowest, this.speedOf(u));
-      behind = Math.max(behind, (this.slotX(u, t.formX) - u.x) * dir);
+      lag.push({ u, d: (this.slotX(u, t.formX) - u.x) * dir });
     }
+    // Chỉ chờ quân tụt lại mà không chạy nhanh hơn hẳn tốc độ hành quân (khổng lồ, máy bắn đá…);
+    // quân nhanh đang tụt (vd. lúc mới lập đội hình) sẽ tự đuổi kịp nên đội cứ đi.
+    let behind = 0;
+    for (const { u, d } of lag) if (this.speedOf(u) < slowest * CATCH_UP) behind = Math.max(behind, d);
     const cap = statueX(other(team)) - dir * 30;
-    if (slowest < Infinity && behind < 50) t.formX += dir * slowest * dt;
+    // Đủ đội (hoặc địch đã gần): đi đều; quân chậm tụt hơi xa: đi chậm một nửa cho nó đuổi kịp; tụt xa quá thì chờ
+    const pace = behind < 50 || near ? 1 : behind < STRAGGLE ? 0.5 : 0;
+    if (slowest < Infinity) t.formX += dir * slowest * pace * dt;
     if ((t.formX - cap) * dir > 0) t.formX = cap;
   }
 
-  /** Quân không đánh ai thì về chỗ của mình trong đội hình tấn công; đang tập hợp thì không quay lui. */
+  /**
+   * Phe `team` đã giao tranh chưa: có quân cận chiến (không tính thích khách) đang đánh quân địch, hoặc
+   * không có quân cận chiến nào / không có địch ở gần (thì thích khách khỏi chờ).
+   */
+  private brawling(team: Team): boolean {
+    let melee = false;
+    for (const u of this.units) {
+      if (u.team !== team || u.dying || u.inside || !this.inFormation(u) || isShooter(u) || isSupport(u)) continue;
+      if (isAssassin(UNITS[u.kind])) continue;
+      melee = true;
+      if (u.combat) return true;
+    }
+    if (!melee) return true;
+    const foe = this.frontFoe(team);
+    const front = this.meleeFront(team);
+    return foe === null || front === null || Math.abs(foe - front) > BRAWL_SIGHT;
+  }
+
+  /** Quân cận chiến (không tính thích khách) đi đầu của phe `team`. */
+  private meleeFront(team: Team, except?: Unit): number | null {
+    const dir = dirOf(team);
+    let best: number | null = null;
+    for (const u of this.units) {
+      if (u === except || u.team !== team || u.dying || u.inside || !this.inFormation(u) || isShooter(u) || isSupport(u)) continue;
+      if (isAssassin(UNITS[u.kind])) continue;
+      if (best === null || (u.x - best) * dir > 0) best = u.x;
+    }
+    return best;
+  }
+
+  /** Quân địch (không tính thợ mỏ, quân tàng hình) đứng gần phía phe `team` nhất: hàng địch đầu tiên. */
+  private frontFoe(team: Team): number | null {
+    const dir = dirOf(team);
+    let best: number | null = null;
+    for (const e of this.units) {
+      if (e.team === team || e.dying || e.inside || e.hidden || arch(e) === 'miner') continue;
+      if (best === null || (e.x - best) * dir < 0) best = e.x;
+    }
+    return best;
+  }
+
+  /** Quân không đánh ai thì về chỗ của mình trong đội hình tấn công; đứng trước chỗ của mình thì chờ hàng tới, không quay lui. */
   private followFormation(u: Unit, dt: number): void {
     const dir = dirOf(u.team);
     const x = this.slotX(u, this.teams[u.team].formX);
-    if (this.fightT[u.team] > 0 && (x - u.x) * dir < 0) {
+    if ((x - u.x) * dir < -FORMATION_TOLERANCE) {
       u.facing = dir;
       return;
     }
-    if (this.moveTo(u, x, dt, FORMATION_TOLERANCE)) u.facing = dir;
+    // Tụt sau chỗ của mình khi hành quân: chạy nhanh hơn để bắt kịp hàng (không thì quân chậm hơn chút ít
+    // như khổng lồ so với máy bắn đá đuổi mãi không tới, đội hình mất hàng đầu)
+    // (quân tiếp viện chưa nhập đội thì chạy thường, rồi nhập vào các lớp cuối)
+    const boost = this.joined[u.team].has(u.id) && (x - u.x) * dir > FORMATION_JOIN / 3 ? FORMATION_BOOST : 1;
+    if (this.moveTo(u, x, dt, FORMATION_TOLERANCE, boost)) u.facing = dir;
   }
 
   private formationReady(team: Team): boolean {
@@ -804,6 +974,11 @@ export class World {
     u.blinkT -= dt;
     u.revealT -= dt;
     u.slowT -= dt;
+    u.stunT -= dt;
+    u.guardT -= dt;
+    u.hasteT -= dt;
+    u.sunderT -= dt;
+    u.skillT -= dt;
     u.calmT += dt;
     u.hidden = !!s.stealth && u.revealT <= 0 && u.attackT < 0;
     u.moving = false;
@@ -812,6 +987,14 @@ export class World {
     u.combat = false;
 
     if (this.tickEffects(u, s, dt)) return;
+
+    // Choáng: đứng im, bỏ dở đòn đang đánh
+    if (u.stunT > 0) {
+      u.attackT = -1;
+      u.engaged = true;
+      return;
+    }
+    if (s.skill?.on === 'pulse' && u.skillT <= 0 && !u.inside) this.pulse(u, s.skill);
 
     // Đang lướt: lao vút tới đích, không làm gì khác
     if (u.dashT > 0) {
@@ -882,17 +1065,24 @@ export class World {
     }
 
     let target = s.siegeOnly ? null : this.findTarget(u);
-    // Đội hình tấn công: quân cận chiến không bỏ đội lao vào địch còn ở xa phía trước chỗ của mình
-    if (target && s.range < RANGED_REACH && !s.blink && team.stance === 'attack' && this.formationReady(u.team)) {
-      if (this.joined[u.team].has(u.id) && (target.x - this.slotX(u, team.formX)) * dir > FORMATION_LEASH) target = null;
+    // Thích khách: chưa giao tranh (cận chiến bên mình chưa giáp địch) thì núp sau tiền tuyến, chỉ tự vệ khi bị áp sát;
+    // giáp trận rồi mới lướt qua đầu tiền tuyến ám sát hàng sau địch (findTarget ưu tiên hàng sau)
+    const lurk = isAssassin(s) && !this.brawling(u.team);
+    if (lurk && target && Math.abs(target.x - u.x) > s.range + BLOCK_REACH) target = null;
+    // Đội hình tấn công: quân cận chiến không bỏ đội lao vào địch còn ở xa phía trước chỗ của mình;
+    // địch đã sát trong tầm đánh thì luôn được đánh (kể cả khi quân lỡ đứng nhích lên trước chỗ của mình)
+    if (target && s.range < RANGED_REACH && !s.blink && !isAssassin(s) && team.stance === 'attack' && this.formationReady(u.team)) {
+      const inReach = Math.abs(target.x - u.x) <= s.range + BLOCK_REACH;
+      if (!inReach && this.joined[u.team].has(u.id) && (target.x - this.slotX(u, team.formX)) * dir > FORMATION_LEASH) target = null;
     }
     if (target) {
       u.engaged = true;
       u.combat = true;
       if (s.blink) this.tryBlink(u, target);
       if (u.dashT > 0) return; // vừa bắt đầu lướt
-      // Cận chiến không đi xuyên quân địch đang đứng chắn: đánh quân chắn trước (sát thủ thì lướt qua ở trên)
-      if (s.range < RANGED_REACH) target = this.blocker(u, target) ?? target;
+      // Cận chiến không đi xuyên quân địch đang đứng chắn: đánh quân chắn trước. Thích khách vượt qua bằng cách lướt;
+      // thích khách không biết lướt (bóng ma tàng hình) thì lách qua hàng chắn thay cho cú lướt
+      if (s.range < RANGED_REACH && !(isAssassin(s) && !s.blink)) target = this.blocker(u, target) ?? target;
       // Địch cận chiến: quân bắn xa đứng sau tiền tuyến. Địch bắn xa: được tiến lên đấu tầm.
       this.engage(u, target.x, target.id, s.range, dt, UNITS[target.kind].range < RANGED_REACH);
       return;
@@ -909,6 +1099,14 @@ export class World {
       if (!u.engaged && this.formationReady(u.team)) {
         this.followFormation(u, dt);
         return;
+      }
+      // Thích khách chờ giao tranh (không theo đội hình): đứng sau quân cận chiến đi đầu của phe mình
+      if (lurk && !u.engaged) {
+        const front = this.meleeFront(u.team, u);
+        if (front !== null) {
+          if (this.moveTo(u, front - dir * LURK_BEHIND, dt, 6)) u.facing = dir;
+          return;
+        }
       }
       this.engage(u, ex, STATUE_TARGET, statueReach, dt);
       return;
@@ -1014,11 +1212,13 @@ export class World {
       u.mineT += dt;
       if (u.mineT >= BUILD_TIME) {
         const t = UNITS[s.build];
+        const builder = u.kind;
         u.kind = s.build;
         u.hp = u.maxHp = t.hp * u.forge;
         u.mineT = 0;
         u.hidden = false;
         this.events.push({ type: 'built', team: u.team, x: u.x });
+        if (s.skill?.on === 'built') this.fireSkill(u, s.skill, builder);
       }
     }
   }
@@ -1224,6 +1424,12 @@ export class World {
     }
     if (u.carrying > 0) {
       if (this.moveTo(u, this.dropOff(u), dt, 8)) {
+        const sk = UNITS[u.kind].skill;
+        if (sk?.on === 'haul' && u.skillT <= 0 && sk.gold) {
+          u.skillT = sk.every ?? 0;
+          u.carrying += sk.gold;
+          this.events.push({ type: 'skill', x: u.x, lane: u.lane, team: u.team, kind: u.kind });
+        }
         this.teams[u.team].gold += u.carrying;
         this.events.push({ type: 'gold', team: u.team, x: u.x, amount: u.carrying });
         u.carrying = 0;
@@ -1249,15 +1455,15 @@ export class World {
   }
 
   private speedOf(u: Unit): number {
-    return UNITS[u.kind].speed * (u.slowT > 0 ? SLOW_FACTOR : 1);
+    return UNITS[u.kind].speed * (u.slowT > 0 ? SLOW_FACTOR : 1) * (u.hasteT > 0 ? 1 + u.haste : 1);
   }
 
   /** Đi tới x; trả về true khi đã tới nơi. */
-  private moveTo(u: Unit, x: number, dt: number, tolerance: number): boolean {
+  private moveTo(u: Unit, x: number, dt: number, tolerance: number, boost = 1): boolean {
     const dx = x - u.x;
     if (Math.abs(dx) <= tolerance) return true;
     const s = UNITS[u.kind];
-    const speed = this.speedOf(u);
+    const speed = this.speedOf(u) * boost;
     if (speed <= 0) return false;
     u.facing = dx > 0 ? 1 : -1;
     let moved = Math.min(speed * dt, Math.abs(dx));
@@ -1338,7 +1544,7 @@ export class World {
       u.attackT = 0;
       u.hitDone = false;
       u.targetId = targetId;
-      u.cooldownT = UNITS[u.kind].cooldown * (1 - (aura?.haste ?? 0));
+      u.cooldownT = (UNITS[u.kind].cooldown * (1 - (aura?.haste ?? 0))) / (u.hasteT > 0 ? 1 + u.haste : 1);
       u.revealT = REVEAL_TIME;
       u.hidden = false;
       this.events.push({ type: 'swing', x: u.x, kind: u.kind });
@@ -1402,6 +1608,12 @@ export class World {
     // Nhất kích: chỉ đòn cận chiến đơn mục tiêu (đòn nổ / bắn xa đổi mục tiêu liên tục sẽ quá mạnh)
     if (fd.firstStrike && !s.splash && !s.projectile && u.targetId !== u.lastStruck) damage *= fd.firstStrike;
     u.lastStruck = u.targetId;
+    // Kỹ năng strike: đòn này cường hoá, hồi chiêu every giây
+    const sk = s.skill?.on === 'strike' && u.skillT <= 0 ? s.skill : null;
+    if (sk) {
+      u.skillT = sk.every ?? 0;
+      damage *= sk.power ?? 1;
+    }
     let charged = 1;
     if (s.charge) {
       charged = 1 + (Math.min(u.run, CHARGE_FULL) / CHARGE_FULL) * (CHARGE_MAX - 1);
@@ -1411,6 +1623,7 @@ export class World {
 
     if (s.kamikaze) {
       this.splash(u.team, u.x + u.facing * 10, u.lane, s.splash ?? 60, damage, s.dmgType, u, s);
+      if (sk) this.strikeHit(u.team, sk, u.x, u.lane, damage, s, u, null, s.splash ?? 60);
       this.events.push({ type: 'explode', x: u.x, lane: u.lane });
       this.kill(u, enemy, undefined, false);
       return;
@@ -1446,6 +1659,7 @@ export class World {
         dtype: s.dmgType,
         sourceId: u.id,
         srcKind: u.kind,
+        ...(sk ? { skill: true } : {}),
       });
       this.events.push({ type: 'shoot', kind: p, x: u.x });
       return;
@@ -1454,14 +1668,153 @@ export class World {
     if (s.splash || (s.chargeSplash && charged > 1.6)) {
       const hitX = u.x + u.facing * s.range * 0.7;
       this.splash(u.team, hitX, u.lane, s.splash ?? s.chargeSplash!, damage, s.dmgType, u, s, u.facing * 14);
+      if (sk) this.strikeHit(u.team, sk, hitX, u.lane, damage, s, u, null, s.splash ?? s.chargeSplash!);
       this.events.push({ type: 'explode', x: hitX, lane: u.lane });
       return;
     }
 
     if (u.targetId === STATUE_TARGET) {
       this.damageStatue(enemy, damage, s.dmgType);
+      if (sk) this.strikeHit(u.team, sk, tx, u.lane, damage, s, u, null, 0);
     } else if (target && !target.dying && !target.inside && Math.abs(target.x - u.x) <= s.range * 1.4 + 10) {
       this.damageUnit(target, damage, u.team, s.dmgType, u, s);
+      if (sk) this.strikeHit(u.team, sk, target.x, target.lane, damage, s, u, target, 0);
+    }
+  }
+
+  // ---------- Kỹ năng riêng (skills.ts) ----------
+
+  /** Quân địch của `team` (còn sống, ở ngoài) trong bán kính quanh (x, lane), gần nhất trước. */
+  private enemiesNear(team: Team, x: number, lane: number, radius: number): Unit[] {
+    return this.units
+      .filter((e) => e.team !== team && !e.dying && !e.inside)
+      .map((e) => ({ e, d: Math.hypot(e.x - x, (e.lane - lane) * LANE_DEPTH) }))
+      .filter((h) => h.d <= radius)
+      .sort((a, b) => a.d - b.d)
+      .map((h) => h.e);
+  }
+
+  /** Hiệu ứng khống chế / gây hại của kỹ năng lên một quân địch. */
+  private afflict(e: Unit, sk: Skill, team: Team): void {
+    if (e.dying) return;
+    const s = UNITS[e.kind];
+    const big = s.arch === 'giant';
+    if (sk.stun && !s.stationary && e.stunT <= -STUN_IMMUNE) {
+      e.stunT = sk.stun * (big ? GIANT_STUN : 1);
+      e.attackT = -1;
+    }
+    if (sk.slow) e.slowT = Math.max(e.slowT, sk.slow);
+    if (sk.dot) {
+      e.poisonDps = e.poisonT > 0 ? Math.max(e.poisonDps, sk.dot.dps) : sk.dot.dps;
+      e.poisonT = Math.max(e.poisonT, sk.dot.dur);
+      e.poisonBy = team;
+    }
+    if (sk.sunder) {
+      e.sunder = e.sunderT > 0 ? Math.max(e.sunder, sk.sunder.mult) : sk.sunder.mult;
+      e.sunderT = Math.max(e.sunderT, sk.sunder.dur);
+    }
+    if (sk.knock && !s.stationary && s.arch !== 'catapult') {
+      e.x = Math.max(0, Math.min(WORLD_WIDTH, e.x + dirOf(team) * sk.knock * (big ? 0.2 : 1)));
+    }
+  }
+
+  /** Phần kỹ năng có lợi cho bản thân / đồng đội quanh u. */
+  private bless(u: Unit, sk: Skill): void {
+    const buff = (a: Unit) => {
+      if (sk.guard) {
+        a.guard = a.guardT > 0 ? Math.max(a.guard, sk.guard.mult) : sk.guard.mult;
+        a.guardT = Math.max(a.guardT, sk.guard.dur);
+      }
+      if (sk.haste) {
+        a.haste = a.hasteT > 0 ? Math.max(a.haste, sk.haste.mult) : sk.haste.mult;
+        a.hasteT = Math.max(a.hasteT, sk.haste.dur);
+      }
+    };
+    if (sk.heal) this.restore(u, u.maxHp * sk.heal);
+    const r = sk.area ?? 0;
+    if (sk.mend || (sk.allies && (sk.guard || sk.haste))) {
+      for (const a of this.units) {
+        if (a.team !== u.team || a.dying || a.inside || Math.abs(a.x - u.x) > r) continue;
+        if (sk.mend && !UNITS[a.kind].wall) this.restore(a, sk.mend);
+        if (sk.allies) buff(a);
+      }
+    }
+    if (!sk.allies) buff(u);
+    if (sk.gold) {
+      this.teams[u.team].gold += sk.gold;
+      this.events.push({ type: 'gold', team: u.team, x: u.x, amount: sk.gold });
+    }
+    if (sk.summon && u.lifeT <= 0) this.summon(u, sk.summon);
+  }
+
+  private restore(a: Unit, amount: number): void {
+    const v = Math.min(a.maxHp - a.hp, amount);
+    if (v <= 0) return;
+    a.hp += v;
+    this.events.push({ type: 'heal', x: a.x, lane: a.lane, amount: Math.round(v) });
+  }
+
+  /** Gọi quân của hệ u ra quanh u (quân triệu hồi tự tan sau `life` giây, không chiếm quân số). */
+  private summon(u: Unit, sm: NonNullable<Skill['summon']>): void {
+    const kind = kindOf(UNITS[u.kind].faction, sm.arch);
+    for (let i = 0; i < sm.count; i++) {
+      if (this.units.filter((x) => x.team === u.team && x.lifeT > 0 && !x.dying).length >= MAX_SUMMONS) return;
+      const z = this.spawn(u.team, kind, u.x - dirOf(u.team) * i * 14);
+      z.lifeT = sm.life;
+      this.events.push({ type: 'raise', x: z.x, lane: z.lane });
+    }
+  }
+
+  /** Kỹ năng không phải strike: phát quanh u (địch trong area dính sát thương / khống chế), rồi phần có lợi. */
+  private fireSkill(u: Unit, sk: Skill, kind = u.kind): void {
+    if (sk.area && (sk.dmg || sk.stun || sk.slow || sk.knock || sk.dot || sk.sunder)) {
+      for (const e of this.enemiesNear(u.team, u.x, u.lane, sk.area).slice(0, SPLASH_MAX * 2)) {
+        if (sk.dmg) this.damageUnit(e, sk.dmg * u.forge, u.team, 'none', u.dying ? undefined : u);
+        this.afflict(e, sk, u.team);
+      }
+    }
+    if (!u.dying || sk.gold || sk.summon) this.bless(u, sk);
+    this.events.push({ type: 'skill', x: u.x, lane: u.lane, team: u.team, kind });
+  }
+
+  /** Kỹ năng pulse: đủ hồi chiêu và đang giao tranh thì phát. */
+  private pulse(u: Unit, sk: Skill): void {
+    const offensive = !!(sk.dmg || sk.stun || sk.slow || sk.knock || sk.dot || sk.sunder);
+    const reach = (sk.area ?? 0) + (offensive ? 0 : PULSE_SUPPORT);
+    if (!this.nearestEnemy(u, Math.max(reach, 60))) return;
+    u.skillT = sk.every ?? 10;
+    this.fireSkill(u, sk);
+  }
+
+  /**
+   * Đòn strike trúng: mục tiêu chính dính khống chế; có area thì địch quanh đó cũng dính (và nhận thêm
+   * SKILL_SPLASH sát thương nếu đòn gốc không nổ lan sẵn). Rồi phần có lợi cho người ra đòn.
+   */
+  private strikeHit(
+    team: Team,
+    sk: Skill,
+    x: number,
+    lane: number,
+    damage: number,
+    s: UnitStats,
+    src: Unit | undefined,
+    primary: Unit | null,
+    splashed: number,
+  ): void {
+    if (primary) this.afflict(primary, sk, team);
+    const r = Math.max(sk.area ?? 0, splashed);
+    if (r > 0) {
+      for (const e of this.enemiesNear(team, x, lane, r).slice(0, SPLASH_MAX)) {
+        if (e === primary) continue;
+        if (sk.area && !splashed) this.damageUnit(e, damage * SKILL_SPLASH, team, s.dmgType, src, s);
+        this.afflict(e, sk, team);
+      }
+    }
+    if (src && !src.dying) {
+      if (sk.drain) this.restore(src, damage * sk.drain);
+      // Phần có lợi của strike chỉ áp cho bản thân (area của strike là vùng địch)
+      this.bless(src, { ...sk, area: 0, mend: 0, allies: false });
+      this.events.push({ type: 'skill', x: src.x, lane: src.lane, team, kind: src.kind });
     }
   }
 
@@ -1512,13 +1865,16 @@ export class World {
       const enemy = other(p.team);
       const src = p.sourceId ? this.units.find((x) => x.id === p.sourceId) : undefined;
       const fx = p.srcKind ? UNITS[p.srcKind] : undefined;
+      const sk = p.skill && fx?.skill?.on === 'strike' ? fx.skill : null;
       if (!SINGLE_SHOTS.includes(p.kind)) {
         this.splash(p.team, p.x1, p.lane, p.splash, p.damage, p.dtype, src, fx);
+        if (sk) this.strikeHit(p.team, sk, p.x1, p.lane, p.damage, fx!, src, null, p.splash);
         this.events.push({ type: 'explode', x: p.x1, lane: p.lane, kind: p.kind });
         continue;
       }
       if (p.targetId === STATUE_TARGET) {
         this.damageStatue(enemy, p.damage, p.dtype);
+        if (sk) this.strikeHit(p.team, sk, p.x1, p.lane, p.damage, fx!, src, null, 0);
         continue;
       }
       // Mũi tên: trúng mục tiêu nếu còn ở gần, không thì trúng kẻ gần chỗ rơi nhất
@@ -1532,8 +1888,10 @@ export class World {
           hit = e;
         }
       }
-      if (hit) this.damageUnit(hit, p.damage, p.team, p.dtype, src, fx);
-      else if (Math.abs(statueX(enemy) - p.x1) <= STATUE_HALF_WIDTH) this.damageStatue(enemy, p.damage, p.dtype);
+      if (hit) {
+        this.damageUnit(hit, p.damage, p.team, p.dtype, src, fx);
+        if (sk) this.strikeHit(p.team, sk, hit.x, hit.lane, p.damage, fx!, src, hit, 0);
+      } else if (Math.abs(statueX(enemy) - p.x1) <= STATUE_HALF_WIDTH) this.damageStatue(enemy, p.damage, p.dtype);
     }
     this.projectiles = this.projectiles.filter((p) => p.t < p.duration);
   }
@@ -1542,7 +1900,8 @@ export class World {
     const s = UNITS[u.kind];
     // Máy công thành phá tường như phá tượng (×3)
     const structure = s.wall ? (STATUE_MULT[dtype] ?? 1) : 1;
-    const dealt = damage * damageMult(dtype, s.armorType) * (1 - (s.armor ?? 0)) * structure;
+    const shield = (u.guardT > 0 ? 1 - u.guard : 1) * (u.sunderT > 0 ? 1 + u.sunder : 1);
+    const dealt = damage * damageMult(dtype, s.armorType) * (1 - (s.armor ?? 0)) * structure * shield;
     // Tường gai / lửa / băng: quân cận chiến đánh vào thì bị đâm lại, đốt hoặc làm chậm
     if (s.thorns && src && !src.dying && UNITS[src.kind].range < RANGED_REACH) {
       if (s.thorns.slow) src.slowT = Math.max(src.slowT, s.thorns.slow);
@@ -1563,7 +1922,7 @@ export class World {
       u.poisonDps = fx.poison.dps;
       u.poisonBy = by;
     }
-    // Nội tại tộc của bên ra đòn: lửa rồng, giá lạnh, thủy triều
+    // Nội tại hệ của bên ra đòn: lửa rồng, giá lạnh, thủy triều
     const fd = fx ? FACTIONS[fx.faction] : undefined;
     if (fd?.burn) {
       u.poisonDps = u.poisonT > 0 ? Math.max(u.poisonDps, fd.burn.dps) : fd.burn.dps;
@@ -1575,6 +1934,10 @@ export class World {
     if (steal && src && !src.dying) src.hp = Math.min(src.maxHp, src.hp + dealt * steal);
     this.events.push({ type: 'hit', x: u.x, h: -30 * s.scale, lane: u.lane, big: dealt >= 50 });
     if (u.hp <= 0) this.kill(u, by, src);
+    else if (s.skill?.on === 'low' && !u.skillUsed && u.hp < u.maxHp * LOW_HP) {
+      u.skillUsed = true;
+      this.fireSkill(u, s.skill);
+    }
   }
 
   /** Quân chết: rơi vàng, tính mạng cho phe giết, tiền hồn, thầy chiêu hồn gọi xác dậy. */
@@ -1592,6 +1955,18 @@ export class World {
     u.carrying = 0;
     this.events.push({ type: 'death', x: u.x, lane: u.lane, team: u.team, kind: u.kind });
     if (!credit) return;
+    // Mất quân thật (không tính quân triệu hồi) thì tượng nạp nộ theo giá quân
+    if (u.lifeT <= 0) this.teams[u.team].ult = Math.min(1, this.teams[u.team].ult + UNITS[u.kind].cost / ULT_LOSS);
+    // Phục kích kỳ cựu: hạ quân có sao được thưởng vàng theo số sao
+    if (u.rank > 0 && u.lifeT <= 0) {
+      const gold = Math.round(UNITS[u.kind].cost * VETERAN_BOUNTY * u.rank);
+      this.teams[by].gold += gold;
+      this.events.push({ type: 'gold', team: by, x: u.x, amount: gold });
+    }
+    const sk = UNITS[u.kind].skill;
+    if (sk?.on === 'death') this.fireSkill(u, sk);
+    const ks = src ? UNITS[src.kind].skill : undefined;
+    if (src && ks?.on === 'kill' && !src.dying && src.team === by) this.fireSkill(src, ks);
     this.teams[by].kills++;
     const bounty = FACTIONS[this.teams[by].faction].bounty;
     if (bounty && u.lifeT <= 0) this.teams[by].gold += UNITS[u.kind].cost * bounty;
@@ -1629,7 +2004,10 @@ export class World {
   }
 
   private damageStatue(team: Team, damage: number, dtype: DamageType = 'none'): void {
-    this.teams[team].statueHp -= damage * (STATUE_MULT[dtype] ?? 1);
+    const t = this.teams[team];
+    const dealt = damage * (STATUE_MULT[dtype] ?? 1);
+    t.statueHp -= dealt;
+    t.ult = Math.min(1, t.ult + dealt / t.statueMax / ULT_STATUE);
     this.events.push({ type: 'statueHit', team, x: statueX(team) });
   }
 

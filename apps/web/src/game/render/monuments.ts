@@ -2,7 +2,7 @@ import type { FactionId } from '@stickman-war/core';
 import { night } from './palette';
 
 /**
- * Tượng nhà của từng nền văn minh (theo hệ): một công trình đặc trưng (không phải lính mặc đồ tộc).
+ * Tượng nhà của từng nền văn minh (theo hệ): một công trình đặc trưng (không phải lính mặc đồ hệ).
  * Vẽ quanh gốc (0, 0) là mặt đất, hướng lên là y âm, rộng khoảng ±50, cao khoảng 170 (đơn vị thế giới).
  * `stone` / `dark`: màu đá theo phong cảnh; `glow`: màu chủ đạo của nền văn minh; `t`: thời gian (hoạt ảnh nhẹ).
  */
@@ -49,7 +49,7 @@ function glowDot(ctx: Ctx, x: number, y: number, r: number, color: string, t: nu
 
 const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> = {
   /** Hệ Quang (Thánh Quang Điện): cột đá trắng đỡ đĩa mặt trời toả tia sáng. */
-  tribe(ctx, c, t) {
+  light(ctx, c, t) {
     plinth(ctx, c, 40, 20);
     poly(
       ctx,
@@ -85,7 +85,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Phong (Cuồng Phong Trại): tháp đá xoắn, cánh chong chóng gió quay trên đỉnh. */
-  orc(ctx, c, t) {
+  wind(ctx, c, t) {
     plinth(ctx, c, 38, 18);
     poly(
       ctx,
@@ -141,7 +141,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Mộc (Thanh Mộc Lâm): cây thiêng tán xanh, đốm sáng bay. */
-  elf(ctx, c, t) {
+  wood(ctx, c, t) {
     ctx.fillStyle = n('#6b4a2b');
     ctx.beginPath();
     ctx.moveTo(-26, 0);
@@ -164,7 +164,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Ám (Hội Bóng Đêm): tháp đá đen nhọn, con mắt tím mở giữa thân, khói bóng tối. */
-  undead(ctx, c, t) {
+  shadow(ctx, c, t) {
     plinth(ctx, c, 36, 16);
     poly(
       ctx,
@@ -202,7 +202,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Lôi (Lôi Kiếm Các): cột thu lôi ba tầng, tia sét chớp giữa hai sừng kim loại. */
-  samurai(ctx, c, t) {
+  thunder(ctx, c, t) {
     plinth(ctx, c, 36, 18);
     for (let i = 0; i < 3; i++) {
       const w = 22 - i * 5;
@@ -241,7 +241,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Huyết (Huyết Nguyệt Giáo): bàn thờ đá, vầng trăng máu lơ lửng phía trên, máu chảy theo rãnh. */
-  viking(ctx, c, t) {
+  blood(ctx, c, t) {
     poly(
       ctx,
       [
@@ -280,7 +280,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Tinh thể (Tinh Thạch Cốc): viên pha lê khổng lồ lơ lửng xoay trên đế đá, mảnh vụn bay quanh. */
-  desert(ctx, c, t) {
+  crystal(ctx, c, t) {
     plinth(ctx, c, 40, 20);
     poly(
       ctx,
@@ -324,7 +324,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Thạch (Bàn Thạch Bảo): cổng đá cự thạch hai cột một xà, khe nứt hổ phách phát sáng. */
-  steam(ctx, c, t) {
+  stone(ctx, c, t) {
     for (const x of [-30, 30]) {
       poly(
         ctx,
@@ -369,7 +369,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Kim (Thiết Lò Môn): đe sắt trên tảng đá, búa lớn, ấn phát sáng. */
-  dwarf(ctx, c, t) {
+  metal(ctx, c, t) {
     poly(
       ctx,
       [
@@ -415,7 +415,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Thủy (Thủy Nguyệt Cung): đinh ba khổng lồ trên vỏ ốc. */
-  tide(ctx, c, t) {
+  water(ctx, c, t) {
     ctx.fillStyle = c.stone;
     ctx.beginPath();
     ctx.moveTo(-44, 0);
@@ -451,7 +451,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Hỏa (Viêm Long Môn): đầu rồng đá há miệng, lửa bập bùng. */
-  dragon(ctx, c, t) {
+  fire(ctx, c, t) {
     plinth(ctx, c, 42, 24);
     ctx.fillStyle = c.dark;
     ctx.beginPath();
@@ -505,7 +505,7 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
   },
 
   /** Hệ Băng (Hàn Băng Cung): cụm tinh thể băng trong suốt. */
-  frost(ctx, c, t) {
+  ice(ctx, c, t) {
     const crystal = (x: number, h: number, w: number, tilt: number) => {
       ctx.save();
       ctx.translate(x, 0);
@@ -547,6 +547,6 @@ const DRAW: Record<FactionId, (ctx: Ctx, c: MonumentColors, t: number) => void> 
 
 export function drawMonument(ctx: Ctx, faction: FactionId, c: MonumentColors, t: number): void {
   ctx.save();
-  (DRAW[faction] ?? DRAW.tribe)(ctx, c, t);
+  (DRAW[faction] ?? DRAW.light)(ctx, c, t);
   ctx.restore();
 }

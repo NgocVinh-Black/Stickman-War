@@ -4,6 +4,10 @@
 .new-unit + .new-unit {
   margin-top: 8px;
 }
+.new-unit span.skill {
+  color: var(--accent, #7dd3fc);
+  font-size: 12px;
+}
 .new-unit span.counter {
   color: var(--gold);
   font-size: 12px;

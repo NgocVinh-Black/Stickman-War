@@ -25,7 +25,7 @@ export type StickPose = {
   /** Màu phe: viền sáng thân, mắt, áo choàng, cờ. */
   accent: string;
   flash: boolean;
-  /** Vẽ tượng đá: giữ màu ink người gọi đưa vào, bỏ màu thân riêng của tộc. */
+  /** Vẽ tượng đá: giữ màu ink người gọi đưa vào, bỏ màu thân riêng của hệ. */
   stone?: boolean;
   /** Vẽ icon nhỏ: viền sáng dày hơn cho dễ nhìn. */
   icon?: boolean;
@@ -65,23 +65,23 @@ const MOUNT_COLOR: Record<Mount, string> = {
   lizard: '#b45309',
   bear: '#e5e7eb',
 };
-/** Màu đá tháp canh theo tộc (pha tối). */
+/** Màu đá tháp canh theo hệ (pha tối). */
 const TOWER_COLOR: Record<FactionId, string> = {
-  tribe: '#e8e2d0',
-  orc: '#9fc9b8',
-  elf: '#5b7f3a',
-  undead: '#3a2f4a',
-  samurai: '#5a5a78',
-  viking: '#6b2a30',
-  desert: '#b07ac0',
-  steam: '#8a7560',
-  dwarf: '#6b717c',
-  tide: '#2a6fa8',
-  dragon: '#8b2e1f',
-  frost: '#cfe3f5',
+  light: '#e8e2d0',
+  wind: '#9fc9b8',
+  wood: '#5b7f3a',
+  shadow: '#3a2f4a',
+  thunder: '#5a5a78',
+  blood: '#6b2a30',
+  crystal: '#b07ac0',
+  stone: '#8a7560',
+  metal: '#6b717c',
+  water: '#2a6fa8',
+  fire: '#8b2e1f',
+  ice: '#cfe3f5',
 };
 
-/** Vũ khí mặc định của từng khung khi tộc không ghi đè. */
+/** Vũ khí mặc định của từng khung khi hệ không ghi đè. */
 const DEFAULT_WEAPON: Partial<Record<Arch, Weapon>> = {
   miner: 'pick',
   sword: 'sword',
@@ -929,7 +929,7 @@ function drawWeaponGear(g: Gear): void {
   }
 
   if (a === 'spear') {
-    const shield = s.look.shield ?? (s.faction === 'tribe' ? 'oval' : 'none');
+    const shield = s.look.shield ?? (s.faction === 'light' ? 'oval' : 'none');
     if (weapon === 'club') club(ctx, hand, tip(18), gear, e);
     else polearm(ctx, tip, dir, perp, weapon ?? 'spear', gear, e);
     if (shield !== 'none') drawShield(ctx, shoulder, shield, hi, e, rim);
@@ -1189,7 +1189,7 @@ function drawWeaponGear(g: Gear): void {
     case 'staff': {
       const top = tip(-12);
       line(ctx, top, tip(16), gear, 2.2);
-      if (a === 'healer' && s.faction === 'tribe') {
+      if (a === 'healer' && s.faction === 'light') {
         healCross(ctx, top, p.attack);
         return;
       }
@@ -1758,14 +1758,14 @@ function drawTower(ctx: CanvasRenderingContext2D, p: StickPose, s: UnitStats, e:
     neonFill(ctx, () => ctx.rect(-8, -24, 3, 7), e);
     neonFill(ctx, () => ctx.rect(5, -24, 3, 7), e);
   });
-  if (s.faction === 'elf') {
+  if (s.faction === 'wood') {
     ctx.fillStyle = p.flash ? '#fff' : night('#4caf50', 0.6);
     ctx.beginPath();
     ctx.arc(0, -78, 14, 0, Math.PI * 2);
     ctx.fill();
     for (let i = 0; i < 5; i++) glowDot(ctx, { x: Math.cos(i * 1.3 + time) * 8, y: -78 + Math.sin(i * 2.1) * 7 }, 0.9, e);
   }
-  if (s.faction === 'undead') {
+  if (s.faction === 'shadow') {
     glowDot(ctx, { x: -4, y: -54 }, 1.6, e);
     glowDot(ctx, { x: 4, y: -54 }, 1.6, e);
   }

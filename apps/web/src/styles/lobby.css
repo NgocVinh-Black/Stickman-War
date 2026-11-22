@@ -474,6 +474,10 @@ button.wood:active {
   margin: 0 auto;
   padding: 6px 10px 10px;
 }
+/* Cẩm nang: bảng rộng hơn để thẻ quân chia 2 cột (hình đúng cỡ trong trận | thông tin) */
+.lb-panel.wide {
+  width: min(1500px, 100%);
+}
 .lb-panel-head {
   position: relative;
   display: flex;

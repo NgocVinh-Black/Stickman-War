@@ -59,18 +59,18 @@ describe('Đăng nhập Google', () => {
     expect((await acc.bySession(a.session))?.name).toBe('An');
     await acc.recordMatch(
       [
-        { id: a.account.id, name: 'An', faction: 'viking' },
-        { id: b.account.id, name: 'Bình', faction: 'elf' },
+        { id: a.account.id, name: 'An', faction: 'blood' },
+        { id: b.account.id, name: 'Bình', faction: 'wood' },
       ],
       0,
     );
     expect((await acc.get(a.account.id))!.rating).toBe(1016);
     expect((await acc.get(b.account.id))!.rating).toBe(984);
-    expect((await acc.get(a.account.id))!.history[0]).toMatchObject({ vs: 'Bình', result: 'win', faction: 'viking', vsFaction: 'elf' });
+    expect((await acc.get(a.account.id))!.history[0]).toMatchObject({ vs: 'Bình', result: 'win', faction: 'blood', vsFaction: 'wood' });
     await acc.recordMatch(
       [
-        { id: a.account.id, name: 'An', faction: 'tribe' },
-        { id: null, name: 'Khách', faction: 'orc' },
+        { id: a.account.id, name: 'An', faction: 'light' },
+        { id: null, name: 'Khách', faction: 'wind' },
       ],
       1,
     );
@@ -99,10 +99,10 @@ describe('Đăng nhập Google', () => {
       const { session, account } = (await res.json()) as { session: string; account: { name: string } };
       expect(account.name).toBe('Chi');
       const auth = { authorization: `Bearer ${session}` };
-      const upd = await post('me', { name: 'Chi Pro', faction: 'samurai' }, auth);
+      const upd = await post('me', { name: 'Chi Pro', faction: 'thunder' }, auth);
       expect(((await upd.json()) as { account: { name: string; faction: string } }).account).toMatchObject({
         name: 'Chi Pro',
-        faction: 'samurai',
+        faction: 'thunder',
       });
       expect((await post('me', { faction: 'rồng' }, auth)).status).toBe(400);
       expect((await fetch(`${base}/me`)).status).toBe(401);

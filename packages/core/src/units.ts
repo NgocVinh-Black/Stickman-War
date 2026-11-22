@@ -1,7 +1,8 @@
 import { FACTIONS, FACTION_ORDER, type FactionId, type Look } from './factions';
+import { SKILLS, type Skill } from './skills';
 
 export type Team = 0 | 1; // 0 = người chơi, 1 = địch
-/** Khung quân: quyết định cách hành xử và dáng vẽ. Mỗi tộc có một bản riêng của từng khung. */
+/** Khung quân: quyết định cách hành xử và dáng vẽ. Mỗi hệ có một bản riêng của từng khung. */
 export type Arch =
   | 'miner'
   | 'sword'
@@ -17,7 +18,7 @@ export type Arch =
   | 'builder'
   | 'tower'
   | 'wall';
-/** Mã loại quân: Thánh Quang Điện (tribe) dùng đúng tên khung ('sword'), tộc khác thêm tiền tố ('viking-sword'). */
+/** Mã loại quân: Thánh Quang Điện (light) dùng đúng tên khung ('sword'), hệ khác thêm tiền tố ('blood-sword'). */
 export type UnitKind = string;
 export type Stance = 'defend' | 'attack' | 'garrison' | 'hold';
 export type Formation = 'free' | 'line' | 'spread' | 'wedge' | 'wall';
@@ -68,7 +69,7 @@ export type UnitStats = {
   stealth?: boolean; // tàng hình khi không ra đòn
   siegeOnly?: boolean; // chỉ đánh tượng
   kamikaze?: boolean; // nổ tung khi ra đòn
-  rage?: number; // sát thương thêm khi mất máu (cộng với nội tại tộc)
+  rage?: number; // sát thương thêm khi mất máu (cộng với nội tại hệ)
   lifesteal?: number;
   slow?: number; // giây làm chậm mục tiêu
   poison?: { dps: number; dur: number };
@@ -84,6 +85,8 @@ export type UnitStats = {
   buildTime?: number;
   /** Gai / lửa / băng trên tường: quân cận chiến đánh vào thì bị đâm lại, đốt hoặc làm chậm. */
   thorns?: { dmg: number; burn?: number; slow?: number };
+  /** Kỹ năng riêng của quân (skills.ts). */
+  skill?: Skill;
 };
 
 /** Thứ tự nút xây quân (phím 1–9, 0, -, =). Tháp không xây trực tiếp mà do thợ xây dựng. */
@@ -105,7 +108,7 @@ export const ALL_ARCHS: Arch[] = [...ARCH_ORDER, 'tower', 'wall'];
 
 type Base = Omit<UnitStats, 'arch' | 'faction' | 'name' | 'desc' | 'counter' | 'look'>;
 
-/** Chỉ số gốc của từng khung (chính là quân Thánh Quang Điện (tribe) trước khi áp nội tại tộc). */
+/** Chỉ số gốc của từng khung (chính là quân Thánh Quang Điện (light) trước khi áp nội tại hệ). */
 const BASE: Record<Arch, Base> = {
   miner: {
     cost: 150,
@@ -117,7 +120,7 @@ const BASE: Record<Arch, Base> = {
     range: 22,
     cooldown: 1.2,
     windup: 0.4,
-    scale: 1,
+    scale: 0.9,
     dmgType: 'slash',
     armorType: 'light',
   },
@@ -176,7 +179,7 @@ const BASE: Record<Arch, Base> = {
     range: 42,
     cooldown: 1.4,
     windup: 0.45,
-    scale: 1.15,
+    scale: 1.2,
     armor: 0.25,
     dmgType: 'pierce',
     armorType: 'heavy',
@@ -289,7 +292,7 @@ const BASE: Record<Arch, Base> = {
     range: 22,
     cooldown: 1.2,
     windup: 0.4,
-    scale: 1,
+    scale: 0.95,
     dmgType: 'slash',
     armorType: 'light',
   },
@@ -368,7 +371,7 @@ function counterText(s: Pick<UnitStats, 'dmgType' | 'armorType' | 'heal' | 'aura
   return parts.join(' · ');
 }
 
-export const kindOf = (f: FactionId, a: Arch): UnitKind => (f === 'tribe' ? a : `${f}-${a}`);
+export const kindOf = (f: FactionId, a: Arch): UnitKind => (f === 'light' ? a : `${f}-${a}`);
 export const isArch = (k: string): k is Arch => (ALL_ARCHS as string[]).includes(k);
 
 function build(f: FactionId, a: Arch): UnitStats {
@@ -384,15 +387,17 @@ function build(f: FactionId, a: Arch): UnitStats {
     desc,
     counter: '',
     look: { head: fd.head, ink: fd.ink, ...look },
+    skill: SKILLS[f][a],
   };
-  // Tường: chỉ số chung + nét riêng ghi trong factions.ts, không áp hệ số chung của tộc
+  // Tường: chỉ số chung + nét riêng ghi trong factions.ts, không áp hệ số chung của hệ
   if (a === 'wall') {
     s.counter = counterText(s);
     return s;
   }
   s.hp = Math.round(s.hp * (fd.hpMult ?? 1));
   s.damage *= fd.damageMult ?? 1;
-  s.speed *= fd.speedMult ?? 1;
+  // Tốc chạy của hệ chỉ áp cho quân đánh: thợ mỏ giữ tốc riêng, để kinh tế các hệ ngang nhau
+  if (a !== 'miner') s.speed *= fd.speedMult ?? 1;
   s.cooldown *= fd.cooldownMult ?? 1;
   if (s.cost) s.cost = Math.round((s.cost * (fd.costMult ?? 1)) / 5) * 5;
   if (fd.armorAdd) s.armor = Math.min(0.6, (s.armor ?? 0) + fd.armorAdd);
@@ -407,7 +412,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {};
 for (const f of FACTION_ORDER) for (const a of ALL_ARCHS) UNITS[kindOf(f, a)] = build(f, a);
 
 /**
- * Mọi loại quân của mọi tộc, thứ tự cố định (giao thức online gửi chỉ số trong danh sách này).
+ * Mọi loại quân của mọi hệ, thứ tự cố định (giao thức online gửi chỉ số trong danh sách này).
  * Tường thêm sau nên nối vào cuối danh sách (không chèn giữa) để client cũ không lệch chỉ số.
  */
 export const UNIT_ORDER: UnitKind[] = [
@@ -417,10 +422,10 @@ export const UNIT_ORDER: UnitKind[] = [
 /** Loại tường của một nền văn minh. */
 export const wallKind = (f: FactionId): UnitKind => kindOf(f, 'wall');
 
-/** Các quân xây được của một tộc, theo thứ tự nút. */
+/** Các quân xây được của một hệ, theo thứ tự nút. */
 export const roster = (f: FactionId): UnitKind[] => ARCH_ORDER.map((a) => kindOf(f, a));
 
-/** Đổi danh sách quân viết theo tên khung (cấu hình màn chơi) sang quân của tộc. */
+/** Đổi danh sách quân viết theo tên khung (cấu hình màn chơi) sang quân của hệ. */
 export const toFaction = (kinds: UnitKind[], f: FactionId): UnitKind[] => kinds.map((k) => (isArch(k) ? kindOf(f, k) : k));
 
 /** Phím tắt cho quân thứ i trong thanh xây quân. */
@@ -430,6 +435,6 @@ export const TRAIN_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-'
 export const RANK_KILLS = [2, 5, 9];
 export const RANK_BONUS = 0.15;
 
-export const POP_CAP = 40;
+export const POP_CAP = 60;
 export const MAX_QUEUE = 5;
 export const MAX_TOWERS = 2;

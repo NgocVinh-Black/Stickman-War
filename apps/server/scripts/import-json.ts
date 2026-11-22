@@ -7,6 +7,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { toFactionId } from '@stickman-war/core';
 
 type OldAccount = {
   id: string;
@@ -46,7 +47,7 @@ async function main(): Promise<void> {
       const fields = {
         name: a.name,
         picture: a.picture ?? '',
-        faction: a.faction ?? 'tribe',
+        faction: toFactionId(a.faction) ?? 'light',
         rating: a.rating ?? 1000,
         wins: a.wins ?? 0,
         losses: a.losses ?? 0,
@@ -66,8 +67,8 @@ async function main(): Promise<void> {
             at: new Date(h.at),
             vs: h.vs,
             result: h.result,
-            faction: h.faction,
-            vsFaction: h.vsFaction,
+            faction: toFactionId(h.faction) ?? h.faction,
+            vsFaction: toFactionId(h.vsFaction) ?? h.vsFaction,
             rating: h.rating,
           })),
         });

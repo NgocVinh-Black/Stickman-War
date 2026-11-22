@@ -1,5 +1,6 @@
-import { FACTIONS, UNITS, wallBlockOf, wallKind, type ProjectileKind, type Team } from '@stickman-war/core';
+import { FACTIONS, ULTS, UNITS, depotX, freeDepots, wallBlockOf, wallKind, type ProjectileKind, type Team } from '@stickman-war/core';
 import { t } from '@stickman-war/i18n';
+import { ultName, unitSkillName } from '@stickman-war/i18n/content';
 import { prefs } from '../../lib/prefs';
 import { THEMES, type Theme } from './themes';
 import { CLOTH, ENERGY, GEAR, NIGHT, mix, rgba } from './palette';
@@ -46,10 +47,14 @@ const GLOW: Partial<Record<ProjectileKind, [string, string]>> = {
 };
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number };
-type FloatText = { x: number; y: number; text: string; life: number; color: string };
+type FloatText = { x: number; y: number; text: string; life: number; color: string; small?: boolean };
 
 /** Tỉ lệ vẽ chiến trường theo kích thước khung (dùng chung để ô giới thiệu quân ở sảnh vẽ đúng cỡ trong trận). */
 export const viewScale = (width: number, height: number) => Math.max(0.35, Math.min(height / VIEW_HEIGHT, width / 520));
+/** Chiều cao các thanh trong màn trận (thanh trên + bản đồ nhỏ + thanh quân): chiến trường chỉ chiếm phần còn lại. */
+const BATTLE_CHROME = 175;
+/** Tỉ lệ vẽ chiến trường khi vào trận với cửa sổ hiện tại: để sảnh / cẩm nang vẽ quân đúng cỡ như trong trận. */
+export const battleScale = () => viewScale(window.innerWidth, Math.max(200, window.innerHeight - BATTLE_CHROME));
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -145,6 +150,33 @@ export class Renderer {
           this.burst(e.x, e.lane, -45, 14, '#ffd23f', 2.5, 110);
           this.texts.push({ x: e.x, y: -80, text: '★'.repeat(e.rank), life: 1.4, color: '#ffd23f' });
           break;
+        case 'ult': {
+          // Chiêu tượng thần: bùng nổ lớn màu hệ, rung màn, tên chiêu
+          const color = FACTIONS[e.faction].color;
+          for (let i = 0; i < 6; i++) this.burst(e.x + (i - 2.5) * 50, 0.5, -20, 16, color, 4, 220);
+          this.burst(e.x, 0.5, -60, 30, '#ffffff', 3, 260);
+          this.shake = Math.max(this.shake, 10);
+          this.texts.push({
+            x: e.x,
+            y: -150,
+            text: `🌟 ${ultName(e.faction)}`,
+            life: 2,
+            color: e.team === playerTeam ? '#ffe08a' : '#fca5a5',
+          });
+          break;
+        }
+        case 'skill': {
+          // Kỹ năng riêng: tia sáng màu hệ và tên kỹ năng (xanh = quân mình, đỏ = quân địch)
+          const s = UNITS[e.kind];
+          if (!s) break;
+          this.burst(e.x, e.lane, -35 * s.scale, 8, FACTIONS[s.faction].color, 2.4, 80);
+          const name = unitSkillName(e.kind);
+          if (name) {
+            const color = e.team === playerTeam ? '#a5f3fc' : '#fca5a5';
+            this.texts.push({ x: e.x, y: -70 * s.scale - 10, text: name, life: 1.1, color, small: true });
+          }
+          break;
+        }
         case 'drop':
           this.burst(e.x, e.lane, -10, 10, '#f2c230', 2.5, 90);
           this.texts.push({ x: e.x, y: -45, text: `💰 ${e.amount}`, life: 1.2, color: '#ffe08a' });
@@ -202,6 +234,10 @@ export class Renderer {
 
   /** Bóng tường người chơi đang chọn chỗ đặt (toạ độ thế giới, null = không đặt). */
   wallGhost: number | null = null;
+  /** Đang chọn ô đền cho thợ xây: vẽ các ô đền còn trống của phe mình. */
+  depotPick = false;
+  /** Vùng chiêu tượng thần đang chọn (toạ độ thế giới, null = không chọn). */
+  ultGhost: number | null = null;
   /** Độ mở cổng (0..1) của từng tường, theo id. */
   private gates = new Map<number, number>();
 
@@ -236,6 +272,54 @@ export class Renderer {
     if (this.wallGhost !== null) {
       const ok = wallBlockOf(world, 0, this.wallGhost) === null;
       at(this.wallGhost, () => drawWallGhost(ctx, ok));
+    }
+    if (this.ultGhost !== null) {
+      // Vùng chiêu tượng thần: elip sáng màu hệ trên mặt đất, rộng đúng bán kính chiêu
+      const f = world.teams[0].faction;
+      const r = ULTS[f].area ?? 300;
+      ctx.save();
+      ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.time * 6);
+      ctx.fillStyle = FACTIONS[f].color;
+      ctx.beginPath();
+      ctx.ellipse(this.sx(this.ultGhost), this.sy(0.5), r * scale, LANE_DEPTH * 0.7 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = FACTIONS[f].color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (this.depotPick) {
+      // Ô đền trống: nền sáng nhấp nháy, khung nét đứt hình trạm, số thứ tự ô (gần nhà trước)
+      const free = freeDepots(world, 0)
+        .map((i) => depotX(0, i))
+        .sort((a, b) => a - b);
+      const pulse = 0.55 + 0.35 * Math.sin(this.time * 5);
+      free.forEach((x, n) => {
+        at(x, () => {
+          ctx.globalAlpha = pulse * 0.35;
+          ctx.fillStyle = '#ffd23f';
+          ctx.beginPath();
+          ctx.ellipse(0, 4, 34, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = pulse;
+          ctx.strokeStyle = '#ffd23f';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([6, 5]);
+          ctx.strokeRect(-18, -92, 36, 92);
+          ctx.beginPath();
+          ctx.moveTo(-24, -92);
+          ctx.lineTo(0, -118);
+          ctx.lineTo(24, -92);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+          ctx.font = 'bold 22px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#ffd23f';
+          ctx.fillText(String(n + 1), 0, -50);
+        });
+      });
     }
   }
 
@@ -289,8 +373,8 @@ export class Renderer {
 
   private drawBackground(world: WorldView): void {
     const { ctx, width, height, groundY, scale } = this;
-    const a = THEMES[world.teams[0].faction] ?? THEMES.tribe;
-    const b = THEMES[world.teams[1].faction] ?? THEMES.tribe;
+    const a = THEMES[world.teams[0].faction] ?? THEMES.light;
+    const b = THEMES[world.teams[1].faction] ?? THEMES.light;
     const same = a === b;
     const mid = this.blendAt(width / 2);
     /** Màu chuyển theo chiều ngang từ nền văn minh bên trái sang bên phải. */
@@ -819,7 +903,7 @@ export class Renderer {
     ctx.scale(scale, scale);
 
     // Công trình đặc trưng của nền văn minh (bên phải lật gương để quay vào giữa bản đồ), viền màu phe dưới chân
-    const th = THEMES[t.faction] ?? THEMES.tribe;
+    const th = THEMES[t.faction] ?? THEMES.light;
     // Ánh sáng năng lượng hắt sau lưng công trình để bóng đen nổi lên trên nền đêm
     const back = ctx.createRadialGradient(0, -100, 10, 0, -90, 140);
     back.addColorStop(0, rgba(ENERGY[t.faction] ?? c.accent, 0.38));
@@ -985,6 +1069,31 @@ export class Renderer {
     // Trúng độc: bọt xanh; bị làm chậm: tinh thể băng
     if (!u.dying && (u.poisonT > 0 || u.slowT > 0) && Math.random() < 0.25) {
       this.burst(u.x, u.lane, -20 * s.scale, 1, u.poisonT > 0 ? '#84cc16' : '#7dd3fc', 2, 25);
+    }
+    // Trạng thái do kỹ năng: choáng = sao vàng trên đầu, khiên = vòng sáng, tăng tốc = vệt trắng, phá giáp = mảnh đỏ
+    if (!u.dying && !u.hidden) {
+      if (u.stunT > 0) {
+        const a = this.time * 6;
+        ctx.fillStyle = '#ffe066';
+        for (let k = 0; k < 3; k++) {
+          const ang = a + (k * Math.PI * 2) / 3;
+          ctx.fillRect(
+            sx + Math.cos(ang) * 9 * scale - 2,
+            sy - (TOP[s.arch] ?? 62) * scale * s.scale - 6 + Math.sin(ang) * 3 * scale,
+            4,
+            4,
+          );
+        }
+      }
+      if (u.guardT > 0) {
+        ctx.strokeStyle = 'rgba(165,243,252,0.55)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy - 28 * scale * s.scale, 16 * scale * s.scale, 34 * scale * s.scale, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (u.hasteT > 0 && u.moving && Math.random() < 0.3) this.burst(u.x - u.facing * 10, u.lane, -20 * s.scale, 1, '#ffffff', 1.6, 20);
+      if (u.sunderT > 0 && Math.random() < 0.15) this.burst(u.x, u.lane, -30 * s.scale, 1, '#ef4444', 2, 20);
     }
     const y = sy - (TOP[s.arch] ?? 62) * scale * s.scale;
     if (!u.dying && u.rank > 0) {
@@ -1163,9 +1272,11 @@ export class Renderer {
     ctx.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.life > 0);
 
-    ctx.font = `bold ${Math.round(14 * scale + 4)}px system-ui, sans-serif`;
+    const big = `bold ${Math.round(14 * scale + 4)}px system-ui, sans-serif`;
+    const small = `bold ${Math.round(9 * scale + 4)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     for (const t of this.texts) {
+      ctx.font = t.small ? small : big;
       t.life -= dt;
       t.y -= 30 * dt;
       ctx.globalAlpha = Math.max(0, t.life);
