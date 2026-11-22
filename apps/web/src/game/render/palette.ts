@@ -16,37 +16,72 @@ export const NIGHT = '#0d0a16';
 
 /** Màu năng lượng của từng hệ (vũ khí, phép, cửa sổ, hoa văn): sáng, bão hoà hơn màu giao diện. */
 export const ENERGY: Record<FactionId, string> = {
-  light: '#ffe08a',
-  wind: '#c6fff0',
+  light: '#ffd84a',
+  wind: '#a8ecff',
   wood: '#7dff6a',
-  shadow: '#b388ff',
-  thunder: '#fff36b',
+  shadow: '#b77bff',
+  thunder: '#ffe94a',
   blood: '#ff2d3c',
-  crystal: '#ff8af0',
-  stone: '#e8b46a',
-  metal: '#ff8c3a',
-  water: '#4fd2ff',
+  crystal: '#b98cff',
+  stone: '#ffb43a',
+  metal: '#ffd34a',
+  water: '#6fe0ff',
   fire: '#ff7a1a',
-  ice: '#e3f6ff',
+  ice: '#bfeaff',
 };
 
 /**
- * Màu vải (áo choàng, khăn), mắt và viền sáng của lính từng nền văn minh — cùng bộ màu với docs/art/unit-prompts.md.
+ * Màu vải (áo choàng, khăn) của lính từng nền văn minh — cùng bộ màu với docs/art/unit-prompts.md.
  * Phe không phân biệt bằng màu lính nữa mà bằng thanh máu (xanh lá phe mình, đỏ phe địch).
  */
 export const CLOTH: Record<FactionId, string> = {
-  light: '#f1ead2',
-  wind: '#3fae86',
-  wood: '#2e8b3a',
-  shadow: '#4a1f7a',
-  thunder: '#e0b400',
-  blood: '#a3101e',
-  crystal: '#b0249e',
-  stone: '#7a5c3e',
-  metal: '#56606e',
-  water: '#1d5fd1',
-  fire: '#d9381e',
-  ice: '#9cc9f5',
+  light: '#e8a91c',
+  wind: '#2f8fc4',
+  wood: '#1f6b26',
+  shadow: '#3d1a66',
+  thunder: '#1d4fa0',
+  blood: '#9c0f1c',
+  crystal: '#5a28a8',
+  stone: '#8a7442',
+  metal: '#9e1c22',
+  water: '#3aa6e6',
+  fire: '#e0401c',
+  ice: '#2b67b8',
+};
+
+/** Chi tiết riêng trên thân lính từng hệ (theo ảnh mẫu docs/art/demo/<hệ>.png). */
+export type Trait = 'motes' | 'bandage' | 'bark' | 'smoke' | 'bolt' | 'veins' | 'shards' | 'stone' | 'armor' | 'water' | 'embers' | 'ice';
+
+/**
+ * "Bộ da" lính từng hệ theo 12 ảnh mẫu `docs/art/demo/<hệ>.png`:
+ * màu thân, viền sáng quanh thân và mắt, màu + viền tóc, chi tiết trên thân, độ trong của vải.
+ */
+export type Skin = {
+  /** Màu thân (vẫn rất tối, chỉ ánh màu hệ; riêng Thủy là thân nước trong). */
+  body: string;
+  /** Viền sáng quanh thân, quầng mắt. */
+  rim: string;
+  /** Màu tóc / mũ trên đầu và nét viền của nó. */
+  hair: string;
+  hairRim: string;
+  trait: Trait;
+  /** Vải trong suốt (dải nước của hệ Thủy). */
+  clothAlpha?: number;
+};
+
+export const SKIN: Record<FactionId, Skin> = {
+  light: { body: '#1a1206', rim: '#ffcf3a', hair: '#f5c033', hairRim: '#fff1a0', trait: 'motes' },
+  wind: { body: '#141c2c', rim: '#8fdcff', hair: '#dfe9f2', hairRim: '#9fe6ff', trait: 'bandage' },
+  wood: { body: '#0f2a12', rim: '#5cff5a', hair: '#1f5a1f', hairRim: '#7dff6a', trait: 'bark' },
+  shadow: { body: '#120a1c', rim: '#a35cff', hair: '#1c0f2c', hairRim: '#b388ff', trait: 'smoke' },
+  thunder: { body: '#081224', rim: '#ffd52a', hair: '#0f2a5c', hairRim: '#ffe14a', trait: 'bolt' },
+  blood: { body: '#1e0608', rim: '#ff2a3a', hair: '#2a0508', hairRim: '#ff2d3c', trait: 'veins' },
+  crystal: { body: '#1c0f38', rim: '#9c6bff', hair: '#3a1f78', hairRim: '#c9a8ff', trait: 'shards' },
+  stone: { body: '#22201d', rim: '#ffb43a', hair: '#45423f', hairRim: '#c9b48a', trait: 'stone' },
+  metal: { body: '#0c0c10', rim: '#ffcc3a', hair: '#b8bec8', hairRim: '#ffd34a', trait: 'armor' },
+  water: { body: '#14609e', rim: '#5fd4ff', hair: '#1c78c4', hairRim: '#8ae6ff', trait: 'water', clothAlpha: 0.65 },
+  fire: { body: '#140604', rim: '#ff7a1a', hair: '#ff6a14', hairRim: '#ffd36a', trait: 'embers' },
+  ice: { body: '#0c1a30', rim: '#7fd0ff', hair: '#5fb4f0', hairRim: '#e2f6ff', trait: 'ice' },
 };
 
 type RGB = [number, number, number];

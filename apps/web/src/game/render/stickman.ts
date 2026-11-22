@@ -1,6 +1,6 @@
 import type { FactionId, Head, Machine, Mount, Weapon } from '@stickman-war/core';
 import { UNITS, type Arch, type UnitKind, type UnitStats } from '@stickman-war/core';
-import { ENERGY, GEAR, GEAR_HI, NIGHT, SIL, mix, night, rgba } from './palette';
+import { ENERGY, GEAR, GEAR_HI, NIGHT, SKIN, mix, night, rgba, type Skin } from './palette';
 import { drawWall } from './walls';
 
 /**
@@ -138,8 +138,11 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
     ctx.save();
     ctx.translate(seat.x, seat.y + (p.moving ? Math.abs(Math.sin(p.walk)) * -2 : 0));
   }
-  const ink = p.flash ? '#ffffff' : p.stone ? p.ink : s.look.ink ? night(s.look.ink, 0.7) : SIL;
+  const skin = SKIN[s.faction] ?? SKIN.light;
+  const ink = p.flash ? '#ffffff' : p.stone ? p.ink : s.look.ink ? night(s.look.ink, 0.7) : skin.body;
+  // rim = màu vải (áo choàng, khăn, cờ); glow = viền sáng quanh thân và mắt theo hệ
   const rim = p.flash ? '#ffffff' : p.accent;
+  const glow = p.flash ? '#ffffff' : skin.rim;
   const walking = p.moving && !seated;
   const t = walking ? p.walk : 0;
   const bob = walking ? Math.abs(Math.cos(t)) * 1.5 : 0;
@@ -234,8 +237,10 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
   if (!p.stone) {
     const c = CAPE[a];
     const windy = p.moving || at >= 0;
-    if (c) cape(ctx, neck, lean, c[0], c[1], rim, time + p.walk * 0.15, windy);
-    else scarf(ctx, neck, lean, rim, time + p.walk * 0.15, windy);
+    faded(ctx, skin.clothAlpha ?? 1, () => {
+      if (c) cape(ctx, neck, lean, c[0], c[1], rim, time + p.walk * 0.15, windy);
+      else scarf(ctx, neck, lean, rim, time + p.walk * 0.15, windy);
+    });
   }
 
   const limbs = [
@@ -247,8 +252,8 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
   // Viền sáng: vẽ toàn thân bằng nét màu phe to hơn, mờ, ngay dưới lớp thân đen
   if (!p.flash && !p.stone) {
     const ga = ctx.globalAlpha;
-    ctx.strokeStyle = rim;
-    ctx.fillStyle = rim;
+    ctx.strokeStyle = glow;
+    ctx.fillStyle = glow;
     ctx.globalAlpha = ga * (p.icon ? 0.9 : 0.55);
     ctx.lineWidth = width + (p.icon ? 3.4 : 2.6);
     for (const l of limbs) polyline(ctx, l);
@@ -274,19 +279,25 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
   ctx.arc(head.x, head.y, HEAD, 0, Math.PI * 2);
   ctx.fill();
 
+  // Chi tiết riêng trên thân theo hệ (giáp, tinh thể, vết nứt…), không vẽ cho tượng / lúc chớp trắng
+  const traits = !p.stone && !p.flash;
+  const body: Body = { hip, neck, shoulder, head, elbowF, handF, elbowB, handB, kneeA, footA, kneeB, footB };
+  if (traits) drawTrait(ctx, skin, body, width, time, false);
+
   // Áo choàng pháp sư / thầy thuốc: bóng đen viền năng lượng
   if (a === 'mage' || a === 'healer') robe(ctx, shoulder, p.flash ? '#ffffff' : GEAR, e);
 
-  const g: Gear = { ctx, p, s, a, weapon, head, shoulder, hand: handF, handB, fore: front[1], ink, e, rim, time };
+  const g: Gear = { ctx, p, s, a, weapon, head, shoulder, hand: handF, handB, fore: front[1], ink, e, rim, skin, time };
   let eyes = true;
   if (!p.stone || a === 'sword') eyes = drawHead(g, s.look.head ?? 'halo');
-  if (eyes && !p.stone && !p.flash) glowEyes(ctx, head, rim);
+  if (eyes && !p.stone && !p.flash) glowEyes(ctx, head, glow);
   drawWeaponGear(g);
 
   // Tay trước (vẽ sau cùng để nằm trên vũ khí)
   ctx.strokeStyle = ink;
   ctx.lineWidth = width;
   polyline(ctx, limbs[3]);
+  if (traits) drawTrait(ctx, skin, body, width, time, true);
   if (seated) ctx.restore();
 }
 
@@ -304,10 +315,18 @@ type Gear = {
   ink: string;
   /** Màu năng lượng (vũ khí, hoa văn). */
   e: string;
-  /** Màu phe (viền sáng, cờ, khăn). */
+  /** Màu vải (cờ, khăn, huy hiệu). */
   rim: string;
+  /** Bộ da của hệ (màu tóc, viền tóc…). */
+  skin: Skin;
   time: number;
 };
+
+/** Các khớp của thân người que (để vẽ chi tiết lên thân). */
+type Body = Record<
+  'hip' | 'neck' | 'shoulder' | 'head' | 'elbowF' | 'handF' | 'elbowB' | 'handB' | 'kneeA' | 'footA' | 'kneeB' | 'footB',
+  V
+>;
 
 // ---------- Nét vẽ dùng chung ----------
 
@@ -560,153 +579,153 @@ function carry(ctx: CanvasRenderingContext2D, at: V, p: StickPose): void {
 // ---------- Đầu / tóc theo hệ ----------
 
 /**
- * Đầu người que theo hệ (phong cách 2 ảnh mẫu docs/art/reference): tóc / mũ là bóng đen nối liền thân,
- * chỉ viền màu năng lượng; trả về có vẽ đôi mắt sáng chuẩn hay không.
+ * Đầu người que theo hệ (phong cách 12 ảnh mẫu docs/art/demo/<hệ>.png): tóc dựng to màu riêng của hệ, viền sáng;
+ * trả về có vẽ đôi mắt sáng chuẩn hay không.
  */
 function drawHead(g: Gear, style: Head): boolean {
-  const { ctx, head: h, p, e, rim, time } = g;
-  const ink = p.flash ? '#ffffff' : g.ink;
-  const hi = p.flash ? '#ffffff' : GEAR_HI;
+  const { ctx, head: h, p, e, time } = g;
+  const hair = p.flash ? '#ffffff' : p.stone ? g.ink : g.skin.hair;
+  const trim = p.flash ? '#ffffff' : g.skin.hairRim;
+  const live = !p.flash && !p.stone;
   const sway = Math.sin(time * 6 + h.x * 0.3);
   switch (style) {
     case 'halo': {
-      // Hệ Quang: tóc dựng + vầng hào quang sau đầu
-      if (!p.flash) {
-        ctx.save();
-        ctx.strokeStyle = rgba(e, 0.85);
-        ctx.lineWidth = 1.4;
-        ctx.shadowColor = e;
-        ctx.shadowBlur = 6;
-        ctx.beginPath();
-        ctx.ellipse(h.x - 2, h.y - HEAD - 3, 6.5, 2.2, -0.25, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-      spikyHair(g, [
-        [-7, -4],
-        [-4, -11],
-        [0, -12],
-        [4, -9],
-      ]);
+      // Hệ Quang: bờm tóc vàng dựng ngược rực sáng, tia sáng lấp lánh quanh đầu
+      if (live) faded(ctx, 0.35, () => spikes(g, LIGHT_TIPS, trim, trim, 3));
+      spikes(g, LIGHT_TIPS, hair, trim, 0.8);
+      if (live && sway > 0.2) glowDot(ctx, { x: h.x + 7, y: h.y - 6 - sway * 2 }, 0.8, e);
       return true;
     }
     case 'gale': {
-      // Hệ Phong: tóc dài bay ngược gió
-      gearFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x + HEAD - 1, h.y - 3);
-          ctx.quadraticCurveTo(h.x, h.y - HEAD - 4, h.x - HEAD, h.y - 3);
-          ctx.quadraticCurveTo(h.x - 12, h.y - 6 + sway, h.x - 19, h.y - 2 + sway * 2);
-          ctx.quadraticCurveTo(h.x - 12, h.y + 1 + sway, h.x - HEAD, h.y + 2);
-          ctx.closePath();
-        },
-        ink,
-        e,
-        0.7,
+      // Hệ Phong: tóc trắng bạc dựng nhọn vuốt ngược gió
+      spikes(
+        g,
+        [
+          [-12, -3 + sway],
+          [-9, -9],
+          [-4, -12],
+          [1, -11],
+          [5, -7],
+        ],
+        hair,
+        trim,
+        0.8,
       );
       return true;
     }
     case 'leafhood': {
-      // Hệ Mộc: mũ trùm lá + tai nhọn
-      gearFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x - HEAD - 1.5, h.y + 3);
-          ctx.quadraticCurveTo(h.x - 3, h.y - HEAD * 2.6, h.x + HEAD + 1, h.y - 1);
-          ctx.lineTo(h.x + HEAD, h.y + 1);
-          ctx.closePath();
-        },
-        ink,
-        e,
+      // Hệ Mộc: vương miện lá xanh thẫm dựng nhọn, gân lá sáng
+      spikes(
+        g,
+        [
+          [-9, -6],
+          [-6, -12],
+          [-1, -15],
+          [3, -12],
+          [6, -8],
+        ],
+        hair,
+        trim,
+        0.8,
       );
-      line(ctx, { x: h.x + 1, y: h.y }, { x: h.x - 3, y: h.y - 7 }, ink, 1.6);
+      if (live)
+        neonPath(
+          ctx,
+          () => {
+            ctx.moveTo(h.x - 1, h.y - HEAD + 1);
+            ctx.lineTo(h.x - 1, h.y - 12);
+            ctx.moveTo(h.x - 4, h.y - HEAD);
+            ctx.lineTo(h.x - 6, h.y - 10);
+          },
+          rgba(e, 0.7),
+          0.5,
+        );
       return true;
     }
     case 'shade': {
-      // Hệ Ám: mũ trùm kín có hai sừng nhỏ, khói tím bốc nhẹ
+      // Hệ Ám: tóc tím đen rối như khói, làn khói tím bốc lên
       gearFill(
         ctx,
         () => {
-          ctx.moveTo(h.x - HEAD - 2, h.y + 5);
-          ctx.quadraticCurveTo(h.x - HEAD - 2, h.y - HEAD - 3, h.x + 1, h.y - HEAD - 1.5);
-          ctx.quadraticCurveTo(h.x + HEAD + 2, h.y - HEAD + 1, h.x + HEAD + 1, h.y + 1);
-          ctx.lineTo(h.x + 2, h.y + 4);
-          ctx.closePath();
-          ctx.moveTo(h.x - 3, h.y - HEAD);
-          ctx.lineTo(h.x - 6, h.y - HEAD - 6);
-          ctx.lineTo(h.x - 1, h.y - HEAD - 1);
-          ctx.closePath();
-          ctx.moveTo(h.x + 2, h.y - HEAD - 0.5);
-          ctx.lineTo(h.x + 2, h.y - HEAD - 6.5);
-          ctx.lineTo(h.x + 5, h.y - HEAD + 0.5);
+          ctx.moveTo(h.x - HEAD, h.y + 3);
+          ctx.quadraticCurveTo(h.x - 10, h.y + 1, h.x - 13, h.y - 3 + sway);
+          ctx.quadraticCurveTo(h.x - 8, h.y - 4, h.x - 9, h.y - 10 + sway);
+          ctx.quadraticCurveTo(h.x - 4, h.y - 7, h.x - 3, h.y - 14);
+          ctx.quadraticCurveTo(h.x, h.y - 8, h.x + 3, h.y - 11 - sway);
+          ctx.quadraticCurveTo(h.x + 4, h.y - 6, h.x + HEAD, h.y - 3);
+          ctx.quadraticCurveTo(h.x, h.y - HEAD - 1, h.x - HEAD, h.y + 3);
           ctx.closePath();
         },
-        ink,
-        e,
+        hair,
+        trim,
         0.8,
       );
-      if (!p.flash) glowDot(ctx, { x: h.x - 7 + sway, y: h.y - HEAD - 4 - ((time * 6) % 4) }, 0.9, rgba(e, 0.6));
+      if (live) glowDot(ctx, { x: h.x - 9 + sway, y: h.y - 12 - ((time * 6) % 4) }, 0.9, rgba(e, 0.6));
       return true;
     }
     case 'bolt': {
-      // Hệ Lôi: tóc dựng gấp khúc như tia sét, tia điện nhỏ
+      // Hệ Lôi: tóc xanh thẫm gấp khúc như tia sét, viền vàng, tia điện nhỏ
       gearFill(
         ctx,
         () => {
           ctx.moveTo(h.x - HEAD, h.y + 1);
-          ctx.lineTo(h.x - 9, h.y - 5);
+          ctx.lineTo(h.x - 10, h.y - 5);
           ctx.lineTo(h.x - 5, h.y - 6);
           ctx.lineTo(h.x - 8, h.y - 13);
-          ctx.lineTo(h.x - 1, h.y - 7.5);
-          ctx.lineTo(h.x, h.y - 14);
-          ctx.lineTo(h.x + 3, h.y - 7);
-          ctx.lineTo(h.x + 8, h.y - 9);
+          ctx.lineTo(h.x - 1, h.y - 8);
+          ctx.lineTo(h.x, h.y - 15);
+          ctx.lineTo(h.x + 3, h.y - 8);
+          ctx.lineTo(h.x + 8, h.y - 10);
           ctx.lineTo(h.x + HEAD, h.y - 3);
           ctx.quadraticCurveTo(h.x, h.y - HEAD - 1, h.x - HEAD, h.y + 1);
           ctx.closePath();
         },
-        ink,
-        e,
-        0.8,
+        hair,
+        trim,
+        1.1,
       );
-      if (!p.flash && sway > 0.6) glowDot(ctx, { x: h.x - 8, y: h.y - 13 }, 1.2, e);
+      if (live && sway > 0.5) arc(ctx, { x: h.x - 8, y: h.y - 13 }, { x: h.x - 13, y: h.y - 17 }, '#8fe3ff');
       return true;
     }
     case 'blood': {
-      // Hệ Huyết: tóc dài rối bù + băng trán màu vải bay
+      // Hệ Huyết: tóc đen đỏ rối bù vuốt ngược
       gearFill(
         ctx,
         () => {
           ctx.moveTo(h.x + HEAD - 1, h.y - 3);
-          ctx.lineTo(h.x + 2, h.y - 11);
-          ctx.lineTo(h.x - 2, h.y - 8);
-          ctx.lineTo(h.x - 6, h.y - 12);
+          ctx.lineTo(h.x + 3, h.y - 12);
+          ctx.lineTo(h.x - 1, h.y - 8);
+          ctx.lineTo(h.x - 5, h.y - 13);
           ctx.lineTo(h.x - 7, h.y - 6);
-          ctx.lineTo(h.x - 13, h.y - 5 + sway);
+          ctx.lineTo(h.x - 13, h.y - 6 + sway);
           ctx.lineTo(h.x - 8, h.y - 1);
-          ctx.lineTo(h.x - 12, h.y + 4 + sway);
+          ctx.lineTo(h.x - 12, h.y + 3 + sway);
           ctx.lineTo(h.x - HEAD, h.y + 3);
           ctx.closePath();
         },
-        ink,
-        e,
-        0.7,
+        hair,
+        trim,
+        0.8,
       );
-      if (!p.flash) headband(ctx, h, rim, time, 9);
       return true;
     }
     case 'crystal': {
-      // Hệ Tinh thể: ba mảnh tinh thể mọc trên đầu
-      spikyHair(g, [
-        [-6, -5],
-        [-3, -9],
-        [2, -8],
-      ]);
+      // Hệ Tinh thể: tóc tím dựng nhọn, mảnh tinh thể mọc trên đầu
+      spikes(
+        g,
+        [
+          [-8, -5],
+          [-5, -11],
+          [-1, -13],
+          [4, -10],
+        ],
+        hair,
+        trim,
+        0.7,
+      );
       for (const [dx, len, tilt] of [
-        [-3, 9, -0.35],
-        [1, 12, 0.05],
-        [4.5, 7, 0.45],
+        [-3, 8, -0.35],
+        [1, 10, 0.05],
       ]) {
         neonFill(
           ctx,
@@ -715,141 +734,155 @@ function drawHead(g: Gear, style: Head): boolean {
             const by = h.y - HEAD + 1.5;
             const tx = bx + Math.sin(tilt) * len;
             const ty = by - Math.cos(tilt) * len;
-            ctx.moveTo(bx - 1.6, by);
+            ctx.moveTo(bx - 1.4, by);
             ctx.lineTo(tx - 0.4, ty + 2);
             ctx.lineTo(tx, ty);
             ctx.lineTo(tx + 0.6, ty + 2);
-            ctx.lineTo(bx + 1.6, by);
+            ctx.lineTo(bx + 1.4, by);
           },
-          rgba(e, 0.85),
+          p.flash ? '#ffffff' : rgba(e, 0.85),
         );
       }
       return true;
     }
     case 'rock': {
-      // Hệ Thạch: mũ đá thô gồ ghề, vết nứt sáng
-      gearFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x - HEAD - 2, h.y + 1);
-          ctx.lineTo(h.x - HEAD - 1, h.y - 4);
-          ctx.lineTo(h.x - 3, h.y - HEAD - 3);
-          ctx.lineTo(h.x + 2, h.y - HEAD - 2);
-          ctx.lineTo(h.x + HEAD + 1, h.y - 3);
-          ctx.lineTo(h.x + HEAD + 2, h.y - 0.5);
-          ctx.closePath();
-        },
-        hi,
-        e,
-        0.7,
+      // Hệ Thạch: tóc đá xám dựng nhọn góc cạnh, vết nứt hổ phách
+      spikes(
+        g,
+        [
+          [-9, -5],
+          [-7, -12],
+          [-2, -15],
+          [3, -12],
+          [6, -7],
+        ],
+        hair,
+        trim,
+        0.6,
       );
-      if (!p.flash)
+      if (live)
         neonPath(
           ctx,
           () => {
-            ctx.moveTo(h.x - 3, h.y - HEAD - 2);
-            ctx.lineTo(h.x - 1, h.y - 4);
-            ctx.lineTo(h.x - 3, h.y - 1.5);
+            ctx.moveTo(h.x - 2, h.y - 13);
+            ctx.lineTo(h.x - 1, h.y - 8);
+            ctx.lineTo(h.x - 3, h.y - HEAD);
           },
           e,
-          0.8,
+          0.6,
         );
       return true;
     }
     case 'iron': {
-      // Hệ Kim: mũ sắt có mào và tấm che mũi
-      gearFill(
-        ctx,
-        () => {
-          ctx.arc(h.x, h.y - 0.5, HEAD + 1.3, Math.PI * 0.95, Math.PI * 2.05);
-          ctx.rect(h.x + HEAD - 1, h.y - 1, 1.8, 5);
-        },
-        hi,
-        e,
+      // Hệ Kim: tóc lá thép bạc dựng nhọn, viền vàng, tia lửa vàng
+      spikes(
+        g,
+        [
+          [-10, -4],
+          [-8, -11],
+          [-3, -15],
+          [1, -12],
+          [5, -9],
+        ],
+        hair,
+        trim,
         0.8,
       );
-      gearFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x - 5, h.y - HEAD - 1);
-          ctx.quadraticCurveTo(h.x - 2, h.y - HEAD - 8, h.x + 4, h.y - HEAD - 2);
-          ctx.closePath();
-        },
-        hi,
-        e,
-        0.6,
-      );
+      if (live) {
+        // Vệt phản sáng trên lá thép
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(h.x - 3, h.y - HEAD);
+        ctx.lineTo(h.x - 3, h.y - 13);
+        ctx.moveTo(h.x - 6, h.y - HEAD + 0.5);
+        ctx.lineTo(h.x - 7.5, h.y - 9.5);
+        ctx.stroke();
+      }
       return true;
     }
     case 'wave': {
-      // Hệ Thủy: tóc dài uốn như con sóng, giọt nước sáng
+      // Hệ Thủy: tóc nước xanh dài uốn sóng, giọt nước sáng
       gearFill(
         ctx,
         () => {
           ctx.moveTo(h.x + HEAD - 1, h.y - 3);
-          ctx.quadraticCurveTo(h.x, h.y - HEAD - 5, h.x - HEAD - 1, h.y - 2);
-          ctx.quadraticCurveTo(h.x - 12, h.y - 7 + sway, h.x - 14, h.y - 2);
-          ctx.quadraticCurveTo(h.x - 13, h.y + 4, h.x - 9, h.y + 3 + sway);
+          ctx.quadraticCurveTo(h.x, h.y - HEAD - 6, h.x - HEAD - 1, h.y - 3);
+          ctx.quadraticCurveTo(h.x - 12, h.y - 8 + sway, h.x - 15, h.y - 3);
+          ctx.quadraticCurveTo(h.x - 13, h.y + 3, h.x - 10, h.y + 4 + sway);
           ctx.quadraticCurveTo(h.x - 7, h.y + 5, h.x - HEAD, h.y + 3);
           ctx.closePath();
         },
-        ink,
-        e,
+        hair,
+        trim,
         0.7,
       );
-      if (!p.flash) glowDot(ctx, { x: h.x - 14, y: h.y + 1 + ((time * 8) % 5) }, 0.9, e);
+      if (live) glowDot(ctx, { x: h.x - 14, y: h.y + 1 + ((time * 8) % 5) }, 0.9, e);
       return true;
     }
     case 'flame': {
-      // Hệ Hỏa: tóc dựng như ngọn lửa, đầu tóc cháy sáng
+      // Hệ Hỏa: tóc là ngọn lửa cam rực, đầu lửa sáng vàng
       const f = (k: number) => Math.sin(time * 9 + k) * 1.2;
-      gearFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x - HEAD, h.y + 1);
-          ctx.quadraticCurveTo(h.x - 10, h.y - 4, h.x - 11 + f(1), h.y - 10);
-          ctx.quadraticCurveTo(h.x - 6, h.y - 7, h.x - 4 + f(2), h.y - 14);
-          ctx.quadraticCurveTo(h.x - 1, h.y - 9, h.x + 2 + f(3), h.y - 15);
-          ctx.quadraticCurveTo(h.x + 4, h.y - 8, h.x + 8 + f(4), h.y - 9);
-          ctx.quadraticCurveTo(h.x + 6, h.y - 5, h.x + HEAD, h.y - 3);
-          ctx.quadraticCurveTo(h.x, h.y - HEAD - 1, h.x - HEAD, h.y + 1);
-          ctx.closePath();
-        },
-        ink,
-        e,
-        0.9,
-      );
-      if (!p.flash) {
-        glowDot(ctx, { x: h.x - 4 + f(2), y: h.y - 14 }, 1.1, e);
-        glowDot(ctx, { x: h.x + 2 + f(3), y: h.y - 15 }, 1.2, e);
+      const shape = () => {
+        ctx.moveTo(h.x - HEAD, h.y + 1);
+        ctx.quadraticCurveTo(h.x - 10, h.y - 4, h.x - 11 + f(1), h.y - 10);
+        ctx.quadraticCurveTo(h.x - 6, h.y - 7, h.x - 4 + f(2), h.y - 15);
+        ctx.quadraticCurveTo(h.x - 1, h.y - 9, h.x + 2 + f(3), h.y - 16);
+        ctx.quadraticCurveTo(h.x + 4, h.y - 8, h.x + 8 + f(4), h.y - 10);
+        ctx.quadraticCurveTo(h.x + 6, h.y - 5, h.x + HEAD, h.y - 3);
+        ctx.quadraticCurveTo(h.x, h.y - HEAD - 1, h.x - HEAD, h.y + 1);
+        ctx.closePath();
+      };
+      if (live) faded(ctx, 0.35, () => gearFill(ctx, shape, trim, trim, 3));
+      gearFill(ctx, shape, hair, trim, 0.9);
+      if (live) {
+        glowDot(ctx, { x: h.x - 4 + f(2), y: h.y - 15 }, 1.1, trim);
+        glowDot(ctx, { x: h.x + 2 + f(3), y: h.y - 16 }, 1.2, trim);
       }
       return true;
     }
     case 'icecrown': {
-      // Hệ Băng: tóc dựng + vương miện băng nhọn phát sáng
-      spikyHair(g, [
-        [-7, -4],
-        [-4, -9],
-        [1, -8],
-      ]);
-      neonFill(
-        ctx,
-        () => {
-          ctx.moveTo(h.x - HEAD, h.y - HEAD + 2);
-          for (let i = 0; i <= 4; i++) ctx.lineTo(h.x - HEAD + (i * HEAD * 2) / 4, h.y - HEAD - (i % 2 ? 2 : 8));
-          ctx.lineTo(h.x + HEAD, h.y - HEAD + 2);
-        },
-        rgba(e, 0.9),
+      // Hệ Băng: tóc tinh thể băng xanh dựng nhọn, vệt phản sáng trắng
+      spikes(
+        g,
+        [
+          [-9, -5],
+          [-6, -12],
+          [-1, -16],
+          [3, -12],
+          [6, -8],
+        ],
+        hair,
+        trim,
+        0.8,
       );
+      if (live) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(h.x - 1, h.y - HEAD);
+        ctx.lineTo(h.x - 1, h.y - 14);
+        ctx.moveTo(h.x - 5, h.y - HEAD + 0.5);
+        ctx.lineTo(h.x - 6, h.y - 10);
+        ctx.stroke();
+      }
       return true;
     }
   }
   return true;
 }
 
-/** Tóc dựng nhọn kiểu anime (bóng đen viền năng lượng): các đỉnh tóc tính từ tâm đầu, hướng ra sau và lên. */
-function spikyHair(g: Gear, tips: [number, number][]): void {
-  const { ctx, head: h, p, e } = g;
+const LIGHT_TIPS: [number, number][] = [
+  [-10, -5],
+  [-8, -12],
+  [-3, -16],
+  [2, -14],
+  [6, -9],
+];
+
+/** Tóc dựng nhọn kiểu anime: các đỉnh tóc tính từ tâm đầu, hướng ra sau và lên. */
+function spikes(g: Gear, tips: [number, number][], fill: string, trim: string, trimW: number): void {
+  const { ctx, head: h } = g;
   gearFill(
     ctx,
     () => {
@@ -864,22 +897,265 @@ function spikyHair(g: Gear, tips: [number, number][]): void {
       ctx.quadraticCurveTo(h.x, h.y - HEAD - 1, h.x - HEAD, h.y + 2);
       ctx.closePath();
     },
-    p.flash ? '#ffffff' : g.ink,
-    e,
-    0.7,
+    fill,
+    trim,
+    trimW,
   );
 }
 
-function headband(ctx: CanvasRenderingContext2D, head: V, color: string, time: number, tail = 7): void {
-  const wave = Math.sin(time * 7 + head.x) * 1.5;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
+/** Tia điện gấp khúc nhỏ giữa hai điểm. */
+function arc(ctx: CanvasRenderingContext2D, a: V, b: V, color: string): void {
+  neonPath(
+    ctx,
+    () => {
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(lerp(a.x, b.x, 0.4) + 1.5, lerp(a.y, b.y, 0.4) - 1);
+      ctx.lineTo(lerp(a.x, b.x, 0.6) - 1.5, lerp(a.y, b.y, 0.6) + 1);
+      ctx.lineTo(b.x, b.y);
+    },
+    color,
+    0.5,
+  );
+}
+
+// ---------- Chi tiết trên thân theo hệ ----------
+
+const pt = (a: V, b: V, t: number): V => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
+
+/** Mảnh nhọn (tinh thể, gai băng, lá, mảnh đá) mọc ra từ đoạn a→b tại t, chĩa lệch về sau / lên. */
+function shard(ctx: CanvasRenderingContext2D, a: V, b: V, t: number, len: number, side: number, fill: string, trim: string): void {
+  const o = pt(a, b, t);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy) || 1;
+  const d = { x: dx / l, y: dy / l };
+  const n = { x: -d.y * side, y: d.x * side };
+  const tip = { x: o.x + n.x * len - d.x * len * 0.5, y: o.y + n.y * len - d.y * len * 0.5 };
+  gearFill(
+    ctx,
+    () => {
+      ctx.moveTo(o.x - d.x * 1.8, o.y - d.y * 1.8);
+      ctx.lineTo(tip.x, tip.y);
+      ctx.lineTo(o.x + d.x * 1.8, o.y + d.y * 1.8);
+      ctx.closePath();
+    },
+    fill,
+    trim,
+    0.6,
+  );
+}
+
+/** Đường nứt gấp khúc phát sáng dọc đoạn a→b. */
+function crack(ctx: CanvasRenderingContext2D, a: V, b: V, color: string, w = 0.6): void {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy) || 1;
+  const n = { x: -dy / l, y: dx / l };
+  neonPath(
+    ctx,
+    () => {
+      ctx.moveTo(a.x, a.y);
+      for (const [t, k] of [
+        [0.3, 0.9],
+        [0.55, -0.8],
+        [0.8, 0.6],
+      ]) {
+        const q = pt(a, b, t);
+        ctx.lineTo(q.x + n.x * k, q.y + n.y * k);
+      }
+      ctx.lineTo(b.x, b.y);
+    },
+    color,
+    w,
+  );
+}
+
+/** Tấm giáp bao một đoạn thân (giáp tay, giáp ống chân…). */
+function plate(ctx: CanvasRenderingContext2D, a: V, b: V, w: number, fill: string, trim: string): void {
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = trim;
+  ctx.lineWidth = w + 1.2;
   ctx.beginPath();
-  ctx.moveTo(head.x - HEAD, head.y - 1.5);
-  ctx.lineTo(head.x + HEAD, head.y - 1.5);
-  ctx.moveTo(head.x - HEAD, head.y - 1.5);
-  ctx.quadraticCurveTo(head.x - HEAD - tail * 0.5, head.y - 3 + wave, head.x - HEAD - tail, head.y + 1 + wave);
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
   ctx.stroke();
+  ctx.strokeStyle = fill;
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+}
+
+/**
+ * Chi tiết riêng trên thân lính theo hệ (ảnh mẫu docs/art/demo/<hệ>.png).
+ * Gọi hai lượt: `front = false` cho thân + tay sau + chân, `front = true` cho tay trước (vẽ trên vũ khí).
+ */
+function drawTrait(ctx: CanvasRenderingContext2D, skin: Skin, b: Body, width: number, time: number, front: boolean): void {
+  const c = skin.rim;
+  const arm: [V, V, V] = front ? [b.shoulder, b.elbowF, b.handF] : [b.shoulder, b.elbowB, b.handB];
+  const flick = (k: number) => Math.sin(time * 7 + k + b.hip.x * 0.2);
+  switch (skin.trait) {
+    case 'motes': {
+      // Quang: tia sáng nhỏ bên nắm tay, bụi sáng vàng bay quanh người
+      if (flick(1) > 0.3) arc(ctx, arm[2], { x: arm[2].x - 3, y: arm[2].y - 4 }, c);
+      if (!front) {
+        const k = (time * 0.8 + b.hip.x * 0.05) % 1;
+        glowDot(ctx, { x: b.hip.x - 9 + Math.sin(time * 2) * 2, y: b.hip.y - k * 22 }, 0.7, c);
+      }
+      return;
+    }
+    case 'bandage': {
+      // Phong: băng vải trắng quấn cẳng tay, đai lưng trắng
+      ctx.strokeStyle = '#dfe9f2';
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      for (const t of [0.35, 0.6, 0.85]) {
+        const q = pt(arm[1], arm[2], t);
+        ctx.moveTo(q.x - 1.8, q.y - 0.6);
+        ctx.lineTo(q.x + 1.8, q.y + 0.6);
+      }
+      ctx.stroke();
+      if (!front) {
+        const w = pt(b.hip, b.neck, 0.12);
+        plate(ctx, { x: w.x - 1.5, y: w.y }, { x: w.x + 1.5, y: w.y }, 2.4, '#dfe9f2', rgba(c, 0.5));
+        ctx.strokeStyle = '#c9d6e2';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(w.x - 1, w.y);
+        ctx.quadraticCurveTo(w.x - 5, w.y + 2, w.x - 8, w.y + 4 + flick(2));
+        ctx.stroke();
+      }
+      return;
+    }
+    case 'bark': {
+      // Mộc: gai lá nhọn mọc ở vai, khuỷu, gối; gân lá xanh sáng trên thân
+      const leaf = '#1f5a1f';
+      shard(ctx, arm[0], arm[1], 0.25, 3.5, -1, leaf, c);
+      shard(ctx, arm[1], arm[2], 0.1, 3, -1, leaf, c);
+      if (!front) {
+        shard(ctx, b.hip, b.kneeA, 0.85, 3, 1, leaf, c);
+        shard(ctx, b.hip, b.kneeB, 0.85, 3, 1, leaf, c);
+        crack(ctx, pt(b.hip, b.neck, 0.2), pt(b.hip, b.neck, 0.85), rgba(c, 0.8), 0.5);
+      }
+      return;
+    }
+    case 'smoke': {
+      // Ám: khói tím quanh tay và chân
+      const k = (time * 1.5 + (front ? 0.5 : 0)) % 1;
+      faded(ctx, 1 - k, () => {
+        glowDot(ctx, { x: arm[2].x - 2 - k * 4, y: arm[2].y - k * 6 }, 1.2 + k, rgba(c, 0.5));
+        if (!front) glowDot(ctx, { x: b.footB.x - k * 6, y: b.footB.y - 1 - k * 4 }, 1.4 + k, rgba(c, 0.45));
+      });
+      return;
+    }
+    case 'bolt': {
+      // Lôi: huy hiệu tia sét vàng trên ngực, tia điện xanh nhảy ở nắm tay
+      if (!front) {
+        const top = pt(b.hip, b.neck, 0.78);
+        const bot = pt(b.hip, b.neck, 0.4);
+        neonFill(
+          ctx,
+          () => {
+            ctx.moveTo(top.x + 1.2, top.y);
+            ctx.lineTo(top.x - 1, lerp(top.y, bot.y, 0.55));
+            ctx.lineTo(top.x + 0.6, lerp(top.y, bot.y, 0.5));
+            ctx.lineTo(bot.x - 0.8, bot.y);
+            ctx.lineTo(bot.x + 1.4, lerp(top.y, bot.y, 0.45));
+            ctx.lineTo(top.x, lerp(top.y, bot.y, 0.5));
+          },
+          c,
+        );
+      }
+      if (flick(front ? 2 : 4) > 0.2) arc(ctx, arm[2], { x: arm[2].x + 3, y: arm[2].y - 5 }, '#8fe3ff');
+      return;
+    }
+    case 'veins': {
+      // Huyết: vân máu đỏ nứt trên thân, tay đẫm máu sáng đỏ
+      crack(ctx, arm[1], arm[2], rgba(c, 0.85), 0.5);
+      glowDot(ctx, arm[2], 1.1, rgba(c, 0.8));
+      if (!front) {
+        crack(ctx, pt(b.hip, b.neck, 0.15), pt(b.hip, b.neck, 0.8), rgba(c, 0.85), 0.5);
+        crack(ctx, pt(b.hip, b.kneeA, 0.2), b.kneeA, rgba(c, 0.7), 0.45);
+      }
+      return;
+    }
+    case 'shards':
+    case 'ice': {
+      // Tinh thể / Băng: mảnh tinh thể nhọn bọc vai, cẳng tay, ống chân
+      const fill = skin.trait === 'ice' ? rgba('#7fd0ff', 0.85) : rgba('#7b4bd8', 0.9);
+      const trim = skin.trait === 'ice' ? '#e2f6ff' : '#c9a8ff';
+      shard(ctx, arm[0], arm[1], 0.15, 4, -1, fill, trim);
+      shard(ctx, arm[1], arm[2], 0.4, 3, -1, fill, trim);
+      if (!front) {
+        shard(ctx, b.kneeA, b.footA, 0.35, 3, -1, fill, trim);
+        shard(ctx, b.kneeB, b.footB, 0.35, 3, -1, fill, trim);
+        if (skin.trait === 'ice') plate(ctx, pt(b.hip, b.neck, 0.35), pt(b.hip, b.neck, 0.85), width + 1, fill, trim);
+      }
+      if (skin.trait === 'shards') glowDot(ctx, arm[2], 1.3, rgba('#7fe8ff', 0.75));
+      return;
+    }
+    case 'stone': {
+      // Thạch: thân đá xếp, vết nứt hổ phách phát sáng, mảnh đá trên vai
+      shard(ctx, arm[0], arm[1], 0.15, 3, -1, '#45423f', rgba(c, 0.6));
+      crack(ctx, arm[1], arm[2], c, 0.45);
+      if (!front) {
+        crack(ctx, pt(b.hip, b.neck, 0.1), pt(b.hip, b.neck, 0.85), c, 0.55);
+        crack(ctx, pt(b.hip, b.kneeA, 0.2), b.kneeA, c, 0.45);
+        crack(ctx, b.kneeB, pt(b.kneeB, b.footB, 0.8), c, 0.45);
+      }
+      return;
+    }
+    case 'armor': {
+      // Kim: giáp bạc viền vàng ở ngực, vai, cẳng tay, ống chân
+      const steel = '#aab2be';
+      plate(ctx, pt(arm[1], arm[2], 0.15), pt(arm[1], arm[2], 0.8), width + 0.6, steel, c);
+      shard(ctx, arm[0], arm[1], 0.05, 3, -1, steel, c);
+      if (!front) {
+        plate(ctx, pt(b.hip, b.neck, 0.4), pt(b.hip, b.neck, 0.88), width + 2, steel, c);
+        plate(ctx, pt(b.kneeA, b.footA, 0.1), pt(b.kneeA, b.footA, 0.75), width + 0.6, steel, c);
+        plate(ctx, pt(b.kneeB, b.footB, 0.1), pt(b.kneeB, b.footB, 0.75), width + 0.6, steel, c);
+      }
+      return;
+    }
+    case 'water': {
+      // Thủy: thân nước trong, vệt phản sáng dọc tay chân, bọt nước quanh chân
+      const hi = 'rgba(200, 245, 255, 0.55)';
+      ctx.strokeStyle = hi;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(arm[0].x + 0.8, arm[0].y);
+      ctx.lineTo(arm[1].x + 0.8, arm[1].y);
+      ctx.lineTo(arm[2].x + 0.8, arm[2].y);
+      if (!front) {
+        ctx.moveTo(b.neck.x + 0.9, b.neck.y + 1);
+        ctx.lineTo(b.hip.x + 0.9, b.hip.y);
+        ctx.moveTo(b.kneeA.x + 0.8, b.kneeA.y);
+        ctx.lineTo(b.footA.x + 0.8, b.footA.y - 1);
+      }
+      ctx.stroke();
+      if (!front) {
+        const k = (time * 2 + b.hip.x * 0.03) % 1;
+        faded(ctx, 1 - k, () => {
+          glowDot(ctx, { x: b.footA.x + 3 + k * 3, y: b.footA.y - 1 - k * 5 }, 0.8, c);
+          glowDot(ctx, { x: b.footB.x - 3 - k * 3, y: b.footB.y - 1 - k * 4 }, 0.7, c);
+        });
+      }
+      return;
+    }
+    case 'embers': {
+      // Hỏa: tay chân than hồng, lửa cháy ở nắm tay, tàn lửa bay
+      crack(ctx, arm[1], arm[2], rgba(c, 0.9), 0.5);
+      const f = 1.3 + flick(front ? 1 : 3) * 0.3;
+      glowDot(ctx, { x: arm[2].x, y: arm[2].y - 1.5 }, f, c);
+      if (!front) {
+        crack(ctx, pt(b.hip, b.kneeB, 0.3), b.footB, rgba(c, 0.8), 0.45);
+        const k = (time * 1.2 + b.hip.x * 0.04) % 1;
+        faded(ctx, 1 - k, () => glowDot(ctx, { x: b.footA.x - 2 + flick(5) * 2, y: b.footA.y - 3 - k * 14 }, 0.7, '#ffd36a'));
+      }
+      return;
+    }
+  }
 }
 
 // ---------- Vũ khí ----------

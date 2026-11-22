@@ -1,25 +1,35 @@
 # Mô tả chi tiết lính 12 hệ — dùng làm prompt ảnh
 
 12 nền văn minh của game là **12 hệ** (Quang, Phong, Mộc, Ám, Lôi, Huyết, Tinh thể, Thạch, Kim, Thủy, Hỏa, Băng).
-Phong cách **bắt buộc theo 2 ảnh mẫu** trong `docs/art/reference/`:
-`mau-1-kiem-ao-choang-do.png` (tóc dựng, áo choàng đỏ rách, kiếm rực đỏ cam) và
-`mau-2-katana-toc-xanh.png` (tóc nhuộm xanh, khăn dài, katana xanh có tia điện).
-Tên lính, vũ khí, thú cưỡi lấy từ lõi game (`packages/core/src/factions.ts`); màu lấy từ `apps/web/src/game/render/palette.ts`
-(`CLOTH` = màu vải, `ENERGY` = màu phát sáng). File này sinh tự động, sửa dữ liệu trong game rồi sinh lại cho khớp.
+Phong cách **bắt buộc theo 12 ảnh mẫu từng hệ** trong `docs/art/demo/<mã hệ>.png` (đính kèm ảnh của hệ khi tạo ảnh lính):
 
-## Quy tắc phong cách (rút từ 2 ảnh mẫu, áp cho mọi lính)
+| Hệ | Ảnh mẫu | Hệ | Ảnh mẫu |
+|---|---|---|---|
+| Quang | `light.png` | Tinh thể | `crystal.png` |
+| Phong | `wind.png` | Thạch | `stone.png` |
+| Mộc | `wood.png` | Kim | `metal.png` |
+| Ám | `shadow.png` | Thủy | `water.png` |
+| Lôi | `thunder.png` | Hỏa | `fire.png` |
+| Huyết | `blood.png` | Băng | `ice.png` |
+
+2 ảnh cũ ở `docs/art/reference/` chỉ còn dùng để tham khảo dáng cầm vũ khí.
+Tên lính, vũ khí, thú cưỡi lấy từ lõi game (`packages/core/src/factions.ts`); màu lấy từ `apps/web/src/game/render/palette.ts`
+(`CLOTH` = màu vải, `ENERGY` = màu phát sáng, `SKIN` = màu thân, viền sáng, tóc và chi tiết trên thân của từng hệ).
+Sửa màu / kiểu hệ trong game thì sửa file này cho khớp. **Prompt gộp sẵn theo hệ (mỗi hệ 16: 12 lính + tháp, tường, tượng nhà, bản đồ), mỗi cái một dòng để copy — bản mới nhất, ưu tiên dùng**: `docs/art/element-prompts.md`.
+
+## Quy tắc phong cách (rút từ 12 ảnh mẫu, áp cho mọi lính)
 
 1. **Bảng 3 góc nhìn** cạnh nhau trên nền xám rất nhạt có vài đường kẻ ngang mờ: TỪ TRƯỚC (FRONT VIEW), TỪ TRÊN XUỐNG (TOP-DOWN VIEW),
    TỪ BÊN PHẢI (RIGHT SIDE VIEW), chữ đen đậm in hoa phía trên mỗi hình.
-2. **Thân đen tuyền** cho mọi hệ: tay chân mảnh, đầu tròn, bàn tay tròn đơn giản, **không có mặt** (không mũi, miệng),
-   **không vẽ da / cơ**. Tóc, mũ, sừng, tinh thể… là **hình bóng đen** hoặc tô màu vải, chỉ có viền sáng.
-   Trang bị tối giản: giáp vai nhỏ theo hệ, thắt lưng da, bao cổ tay (không giáp kín người).
-3. **Đôi mắt xếch sắc** phát sáng (lõi trắng, viền màu), là chi tiết duy nhất trên mặt.
-4. **Hình đầu theo hệ** là dấu hiệu nhận diện chính (tóc lửa, tóc tia sét, hào quang, mũ đá…).
-5. **Vải chỉ một màu** (màu vải của hệ): áo choàng và / hoặc khăn, **gấu rách**, bay theo gió, tô phẳng.
-6. **Vũ khí và phép phát sáng neon** màu năng lượng của hệ: lõi trắng nóng, quầng sáng mềm, kèm hiệu ứng của hệ.
+2. **Thân người que tối màu ánh màu hệ** (riêng Thủy là thân nước trong): tay chân mảnh, đầu tròn, bàn tay tròn đơn giản,
+   **không có mặt** (không mũi, miệng), **không vẽ da / cơ**. **Viền sáng màu hệ** chạy quanh thân.
+   Chi tiết trên thân theo hệ (giáp bạc, tinh thể, vỏ cây, vết nứt, băng vải…) như ảnh mẫu, không thêm trang bị khác.
+3. **Đôi mắt xếch sắc** phát sáng (lõi trắng, quầng màu hệ), là chi tiết duy nhất trên mặt.
+4. **Tóc dựng to theo hệ** là dấu hiệu nhận diện chính, mang màu / chất liệu của hệ (vàng rực, bạc, lá, khói, tia sét, lửa, băng…).
+5. **Vải chỉ một màu** (màu vải của hệ): khăn quàng và / hoặc áo choàng, **gấu rách**, bay theo gió, tô phẳng.
+6. **Vũ khí và phép phát sáng neon** màu năng lượng của hệ: lõi trắng nóng, quầng sáng mềm, kèm hiệu ứng của hệ quanh người.
 7. Nét viền tối rõ, tô phẳng kiểu anime game, **không 3D**. Cùng một nhân vật, cùng tỉ lệ, cùng màu ở cả 3 góc.
-8. Thú cưỡi và máy móc cũng là **bóng đen**, chỉ mắt / phần năng lượng phát sáng.
+8. Thú cưỡi và máy móc là **bóng đen**, chỉ mắt / phần năng lượng phát sáng.
 
 ## Cách ghép prompt
 
@@ -28,20 +38,21 @@ Một prompt = **[A] Phong cách chung** + **[B] Hệ** + **[C] Lính**, dán li
 ### [A] Phong cách chung
 
 ```
-Character turnaround sheet in the exact style of a stickman anime game reference: three views side by side on a very light grey
-background with a few faint horizontal guide lines, labelled above in bold black caps "FRONT VIEW", "TOP-DOWN VIEW", "RIGHT SIDE VIEW".
-The character is a stickman with a solid pitch-black silhouette body: thin limbs, round head, simple round hands, no face except two
-sharp slanted glowing eyes (white core). No skin, no muscles, minimal gear (small shoulder guards, leather belt, bracers): hair,
-helmets, horns and accessories are flat shapes with only a thin glowing rim. Cloth (cape and/or scarf or sash) in one single strong colour with torn ragged edges
-flowing in the wind, flat cel shading. The weapon glows with a white-hot core, a coloured neon edge and soft bloom, with small
-elemental effects. Clean 2D cel-shaded game art, crisp dark outlines. Same character, same proportions and colours in all three views.
+Character turnaround sheet in the exact style of the attached element reference image (stickman anime game art): three views side by
+side on a very light grey background with a few faint horizontal guide lines, labelled above in bold black caps "FRONT VIEW",
+"TOP-DOWN VIEW", "RIGHT SIDE VIEW". The character is a stickman with a dark silhouette body tinted with the element colour and a glowing
+element-coloured rim light: thin limbs, round head, simple round hands, no face except two sharp slanted glowing eyes (white core).
+Big spiky element hair (colour and material of the element). No skin, no muscles; body details only as described for the element.
+Cloth (scarf and/or cape) in one single strong colour with torn ragged edges flowing in the wind, flat cel shading. The weapon glows
+with a white-hot core, a coloured neon edge and soft bloom, with the element's effects around the body. Clean 2D cel-shaded game art,
+crisp dark outlines. Same character, same proportions and colours in all three views.
 Full body, feet visible, no scenery.
 ```
 
 Negative prompt:
 
 ```
-realistic, 3d render, detailed face, mouth, nose, skin, muscles, full plate armour, metal texture, coloured body, extra limbs, extra fingers,
+realistic, 3d render, detailed face, mouth, nose, skin, muscles, bulky armour, extra limbs, extra fingers,
 multiple cloth colours, busy background, scenery, cropped feet, inconsistent views, watermark
 ```
 
@@ -56,14 +67,15 @@ Không cần vẽ hai bản màu phe.
 
 Hệ Quang. Đạo quân ánh sáng kỷ luật: cân bằng, dễ chơi, đủ mọi loại quân.
 
-- Đầu: tóc dựng nhọn + vầng hào quang mỏng sau đầu
-- Giáp vai: giáp vai vàng
-- Vải: trắng ngà `#f1ead2`
-- Phát sáng: vàng ánh sáng `#ffe08a` — tia sáng và bụi sáng lấp lánh
+- Đầu: bờm tóc vàng rực dựng ngược như lửa, toả sáng
+- Thân: nắm tay toé tia sáng vàng, bụi sáng bay quanh người
+- Vải: vàng ánh kim `#e8a91c`
+- Phát sáng: vàng rực `#ffd84a` — tia sáng, bụi sáng lấp lánh
+- Ảnh mẫu: `docs/art/demo/light.png`
 
 ```
-[B] Element: Light (Temple of Light). Head silhouette: spiky hair with a thin glowing halo ring behind the head. Shoulder gear: small gold shoulder plates. Cloth colour: ivory white (#f1ead2).
-Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glittering motes.
+[B] Element: Light (Temple of Light). Match the attached element reference image. Head: big glowing golden spiky hair blazing upward like flames. Body: black silhouette with a strong golden rim glow, golden sparks crackling around the fists, glittering gold motes. Cloth colour: rich gold (#e8a91c), long scarf flowing into a cape.
+Eyes, weapon and magic glow: radiant gold (#ffd84a) with light rays and glittering motes.
 ```
 
 **Thợ mỏ** (×1) — Đào vàng nuôi quân. Chết thì rơi túi vàng đang mang
@@ -75,11 +87,11 @@ Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glitteri
 ```
 
 **Kiếm sĩ ánh sáng** (×1) — Cận chiến nhanh, rẻ
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: trường kiếm phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Light swordsman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Light swordsman". Cloth: long tattered cape and neck scarf. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung thủ quang tiễn** (×1) — Bắn tên sáng từ xa
@@ -91,11 +103,11 @@ Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glitteri
 ```
 
 **Thích khách ánh chớp** (×0.95) — Lướt qua tiền tuyến, ám sát hàng sau
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Flash assassin". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Flash assassin". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Hộ vệ thánh thuẫn** (×1.15) — Khiên dày, máu trâu. Đâm kỵ binh ×2
@@ -168,14 +180,15 @@ Eyes, weapon and magic glow: radiant gold (#ffe08a) with light rays and glitteri
 
 Hệ Phong. Bầy quân gió lốc: càng đông càng mạnh, đứng lẻ thì yếu.
 
-- Đầu: tóc dài bay ngược gió
-- Giáp vai: giáp vai da
-- Vải: ngọc bích `#3fae86`
-- Phát sáng: trắng ngọc `#c6fff0` — vệt gió xoáy, lá và bụi cuốn
+- Đầu: tóc trắng bạc dựng nhọn vuốt ngược gió
+- Thân: băng vải trắng quấn cẳng tay và đai lưng, đôi cánh gió mờ, lốc xoáy dưới chân
+- Vải: xanh trời `#2f8fc4`
+- Phát sáng: xanh băng nhạt `#a8ecff` — lốc xoáy, vệt gió, bụi cuốn
+- Ảnh mẫu: `docs/art/demo/wind.png`
 
 ```
-[B] Element: Wind (Gale Horde). Head silhouette: long hair streaming back in the wind. Shoulder gear: small leather shoulder pads. Cloth colour: jade green (#3fae86).
-Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streaks, leaves and dust.
+[B] Element: Wind (Gale Horde). Match the attached element reference image. Head: silver-white spiky hair swept back by the wind. Body: dark navy silhouette, white bandage wraps on the forearms and a white waist sash, faint translucent wind wings behind the back, a swirling whirlwind around the feet. Cloth colour: sky blue (#2f8fc4), torn scarf.
+Eyes, weapon and magic glow: pale icy cyan (#a8ecff) with swirling wind streaks and flying debris.
 ```
 
 **Tiểu phong đào vàng** (×1) — Nhỏ, rẻ, chạy nhanh
@@ -187,11 +200,11 @@ Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streak
 ```
 
 **Chiến binh lốc** (×1) — Đao to bản, chém đau
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: đao to bản phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Whirlwind warrior". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing huge cleaver. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Whirlwind warrior". Cloth: long tattered cape and neck scarf. Gear: glowing huge cleaver. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Lính phóng lao gió** (×1) — Lao đâm xuyên, khắc kỵ binh
@@ -203,11 +216,11 @@ Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streak
 ```
 
 **Bom lốc xoáy** (×0.95) — Lao vào giữa địch rồi tự nổ tung
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: quả bom dây cháy phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Cyclone bomber". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing round bomb with a lit fuse. Pose: crouched low, about to dash.
+[C] Unit: assassin "Cyclone bomber". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing round bomb with a lit fuse. Pose: crouched low, about to dash.
 ```
 
 **Hộ vệ bão cát** (×1.15) — Tự hồi máu liên tục
@@ -280,14 +293,15 @@ Eyes, weapon and magic glow: pale jade white (#c6fff0) with swirling wind streak
 
 Hệ Mộc. Người giữ rừng: bắn xa, tự hồi máu, mỏng manh khi bị áp sát.
 
-- Đầu: mũ trùm lá, tai nhọn
-- Giáp vai: giáp vai lá
-- Vải: xanh lá rừng `#2e8b3a`
-- Phát sáng: xanh lá non `#7dff6a` — lá sáng và đom đóm
+- Đầu: vương miện lá xanh thẫm dựng nhọn, gân lá sáng
+- Thân: thân vỏ cây xanh thẫm, gai lá mọc ở vai, khuỷu, gối, dây leo và lá bay
+- Vải: xanh rừng thẫm `#1f6b26`
+- Phát sáng: xanh lá non `#7dff6a` — lá sáng, dây leo, đom đóm
+- Ảnh mẫu: `docs/art/demo/wood.png`
 
 ```
-[B] Element: Wood (Verdant Grove). Head silhouette: leaf hood and pointed ears. Shoulder gear: leaf-shaped shoulder guards. Cloth colour: forest green (#2e8b3a).
-Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and fireflies.
+[B] Element: Wood (Verdant Grove). Match the attached element reference image. Head: crown of dark green leaves standing up in spikes with glowing veins. Body: very dark green bark-textured silhouette, sharp leaf spikes growing from shoulders, elbows and knees, thin vines. Cloth colour: deep forest green (#1f6b26), ragged leafy cape.
+Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves, vines and fireflies.
 ```
 
 **Tinh linh hái vàng** (×1) — Bay nhanh giữa mỏ và nhà
@@ -299,11 +313,11 @@ Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and
 ```
 
 **Vũ công kiếm lá** (×1) — Múa kiếm cực nhanh
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: kiếm cong phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Leaf blade dancer". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing saber. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Leaf blade dancer". Cloth: long tattered cape and neck scarf. Gear: glowing saber. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung thủ rừng** (×1) — Tầm bắn xa nhất
@@ -315,11 +329,11 @@ Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and
 ```
 
 **Thợ săn gai độc** (×0.95) — Lướt tới, mũi dao tẩm độc làm chậm
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Thorn hunter". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Thorn hunter". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Người cây** (×1.15) — Vỏ dày, tự mọc lại 9 máu/giây
@@ -392,14 +406,15 @@ Eyes, weapon and magic glow: bright leaf green (#7dff6a) with glowing leaves and
 
 Hệ Ám. Giáo phái bóng tối: quân rẻ, yếu, rất đông. Càng giết càng giàu.
 
-- Đầu: mũ trùm kín có hai sừng nhỏ, khói tím bốc lên
-- Giáp vai: giáp vai gai nhọn
-- Vải: tím than `#4a1f7a`
-- Phát sáng: tím ma `#b388ff` — khói bóng tối, mép thân tan thành khói
+- Đầu: tóc tím đen rối như khói, khói tím bốc lên
+- Thân: thân đen ánh tím, mép thân tan thành khói, mực đen bắn tung quanh chân
+- Vải: tím than `#3d1a66`
+- Phát sáng: tím ma `#b77bff` — khói bóng tối, vệt mực
+- Ảnh mẫu: `docs/art/demo/shadow.png`
 
 ```
-[B] Element: Shadow (Shadow Cult). Head silhouette: closed hood with two small horns, violet smoke rising. Shoulder gear: spiked shoulder guards. Cloth colour: deep violet (#4a1f7a).
-Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body edges dissolving into smoke.
+[B] Element: Shadow (Shadow Cult). Match the attached element reference image. Head: wild purple-black hair dissolving into smoke. Body: black silhouette with violet tint, edges of the body and cape dissolving into black ink smoke, ink splashes around the feet. Cloth colour: deep violet (#3d1a66), shredded smoky cape.
+Eyes, weapon and magic glow: ghostly violet (#b77bff) with shadow smoke and ink wisps.
 ```
 
 **Bóng đào vàng** (×1) — Rẻ, mỏng
@@ -411,11 +426,11 @@ Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body ed
 ```
 
 **Bóng binh** (×1) — Mỗi lần xây ra 2 con
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: trường kiếm phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Shadow soldiers". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Shadow soldiers". Cloth: long tattered cape and neck scarf. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung bóng tối** (×1) — Bắn tên rẻ
@@ -427,11 +442,11 @@ Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body ed
 ```
 
 **Bóng ma** (×0.95) — Tàng hình, chỉ lộ ra khi ra đòn
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: lưỡi hái phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Wraith". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing scythe. Pose: crouched low, about to dash.
+[C] Unit: assassin "Wraith". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing scythe. Pose: crouched low, about to dash.
 ```
 
 **Hiệp sĩ đêm** (×1.15) — Hút máu 35% sát thương gây ra
@@ -504,14 +519,15 @@ Eyes, weapon and magic glow: ghostly violet (#b388ff) with shadow smoke, body ed
 
 Hệ Lôi. Kiếm khách sấm sét: ra đòn nhanh và chí mạng.
 
-- Đầu: tóc dựng gấp khúc như tia sét (giống mẫu 2)
-- Giáp vai: giáp vai tấm kiểu sode
-- Vải: vàng sấm `#e0b400`
-- Phát sáng: vàng chớp `#fff36b` — tia sét lách tách quanh vũ khí (như mẫu 2)
+- Đầu: tóc xanh thẫm gấp khúc như tia sét, viền vàng
+- Thân: huy hiệu tia sét vàng trên ngực, tia điện vàng và xanh nhảy quanh tay
+- Vải: xanh dương đậm `#1d4fa0` (khăn có sọc vàng)
+- Phát sáng: vàng chớp `#ffe94a`, phụ xanh điện `#8fe3ff` — tia sét lách tách
+- Ảnh mẫu: `docs/art/demo/thunder.png`
 
 ```
-[B] Element: Lightning (Thunder Blade Hall). Head silhouette: spiky zig-zag hair shaped like lightning bolts, like reference 2. Shoulder gear: layered sode shoulder plates. Cloth colour: thunder yellow (#e0b400).
-Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning around the weapon, like reference 2.
+[B] Element: Lightning (Thunder Blade Hall). Match the attached element reference image. Head: dark navy zig-zag spiky hair shaped like lightning bolts with a bright yellow outline. Body: black silhouette with yellow rim light, a glowing yellow lightning-bolt emblem on the chest, yellow and electric-blue arcs crackling around the fists. Cloth colour: deep blue (#1d4fa0) long scarf with a yellow stripe.
+Eyes, weapon and magic glow: lightning yellow (#ffe94a) with electric blue (#8fe3ff) arcs crackling around the weapon.
 ```
 
 **Thợ mỏ lôi** (×1) — Đào vàng giữa trời giông
@@ -523,11 +539,11 @@ Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning
 ```
 
 **Lôi kiếm khách** (×1) — Kiếm sét chém ngọt
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: katana phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Thunder swordsman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing katana. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Thunder swordsman". Cloth: long tattered cape and neck scarf. Gear: glowing katana. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung lôi tiễn** (×1) — Cung dài bắn chuẩn
@@ -539,11 +555,11 @@ Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning
 ```
 
 **Ảnh lôi** (×0.95) — Tàng hình và lướt tới ám sát
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: katana phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Flicker". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing katana. Pose: crouched low, about to dash.
+[C] Unit: assassin "Flicker". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing katana. Pose: crouched low, about to dash.
 ```
 
 **Lính đao sét** (×1.15) — Đao dài quét trúng nhiều địch
@@ -616,14 +632,15 @@ Eyes, weapon and magic glow: lightning yellow (#fff36b) with crackling lightning
 
 Hệ Huyết. Giáo phái trăng máu: cận chiến hung bạo, càng đau càng điên.
 
-- Đầu: tóc dài rối bù + băng trán đỏ bay
-- Giáp vai: giáp vai lông thú
-- Vải: đỏ máu `#a3101e`
-- Phát sáng: đỏ tươi `#ff2d3c` — giọt máu bay, hơi đỏ cuồng nộ
+- Đầu: tóc đen đỏ rối bù vuốt ngược
+- Thân: thân đen đỏ, vân máu nứt sáng trên thân, tay đẫm máu sáng, vệt máu cong quanh người
+- Vải: đỏ máu `#9c0f1c`
+- Phát sáng: đỏ tươi `#ff2d3c` — giọt máu bay, vệt máu cong
+- Ảnh mẫu: `docs/art/demo/blood.png`
 
 ```
-[B] Element: Blood (Blood Moon Cult). Head silhouette: long wild hair with a fluttering red headband. Shoulder gear: fur shoulder mantle. Cloth colour: blood red (#a3101e).
-Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red rage steam.
+[B] Element: Blood (Blood Moon Cult). Match the attached element reference image. Head: messy black-red spiky hair swept back. Body: very dark red-black silhouette with glowing red vein cracks on the torso and legs, blood-red glowing fists, curved blood slashes swirling around. Cloth colour: blood red (#9c0f1c), long torn scarf.
+Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets and crimson slash trails.
 ```
 
 **Nô lệ máu** (×1) — Biết cầm cuốc đánh trả
@@ -635,11 +652,11 @@ Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red
 ```
 
 **Chiến binh huyết rìu** (×1) — Rìu chém xuyên giáp nhẹ
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: rìu phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Blood axeman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing axe. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Blood axeman". Cloth: long tattered cape and neck scarf. Gear: glowing axe. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Lính ném rìu máu** (×1) — Ném rìu tầm gần, rất đau
@@ -651,11 +668,11 @@ Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red
 ```
 
 **Cuồng huyết** (×0.95) — Lao vào giữa trận, máu càng thấp càng khủng
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: rìu phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Bloodfrenzy". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing axe. Pose: crouched low, about to dash.
+[C] Unit: assassin "Bloodfrenzy". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing axe. Pose: crouched low, about to dash.
 ```
 
 **Nữ khiên máu** (×1.15) — Khiên tròn chắn đòn, giáp dày
@@ -728,14 +745,15 @@ Eyes, weapon and magic glow: vivid red (#ff2d3c) with flying blood droplets, red
 
 Hệ Tinh thể. Thung lũng pha lê: giàu vàng, tượng vững, có chiến xa và tư tế tinh quang.
 
-- Đầu: ba mảnh tinh thể mọc trên đầu
-- Giáp vai: giáp vai tinh thể
-- Vải: hồng tím `#b0249e`
-- Phát sáng: hồng pha lê `#ff8af0` — mảnh pha lê lấp lánh, ánh khúc xạ
+- Đầu: tóc tím dựng nhọn, mảnh tinh thể mọc trên đầu
+- Thân: thân tím thẫm, mảnh tinh thể tím bọc vai, cẳng tay, ống chân, lửa tím xanh ở tay
+- Vải: tím `#5a28a8`
+- Phát sáng: tím pha lê `#b98cff`, mắt xanh ngọc `#7fe8ff` — mảnh tinh thể bay, lửa tím
+- Ảnh mẫu: `docs/art/demo/crystal.png`
 
 ```
-[B] Element: Crystal (Crystal Vale). Head silhouette: three crystal shards growing from the head. Shoulder gear: crystal shoulder guards. Cloth colour: magenta (#b0249e).
-Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shards, refracted light.
+[B] Element: Crystal (Crystal Vale). Match the attached element reference image. Head: spiky deep purple hair with crystal shards growing from it. Body: dark indigo silhouette, sharp violet crystal shards armouring shoulders, forearms and shins, violet-cyan flames around the hands. Cloth colour: purple (#5a28a8), ragged cape.
+Weapon and magic glow: crystal violet (#b98cff); eyes glow cyan (#7fe8ff); floating crystal shards and violet flames.
 ```
 
 **Thợ đẽo tinh thể** (×1) — Mang về nhiều vàng
@@ -747,11 +765,11 @@ Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shard
 ```
 
 **Kiếm sĩ liềm pha lê** (×1) — Đao cong móc khiên
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: liềm đao cong phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Crystal sickle blade". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing curved sickle blade. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Crystal sickle blade". Cloth: long tattered cape and neck scarf. Gear: glowing curved sickle blade. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung thủ pha lê** (×1) — Bắn tên
@@ -763,11 +781,11 @@ Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shard
 ```
 
 **Sát thủ lăng kính** (×0.95) — Lướt qua tiền tuyến
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Prism assassin". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Prism assassin". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh tinh thể** (×1.15) — Hút máu 15%
@@ -840,14 +858,15 @@ Eyes, weapon and magic glow: crystal pink (#ff8af0) with sparkling crystal shard
 
 Hệ Thạch. Pháo đài đá tảng: giáp dày, súng đá và máy phóng. Đắt và chậm.
 
-- Đầu: mũ đá thô gồ ghề, vết nứt sáng
-- Giáp vai: giáp vai thép tán đinh
-- Vải: nâu đất `#7a5c3e`
-- Phát sáng: hổ phách `#e8b46a` — bụi đá, khe nứt hổ phách
+- Đầu: tóc đá xám dựng nhọn góc cạnh, vết nứt hổ phách
+- Thân: thân đá xếp xám đen, vết nứt hổ phách phát sáng, đá vụn văng quanh chân
+- Vải: nâu ô liu `#8a7442`
+- Phát sáng: hổ phách `#ffb43a` — bụi đá, khe nứt sáng
+- Ảnh mẫu: `docs/art/demo/stone.png`
 
 ```
-[B] Element: Stone (Stone Bastion). Head silhouette: rough rock helmet with a glowing crack. Shoulder gear: riveted steel pauldrons. Cloth colour: earth brown (#7a5c3e).
-Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
+[B] Element: Stone (Stone Bastion). Match the attached element reference image. Head: angular grey stone spikes like rock hair, with a glowing amber crack. Body: charcoal rock-plated silhouette with glowing amber cracks, rock chunks flying up from the ground around the feet. Cloth colour: olive brown (#8a7442), torn cape.
+Eyes, weapon and magic glow: amber (#ffb43a) with stone dust and glowing cracks.
 ```
 
 **Thợ khoan đá** (×1) — Mũi khoan đào nhanh
@@ -859,11 +878,11 @@ Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
 ```
 
 **Kiếm sĩ đá** (×1) — Kiếm và giáp đá
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: kiếm cong phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Stone swordsman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing saber. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Stone swordsman". Cloth: long tattered cape and neck scarf. Gear: glowing saber. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Lính súng đá** (×1) — Đạn đá xuyên giáp, nạp đạn chậm
@@ -875,11 +894,11 @@ Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
 ```
 
 **Thích khách móc đá** (×0.95) — Phóng móc lướt tới hàng sau
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Grapple stalker". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Grapple stalker". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh bàn thạch** (×1.15) — Giáp dày nhất
@@ -952,14 +971,15 @@ Eyes, weapon and magic glow: amber (#e8b46a) with stone dust, amber cracks.
 
 Hệ Kim. Môn phái lò rèn: lì lợm, càng về cuối trận càng mạnh.
 
-- Đầu: mũ sắt có mào và tấm che mũi
-- Giáp vai: giáp vai thép tán đinh
-- Vải: xám thép `#56606e`
-- Phát sáng: cam lò rèn `#ff8c3a` — tia lửa đe rèn, kim loại nung đỏ
+- Đầu: tóc lá thép bạc dựng nhọn, viền vàng
+- Thân: giáp bạc viền vàng ở ngực, vai, cẳng tay, ống chân trên thân đen, tia lửa vàng
+- Vải: đỏ đô `#9e1c22`
+- Phát sáng: vàng kim `#ffd34a` — tia lửa, mảnh thép
+- Ảnh mẫu: `docs/art/demo/metal.png`
 
 ```
-[B] Element: Metal (Iron Forge Sect). Head silhouette: iron helmet with a crest and nose guard. Shoulder gear: riveted steel pauldrons. Cloth colour: steel grey (#56606e).
-Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot metal.
+[B] Element: Metal (Iron Forge Sect). Match the attached element reference image. Head: spiky silver steel-blade hair with a gold glow. Body: black silhouette wearing sleek silver armour plates with gold trim on chest, shoulders, forearms and shins, golden sparks and metal shards. Cloth colour: dark crimson (#9e1c22) scarf and torn cape.
+Eyes, weapon and magic glow: gold (#ffd34a) with sparks and flying steel shards.
 ```
 
 **Thợ mỏ sắt** (×1) — Đào nhanh, chắc tay
@@ -971,11 +991,11 @@ Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot m
 ```
 
 **Chiến binh rìu thép** (×1) — Lì lợm, giáp dày
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: rìu phát sáng, khiên tròn đen viền sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Steel axeman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing axe, black round shield with a glowing rim. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Steel axeman". Cloth: long tattered cape and neck scarf. Gear: glowing axe, black round shield with a glowing rim. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Lính hoả thương** (×1) — Đạn chì xuyên giáp, nạp chậm
@@ -987,11 +1007,11 @@ Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot m
 ```
 
 **Thợ đào hầm** (×0.95) — Chui lên giữa hàng sau địch
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: cuốc chim phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Tunneler". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing pickaxe. Pose: crouched low, about to dash.
+[C] Unit: assassin "Tunneler". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing pickaxe. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh khiên sắt** (×1.15) — Khiên vuông, giáp cực dày
@@ -1064,14 +1084,15 @@ Eyes, weapon and magic glow: forge orange (#ff8c3a) with anvil sparks, red-hot m
 
 Hệ Thủy. Cung điện trăng nước: đánh lâu không mệt nhờ hút máu.
 
-- Đầu: tóc dài uốn như con sóng, giọt nước sáng
-- Giáp vai: giáp vai vỏ sò
-- Vải: xanh biển `#1d5fd1`
-- Phát sáng: xanh nước `#4fd2ff` — bọt nước, gợn sóng
+- Đầu: tóc nước xanh dài uốn sóng, giọt nước sáng
+- Thân: thân là nước xanh trong suốt có vệt phản sáng, sóng nước bắn quanh chân
+- Vải: dải nước xanh trong `#3aa6e6`
+- Phát sáng: xanh nước `#6fe0ff` — bọt nước, sóng bắn
+- Ảnh mẫu: `docs/art/demo/water.png`
 
 ```
-[B] Element: Water (Tidal Moon Court). Head silhouette: long hair curling like a wave, glowing water droplets. Shoulder gear: seashell shoulder guards. Cloth colour: ocean blue (#1d5fd1).
-Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
+[B] Element: Water (Tidal Moon Court). Match the attached element reference image. Head: long flowing hair made of water, curling like waves, glowing droplets. Body: translucent blue water body with bright highlights instead of a black silhouette, water splashing around the feet. Cloth: flowing translucent water ribbons (#3aa6e6) instead of fabric.
+Eyes, weapon and magic glow: aqua blue (#6fe0ff) with bubbles, droplets and splashes.
 ```
 
 **Thợ mò ngọc** (×1) — Lặn mò vàng
@@ -1083,11 +1104,11 @@ Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
 ```
 
 **Lính đinh ba** (×1) — Đâm nhanh
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: đinh ba phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Trident warrior". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing trident. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Trident warrior". Cloth: long tattered cape and neck scarf. Gear: glowing trident. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Lính phóng lao nước** (×1) — Lao xuyên, khắc kỵ binh
@@ -1099,11 +1120,11 @@ Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
 ```
 
 **Thích khách sóng ngầm** (×0.95) — Lướt tới, dao tẩm độc
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Undertow assassin". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Undertow assassin". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh mai rùa** (×1.15) — Mai rùa chắn đòn
@@ -1176,14 +1197,15 @@ Eyes, weapon and magic glow: aqua blue (#4fd2ff) with bubbles and ripples.
 
 Hệ Hỏa. Môn phái rồng lửa: mọi đòn đều để lại lửa.
 
-- Đầu: tóc dựng như ngọn lửa, đầu tóc cháy sáng
-- Giáp vai: giáp vai vảy rồng
-- Vải: đỏ cam lửa `#d9381e`
-- Phát sáng: cam lửa `#ff7a1a` — lửa bập bùng, tàn lửa (như mẫu 1)
+- Đầu: tóc là ngọn lửa cam rực, đầu lửa sáng vàng
+- Thân: thân đen than hồng, lửa cháy ở nắm tay và chân, tàn lửa bay
+- Vải: đỏ cam lửa `#e0401c`
+- Phát sáng: cam lửa `#ff7a1a` — lửa bập bùng, tàn lửa
+- Ảnh mẫu: `docs/art/demo/fire.png`
 
 ```
-[B] Element: Fire (Flame Dragon Sect). Head silhouette: spiky hair shaped like flames with burning tips. Shoulder gear: dragon-scale shoulder guards. Cloth colour: flame red-orange (#d9381e).
-Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and embers, like reference 1.
+[B] Element: Fire (Flame Dragon Sect). Match the attached element reference image. Head: hair made of blazing orange flames with bright yellow tips. Body: black silhouette with an orange ember rim, flames burning on the fists and around the feet, rising embers. Cloth colour: flame red-orange (#e0401c), cape whose edge turns into fire.
+Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and embers.
 ```
 
 **Thợ mỏ lửa** (×1) — Đào vàng trong núi lửa
@@ -1195,11 +1217,11 @@ Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and em
 ```
 
 **Hiệp sĩ hỏa long** (×1) — Kiếm lửa
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: trường kiếm phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Flame knight". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Flame knight". Cloth: long tattered cape and neck scarf. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung thủ hỏa tiễn** (×1) — Tên lửa bắn xa
@@ -1211,11 +1233,11 @@ Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and em
 ```
 
 **Sát thủ tro** (×0.95) — Lướt tới hàng sau
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Ash assassin". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Ash assassin". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh vảy rồng** (×1.15) — Vảy rồng cứng
@@ -1288,14 +1310,15 @@ Eyes, weapon and magic glow: fire orange (#ff7a1a) with flickering flames and em
 
 Hệ Băng. Cung điện băng giá: khống chế địch bằng giá lạnh.
 
-- Đầu: tóc dựng + vương miện băng nhọn
-- Giáp vai: giáp vai băng
-- Vải: xanh băng nhạt `#9cc9f5`
-- Phát sáng: trắng băng `#e3f6ff` — bông tuyết, hơi lạnh
+- Đầu: tóc tinh thể băng xanh dựng nhọn, vệt phản sáng trắng
+- Thân: giáp tinh thể băng bọc ngực, vai, cẳng tay, ống chân trên thân xanh đen, mảnh băng bay
+- Vải: xanh băng đậm `#2b67b8`
+- Phát sáng: trắng băng `#bfeaff` — mảnh băng, hơi lạnh
+- Ảnh mẫu: `docs/art/demo/ice.png`
 
 ```
-[B] Element: Ice (Frost Palace). Head silhouette: spiky hair with a sharp ice crown. Shoulder gear: ice shoulder guards. Cloth colour: pale ice blue (#9cc9f5).
-Eyes, weapon and magic glow: icy white (#e3f6ff) with snowflakes and cold mist.
+[B] Element: Ice (Frost Palace). Match the attached element reference image. Head: spiky light-blue ice-crystal hair with white glints. Body: dark blue-black silhouette armoured with jagged glowing ice crystals on chest, shoulders, forearms and shins, small ice shards floating. Cloth colour: deep ice blue (#2b67b8), torn cape.
+Eyes, weapon and magic glow: icy white-blue (#bfeaff) with ice shards and cold mist.
 ```
 
 **Thợ đục băng** (×1) — Đục vàng trong băng
@@ -1307,11 +1330,11 @@ Eyes, weapon and magic glow: icy white (#e3f6ff) with snowflakes and cold mist.
 ```
 
 **Kiếm sĩ hàn băng** (×1) — Kiếm băng
-- Vải: áo choàng dài rách gấu + khăn quàng (như mẫu 1)
+- Vải: áo choàng dài rách gấu + khăn quàng
 - Vũ khí / phép: trường kiếm phát sáng
-- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên (như mẫu)
+- Dáng: cầm vũ khí thấp chéo xuống, sẵn sàng lao lên
 ```
-[C] Unit: melee swordsman "Frost swordsman". Cloth: long tattered cape and neck scarf, like reference 1. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge, like the references.
+[C] Unit: melee swordsman "Frost swordsman". Cloth: long tattered cape and neck scarf. Gear: glowing straight longsword. Pose: weapon held low and diagonal, ready to charge.
 ```
 
 **Cung thủ băng** (×1) — Tên băng bắn xa
@@ -1323,11 +1346,11 @@ Eyes, weapon and magic glow: icy white (#e3f6ff) with snowflakes and cold mist.
 ```
 
 **Bóng tuyết** (×0.95) — Lướt theo gió tuyết tới hàng sau
-- Vải: khăn rất dài bay thành vệt (như mẫu 2)
+- Vải: khăn rất dài bay thành vệt
 - Vũ khí / phép: dao găm phát sáng
 - Dáng: khom thấp như sắp lướt
 ```
-[C] Unit: assassin "Snow shade". Slightly smaller and leaner. Cloth: very long trailing scarf, like reference 2. Gear: glowing dagger. Pose: crouched low, about to dash.
+[C] Unit: assassin "Snow shade". Slightly smaller and leaner. Cloth: very long trailing scarf. Gear: glowing dagger. Pose: crouched low, about to dash.
 ```
 
 **Vệ binh băng giáp** (×1.15) — Giáp băng dày
@@ -1428,14 +1451,14 @@ Mục tiêu cần phá để thắng: cao khoảng 3 lần người que, trên b
 [C-S] Structure: home monument of the element, the main base objective, about three times the height of a stickman.
 ```
 
-**☀️ Thánh Quang Điện (hệ Quang)** — Cột đá trắng đỡ đĩa mặt trời, tia sáng xoay chậm quanh đĩa. Phát sáng `#ffe08a`.
+**☀️ Thánh Quang Điện (hệ Quang)** — Cột đá trắng đỡ đĩa mặt trời, tia sáng xoay chậm quanh đĩa. Phát sáng `#ffd84a`.
 ```
-A white stone pillar holding a radiant sun disk with slowly rotating light rays. Glow colour #ffe08a.
+A white stone pillar holding a radiant sun disk with slowly rotating light rays. Glow colour #ffd84a.
 ```
 
-**🌪️ Cuồng Phong Trại (hệ Phong)** — Tháp đá xoắn, cánh chong chóng gió quay trên đỉnh, vệt gió bay ngang. Phát sáng `#c6fff0`.
+**🌪️ Cuồng Phong Trại (hệ Phong)** — Tháp đá xoắn, cánh chong chóng gió quay trên đỉnh, vệt gió bay ngang. Phát sáng `#a8ecff`.
 ```
-A twisted stone tower with windmill blades spinning on top, wind streaks flowing past. Glow colour #c6fff0.
+A twisted stone tower with windmill blades spinning on top, wind streaks flowing past. Glow colour #a8ecff.
 ```
 
 **🌿 Thanh Mộc Lâm (hệ Mộc)** — Cây thiêng tán xanh, đốm sáng bay quanh tán. Phát sáng `#7dff6a`.
@@ -1443,14 +1466,14 @@ A twisted stone tower with windmill blades spinning on top, wind streaks flowing
 A sacred tree with a green canopy and glowing motes around it. Glow colour #7dff6a.
 ```
 
-**🌑 Hội Bóng Đêm (hệ Ám)** — Tháp đá đen nhọn, con mắt tím mở giữa thân, khói bóng tối bay lên. Phát sáng `#b388ff`.
+**🌑 Hội Bóng Đêm (hệ Ám)** — Tháp đá đen nhọn, con mắt tím mở giữa thân, khói bóng tối bay lên. Phát sáng `#b77bff`.
 ```
-A sharp black obsidian spire with a glowing violet eye opening in the middle, shadow smoke rising. Glow colour #b388ff.
+A sharp black obsidian spire with a glowing violet eye opening in the middle, shadow smoke rising. Glow colour #b77bff.
 ```
 
-**⚡ Lôi Kiếm Các (hệ Lôi)** — Cột thu lôi ba tầng, tia sét chớp giữa hai sừng kim loại trên đỉnh. Phát sáng `#fff36b`.
+**⚡ Lôi Kiếm Các (hệ Lôi)** — Cột thu lôi ba tầng, tia sét chớp giữa hai sừng kim loại trên đỉnh. Phát sáng `#ffe94a`.
 ```
-A three-tiered lightning rod tower, lightning arcing between two metal horns at the top. Glow colour #fff36b.
+A three-tiered lightning rod tower, lightning arcing between two metal horns at the top. Glow colour #ffe94a.
 ```
 
 **🩸 Huyết Nguyệt Giáo (hệ Huyết)** — Bàn thờ đá hai cột, vầng trăng máu lơ lửng phía trên, rãnh máu chảy xuống. Phát sáng `#ff2d3c`.
@@ -1458,24 +1481,24 @@ A three-tiered lightning rod tower, lightning arcing between two metal horns at 
 A stone altar with two pillars, a blood-red crescent moon floating above, a blood channel running down. Glow colour #ff2d3c.
 ```
 
-**💎 Tinh Thạch Cốc (hệ Tinh thể)** — Viên pha lê khổng lồ lơ lửng xoay trên đế đá, mảnh vụn bay vòng quanh. Phát sáng `#ff8af0`.
+**💎 Tinh Thạch Cốc (hệ Tinh thể)** — Viên pha lê khổng lồ lơ lửng xoay trên đế đá, mảnh vụn bay vòng quanh. Phát sáng `#b98cff`.
 ```
-A giant crystal floating and slowly turning above a stone base, shards orbiting it. Glow colour #ff8af0.
-```
-
-**🪨 Bàn Thạch Bảo (hệ Thạch)** — Cổng cự thạch hai cột một xà, khe nứt hổ phách phát sáng. Phát sáng `#e8b46a`.
-```
-A megalithic stone gate of two pillars and a lintel with glowing amber cracks. Glow colour #e8b46a.
+A giant crystal floating and slowly turning above a stone base, shards orbiting it. Glow colour #b98cff.
 ```
 
-**⚒️ Thiết Lò Môn (hệ Kim)** — Đe sắt trên tảng đá, búa lớn dựng cạnh, ấn cam phát sáng. Phát sáng `#ff8c3a`.
+**🪨 Bàn Thạch Bảo (hệ Thạch)** — Cổng cự thạch hai cột một xà, khe nứt hổ phách phát sáng. Phát sáng `#ffb43a`.
 ```
-A giant anvil on a boulder, a big hammer leaning beside it, glowing orange runes. Glow colour #ff8c3a.
+A megalithic stone gate of two pillars and a lintel with glowing amber cracks. Glow colour #ffb43a.
 ```
 
-**🌊 Thủy Nguyệt Cung (hệ Thủy)** — Đinh ba khổng lồ cắm trên vỏ ốc xoắn. Phát sáng `#4fd2ff`.
+**⚒️ Thiết Lò Môn (hệ Kim)** — Đe sắt trên tảng đá, búa lớn dựng cạnh, ấn cam phát sáng. Phát sáng `#ffd34a`.
 ```
-A giant trident standing on a huge spiral shell. Glow colour #4fd2ff.
+A giant anvil on a boulder, a big hammer leaning beside it, glowing orange runes. Glow colour #ffd34a.
+```
+
+**🌊 Thủy Nguyệt Cung (hệ Thủy)** — Đinh ba khổng lồ cắm trên vỏ ốc xoắn. Phát sáng `#6fe0ff`.
+```
+A giant trident standing on a huge spiral shell. Glow colour #6fe0ff.
 ```
 
 **🔥 Viêm Long Môn (hệ Hỏa)** — Đầu rồng đá há miệng, lửa bập bùng trong miệng. Phát sáng `#ff7a1a`.
@@ -1483,9 +1506,9 @@ A giant trident standing on a huge spiral shell. Glow colour #4fd2ff.
 A carved stone dragon head with open jaws and flickering fire inside. Glow colour #ff7a1a.
 ```
 
-**❄️ Hàn Băng Cung (hệ Băng)** — Cụm tinh thể băng trong suốt. Phát sáng `#e3f6ff`.
+**❄️ Hàn Băng Cung (hệ Băng)** — Cụm tinh thể băng trong suốt. Phát sáng `#bfeaff`.
 ```
-A cluster of clear ice crystals. Glow colour #e3f6ff.
+A cluster of clear ice crystals. Glow colour #bfeaff.
 ```
 
 ## 2.2 Trạm vàng / trạm canh
@@ -1500,18 +1523,18 @@ glowing arrow slit and two small slits below, a small pennant in the element clo
 
 | Hệ | Tên trạm | Vật liệu | Phát sáng |
 |---|---|---|---|
-| ☀️ Thánh Quang Điện | Tháp ánh sáng | đá trắng ngà, viền vàng | `#ffe08a` |
-| 🌪️ Cuồng Phong Trại | Tháp chong chóng | gỗ ngọc bích, đỉnh có chong chóng | `#c6fff0` |
+| ☀️ Thánh Quang Điện | Tháp ánh sáng | đá trắng ngà, viền vàng | `#ffd84a` |
+| 🌪️ Cuồng Phong Trại | Tháp chong chóng | gỗ ngọc bích, đỉnh có chong chóng | `#a8ecff` |
 | 🌿 Thanh Mộc Lâm | Trạm cây | gỗ sống, đỉnh là tán lá tròn có đom đóm | `#7dff6a` |
-| 🌑 Hội Bóng Đêm | Tháp bóng đêm | đá hắc thạch, khe sáng tím | `#b388ff` |
-| ⚡ Lôi Kiếm Các | Cột thu lôi | đá xám tím, đỉnh là cột thu lôi | `#fff36b` |
+| 🌑 Hội Bóng Đêm | Tháp bóng đêm | đá hắc thạch, khe sáng tím | `#b77bff` |
+| ⚡ Lôi Kiếm Các | Cột thu lôi | đá xám tím, đỉnh là cột thu lôi | `#ffe94a` |
 | 🩸 Huyết Nguyệt Giáo | Trạm trăng máu | gỗ đỏ thẫm, đai sẫm | `#ff2d3c` |
-| 💎 Tinh Thạch Cốc | Trạm tinh thể | pha lê hồng tím | `#ff8af0` |
-| 🪨 Bàn Thạch Bảo | Tháp súng đá | đá tảng, khe nứt hổ phách | `#e8b46a` |
-| ⚒️ Thiết Lò Môn | Trạm lò rèn | thép xám, lò rèn nhỏ ở chân | `#ff8c3a` |
-| 🌊 Thủy Nguyệt Cung | Trạm san hô | san hô xanh biển | `#4fd2ff` |
+| 💎 Tinh Thạch Cốc | Trạm tinh thể | pha lê hồng tím | `#b98cff` |
+| 🪨 Bàn Thạch Bảo | Tháp súng đá | đá tảng, khe nứt hổ phách | `#ffb43a` |
+| ⚒️ Thiết Lò Môn | Trạm lò rèn | thép xám, lò rèn nhỏ ở chân | `#ffd34a` |
+| 🌊 Thủy Nguyệt Cung | Trạm san hô | san hô xanh biển | `#6fe0ff` |
 | 🔥 Viêm Long Môn | Trạm lửa | đá đỏ sẫm, khe dung nham | `#ff7a1a` |
-| ❄️ Hàn Băng Cung | Trạm băng | băng trắng xanh | `#e3f6ff` |
+| ❄️ Hàn Băng Cung | Trạm băng | băng trắng xanh | `#bfeaff` |
 
 ## 2.3 Tường thành có cổng
 
@@ -1599,12 +1622,12 @@ Một đường ngang dài, mỗi nửa bản đồ vẽ theo hệ bên đó, �
 
 **☀️ Thánh Quang Điện** — Bình minh vàng sau dãy núi tím, đền trắng thắp đèn, bụi sáng bay.
 ```
-Theme: Golden dawn behind violet mountains, white temples with lit windows, floating light motes. Accent glow #ffe08a.
+Theme: Golden dawn behind violet mountains, white temples with lit windows, floating light motes. Accent glow #ffd84a.
 ```
 
 **🌪️ Cuồng Phong Trại** — Thung lũng gió xanh ngọc, mây trôi nhanh, bụi cuốn.
 ```
-Theme: A jade wind valley, fast clouds, swirling dust. Accent glow #c6fff0.
+Theme: A jade wind valley, fast clouds, swirling dust. Accent glow #a8ecff.
 ```
 
 **🌿 Thanh Mộc Lâm** — Rừng già đêm, cây cao, lá rơi.
@@ -1614,12 +1637,12 @@ Theme: An ancient night forest, tall trees, falling leaves. Accent glow #7dff6a.
 
 **🌑 Hội Bóng Đêm** — Vực bóng đêm tím, khói đen trôi.
 ```
-Theme: A violet abyss of night, black smoke drifting. Accent glow #b388ff.
+Theme: A violet abyss of night, black smoke drifting. Accent glow #b77bff.
 ```
 
 **⚡ Lôi Kiếm Các** — Đồi bão tím, mây giông, chớp vàng.
 ```
-Theme: Violet storm hills, thunderclouds, yellow lightning. Accent glow #fff36b.
+Theme: Violet storm hills, thunderclouds, yellow lightning. Accent glow #ffe94a.
 ```
 
 **🩸 Huyết Nguyệt Giáo** — Đêm trăng máu, núi đỏ thẫm.
@@ -1629,22 +1652,22 @@ Theme: A blood-moon night over crimson mountains. Accent glow #ff2d3c.
 
 **💎 Tinh Thạch Cốc** — Thung lũng pha lê hồng tím, tinh thể mọc trên núi.
 ```
-Theme: A magenta crystal valley with crystals growing from the mountains. Accent glow #ff8af0.
+Theme: A magenta crystal valley with crystals growing from the mountains. Accent glow #b98cff.
 ```
 
 **🪨 Bàn Thạch Bảo** — Hẻm núi đá hổ phách, vách đá cao, bụi đá.
 ```
-Theme: An amber stone canyon with tall cliffs and stone dust. Accent glow #e8b46a.
+Theme: An amber stone canyon with tall cliffs and stone dust. Accent glow #ffb43a.
 ```
 
 **⚒️ Thiết Lò Môn** — Núi sắt lò rèn, tàn lửa bay.
 ```
-Theme: Iron mountains with forges, floating embers. Accent glow #ff8c3a.
+Theme: Iron mountains with forges, floating embers. Accent glow #ffd34a.
 ```
 
 **🌊 Thủy Nguyệt Cung** — Biển đêm xanh thẳm, bong bóng bay lên.
 ```
-Theme: A deep blue night sea, bubbles rising. Accent glow #4fd2ff.
+Theme: A deep blue night sea, bubbles rising. Accent glow #6fe0ff.
 ```
 
 **🔥 Viêm Long Môn** — Núi lửa, dung nham, tàn lửa bay.
@@ -1654,7 +1677,7 @@ Theme: Volcanoes, lava, rising embers. Accent glow #ff7a1a.
 
 **❄️ Hàn Băng Cung** — Xứ tuyết, núi băng, tuyết rơi.
 ```
-Theme: A land of snow and ice mountains, falling snow. Accent glow #e3f6ff.
+Theme: A land of snow and ice mountains, falling snow. Accent glow #bfeaff.
 ```
 
 ## 2.6 Đạn và hiệu ứng
