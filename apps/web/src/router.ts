@@ -13,6 +13,7 @@ export const router = createRouter({
     { path: '/', component: () => import('./views/LobbyView.vue') },
     { path: '/room', component: () => import('./views/RoomView.vue') },
     { path: '/play', component: () => import('./views/GameView.vue') },
+    { path: '/world', component: () => import('./views/WorldDemoView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 });
@@ -20,6 +21,7 @@ export const router = createRouter({
 router.beforeEach((to) => {
   const settings = useSettings();
   const invite = new URLSearchParams(location.search).get('room');
+  if (to.path === '/world') return true; // trang demo hình, không cần đăng nhập
   if (to.path !== '/login' && !auth.session && !settings.guest && !invite) return '/login';
   return true;
 });

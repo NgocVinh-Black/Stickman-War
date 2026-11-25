@@ -460,6 +460,18 @@ export const vi = {
     and: 'và',
     privacy: 'Chính sách bảo mật',
   },
+  worldDemo: {
+    title: '🗺️ Demo thế giới pixel 2D',
+    back: '← Về sảnh',
+    hint: 'Phím mũi tên hoặc W A S D để đi, giữ Shift để chạy, Space hoặc J để hành động: thợ mỏ đào ở mỏ vàng bên phải quảng trường, lính đánh hình nộm dưới quảng trường. Trên điện thoại dùng nút bên dưới.',
+    zoom: 'Cỡ pixel',
+    hero: 'Nhân vật',
+    heroMiner: 'Thợ mỏ',
+    heroWarrior: 'Chiến binh',
+    heroArcher: 'Cung thủ',
+    heroAssassin: 'Sát thủ',
+    gold: 'Vàng',
+  },
   guide: {
     basics: '📖 Cách chơi',
     civs: '🏳️ Văn minh & quân',

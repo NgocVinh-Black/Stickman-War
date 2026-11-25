@@ -1,0 +1,62 @@
+{
+  "w": 44,
+  "h": 48,
+  "frames": 4,
+  "rows": ["down", "up", "left"],
+  "footX": 19,
+  "footY": 47,
+  "legRows": { "down": 6, "up": 6, "left": 7 },
+  "arm": {
+    "down": {
+      "cx": 9.1,
+      "cy": 26.7,
+      "ux": 0.0,
+      "uy": -1.0,
+      "px": 14,
+      "py": 23,
+      "aw": 4,
+      "as": 2,
+      "push": 5,
+      "tips": [
+        [6, 16],
+        [10, 40]
+      ],
+      "shiftX": 6,
+      "shiftY": 4
+    },
+    "up": {
+      "cx": 6.4,
+      "cy": 25.5,
+      "ux": 0.0,
+      "uy": -1.0,
+      "px": 11,
+      "py": 22,
+      "aw": 4,
+      "as": 2,
+      "push": 5,
+      "tips": [
+        [5, 15],
+        [8, 39]
+      ],
+      "shiftX": 12,
+      "shiftY": -12,
+      "behind": true
+    },
+    "left": {
+      "cx": 8.9,
+      "cy": 25.0,
+      "ux": 0.0,
+      "uy": -1.0,
+      "px": 14,
+      "py": 23,
+      "aw": 6,
+      "as": 4,
+      "push": 5,
+      "tips": [
+        [6, 14],
+        [12, 39]
+      ]
+    }
+  },
+  "cape": { "down": [{ "cut": 30, "top": 24, "bottom": 42 }], "up": null, "left": [{ "cut": 26, "top": 25, "bottom": 43 }] }
+}

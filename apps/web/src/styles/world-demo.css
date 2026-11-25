@@ -1,0 +1,95 @@
+/* Trang demo thế giới nhìn từ trên (#/world) */
+.world-page {
+  min-height: 100vh;
+  padding: 14px 16px 30px;
+  color: var(--text);
+  overflow-y: auto;
+}
+.world-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.world-head h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.world-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.world-canvas {
+  max-width: 100%;
+  image-rendering: pixelated;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+.world-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.world-zoom .btn {
+  min-width: 32px;
+  padding: 2px 8px;
+}
+.world-zoom {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.world-zoom-gap {
+  width: 14px;
+}
+.world-hint {
+  margin: 0;
+  font-size: 13px;
+}
+.world-pad {
+  display: none;
+  grid-template-areas:
+    '. up . act'
+    'left down right act';
+  gap: 6px;
+}
+.world-pad-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 20px;
+  touch-action: none;
+  user-select: none;
+}
+.world-pad-up {
+  grid-area: up;
+}
+.world-pad-left {
+  grid-area: left;
+}
+.world-pad-down {
+  grid-area: down;
+}
+.world-pad-right {
+  grid-area: right;
+}
+.world-pad-act {
+  grid-area: act;
+  height: auto;
+  margin-left: 14px;
+  width: 70px;
+}
+.world-gold {
+  color: #ffd34a;
+  font-weight: 700;
+}
+@media (pointer: coarse) {
+  .world-pad {
+    display: grid;
+  }
+}

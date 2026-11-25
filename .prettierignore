@@ -4,3 +4,5 @@ pnpm-lock.yaml
 .legacy
 apps/server/prisma/migrations
 *.md
+# Skill bên thứ ba (giữ nguyên mã gốc)
+.claude/skills
