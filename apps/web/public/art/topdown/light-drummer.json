@@ -1,0 +1,66 @@
+{
+  "w": 48,
+  "h": 69,
+  "frames": 4,
+  "rows": ["down", "up", "left"],
+  "footX": 24,
+  "footY": 68,
+  "legRows": { "down": 6, "up": 4, "left": 9 },
+  "arm": {
+    "down": {
+      "cx": 22.0,
+      "cy": 52.5,
+      "ux": 0.958,
+      "uy": 0.287,
+      "px": 17,
+      "py": 51,
+      "aw": -40,
+      "as": 10,
+      "push": 0,
+      "tips": [
+        [18, 51],
+        [18, 54]
+      ]
+    },
+    "up": {
+      "cx": 35.0,
+      "cy": 27.3,
+      "ux": 0.386,
+      "uy": -0.922,
+      "px": 33,
+      "py": 32,
+      "aw": 20,
+      "as": -40,
+      "push": 0,
+      "tips": [
+        [33, 22],
+        [33, 31]
+      ],
+      "behind": true
+    },
+    "left": {
+      "cx": 10.8,
+      "cy": 44.7,
+      "ux": -0.596,
+      "uy": -0.803,
+      "px": 14,
+      "py": 49,
+      "aw": 30,
+      "as": -110,
+      "push": 0,
+      "tips": [
+        [9, 40],
+        [11, 49]
+      ]
+    }
+  },
+  "cape": {
+    "down": [{ "top": 2, "bottom": 20, "cut": 32, "pole": 26, "anchor": 20, "spanTop": 5, "spanBottom": 20, "flag": true }],
+    "up": [{ "top": 7, "bottom": 38, "cut": 21, "pole": 17, "anchor": 38, "spanTop": 11, "spanBottom": 38, "flag": true, "left": true }],
+    "left": [
+      { "top": 4, "bottom": 19, "cut": 37, "pole": 33, "anchor": 36, "spanTop": 8, "spanBottom": 36, "flag": true },
+      { "top": 20, "bottom": 36, "cut": 36, "pole": 32, "anchor": 36, "spanTop": 8, "spanBottom": 36, "flag": true },
+      { "cut": 31, "top": 42, "bottom": 59 }
+    ]
+  }
+}

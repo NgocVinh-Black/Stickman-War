@@ -1,5 +1,5 @@
 {
-  "_doc": "Khung xương cho build_topdown_sprite.py. Toạ độ tính trong ô đã cắt của từng góc nhìn (in bằng lưới pixel gốc). legTop: hàng đầu tiên của chân; legs: 2 khoảng cột [x0, x1] của 2 chân; arm: các hình chữ nhật [x0, y0, x1, y1] gồm vũ khí + bàn tay (tách thành lớp riêng để xoay); pivot: điểm xoay (vai); aw / as: góc lấy đà / ra đòn (độ, dương = chiều kim đồng hồ trên ảnh gốc); push: độ đâm tới dọc theo vũ khí (pixel). dir (tuỳ chọn): hướng đâm tới, mặc định theo hướng vũ khí. lines (tuỳ chọn): đoạn thẳng [x0, y0, x1, y1, độ dày] thêm vào vùng tay (cán cuốc). cape (tuỳ chọn): [hàng đầu, hàng cuối] của vạt áo choàng nằm ngoài mép chân phải (bay phất phới); null = không có. grid: khoảng cỡ ô pixel (điểm ảnh) để dò lưới; trim: bỏ n hàng đáy; sideFacing: \"right\" nếu ô SIDE quay phải (sẽ lật); tool: ghép cuốc của ô SIDE sang ô này {rot: số lần xoay 90° như np.rot90, flipX, at: điểm bàn tay}. aimShift: dời cung vào giữa người khi ngắm [dx, dy]; behind: vẽ tay vũ khí sau thân lúc đánh. hand2: điểm bàn tay thứ hai nắm trên vũ khí (kiếm 2 tay).",
+  "_doc": "Khung xương cho build_topdown_sprite.py. Toạ độ tính trong ô đã cắt của từng góc nhìn (in bằng lưới pixel gốc). legTop: hàng đầu tiên của chân; legs: 2 khoảng cột [x0, x1] của 2 chân; arm: các hình chữ nhật [x0, y0, x1, y1] gồm vũ khí + bàn tay (tách thành lớp riêng để xoay); pivot: điểm xoay (vai); aw / as: góc lấy đà / ra đòn (độ, dương = chiều kim đồng hồ trên ảnh gốc); push: độ đâm tới dọc theo vũ khí (pixel). dir (tuỳ chọn): hướng đâm tới, mặc định theo hướng vũ khí. lines (tuỳ chọn): đoạn thẳng [x0, y0, x1, y1, độ dày] thêm vào vùng tay (cán cuốc). cape (tuỳ chọn): [hàng đầu, hàng cuối] của vạt áo choàng nằm ngoài mép chân phải (bay phất phới); null = không có; nhiều khúc [[đầu, cuối], ...], mỗi khúc thêm được cột cắt riêng và số 1 = lá cờ ([đầu, cuối, cột ngay sau cán cờ, 1]: cán đứng yên, cờ chỉ bay ra xa cán). grid: khoảng cỡ ô pixel (điểm ảnh) để dò lưới; trim: bỏ n hàng đáy; sideFacing: \"right\" nếu ô SIDE quay phải (sẽ lật); tool: ghép cuốc của ô SIDE sang ô này {rot: số lần xoay 90° như np.rot90, flipX, at: điểm bàn tay}. aimShift: dời cung vào giữa người khi ngắm [dx, dy]; behind: vẽ tay vũ khí sau thân lúc đánh. hand2: điểm bàn tay thứ hai nắm trên vũ khí (kiếm 2 tay). free: các hình chữ nhật [x0, y0, x1, y1] phần tay (bàn tay kia buông ở hông, đoạn cánh tay cầm vũ khí) bỏ khỏi lớp thân dùng lúc đánh rồi tô lại; thêm số thứ 5 = 0 thì chỉ xoá, không tô (phần nằm ở mép người); shoulder2: vai của tay kia — lúc đánh màn chơi vẽ cánh tay từ đây tới hand2 (cầm vũ khí 2 tay). shoulder1: vai của tay cầm vũ khí — lúc đánh bàn tay rời chỗ vác, duỗi theo hướng vũ khí quanh vai (giơ lên / bổ xuống cùng vũ khí) và màn chơi vẽ cánh tay từ vai tới bàn tay; đoạn cánh tay cũ trên thân cũng khai trong free. shield: các hình chữ nhật [x0, y0, x1, y1] của khiên — tách thành lớp riêng (khung thứ hai của hàng tay vũ khí), lúc đánh màn chơi giơ khiên lên; shieldRaise: độ dời khiên lúc đánh [dx, dy] (nhìn ngang: dx âm = về phía trước). gait (thú cưỡi, nhìn ngang): {legs: [[x0, y0, x1, y1, pha], …] mỗi chân một vùng (y0 = hông), pha nhịp 0..1; swing: vó đưa tới / lui (px); lift: nhấc vó (px)} — thay cho bước chân người. tool.from: ô lấy công cụ (left / down / up, mặc định left) — vd. ghép gậy của ô FRONT vào ô SIDE khi ảnh SIDE thiếu gậy; erase: các hình chữ nhật xoá khỏi ô trước khi ghép công cụ. graft: [{from, rect, at, width, flipX}] ghép một mảnh của ô khác vào thân ô này (ép ngang còn `width` px) — vd. trống treo hông nhìn ngang. keep: các hình chữ nhật luôn giữ ở thân, không tách vào lớp vũ khí (vd. cái đầu đè lên chùy vác sau gáy). fillAlong: dựng lại đoạn vũ khí bị che trong vùng keep bằng cách chép màu dọc trục `lines`; inpaint: false — chỗ vũ khí để lại trên thân chỉ xoá, không tô. graft.layer = \"body\": chỉ dán vào lớp thân lúc đánh; graft.dim: [x0, y0, x1, y1] trong mảnh — tô tối điểm sáng (tắt mắt khi mượn đầu nhìn trước làm đầu nhìn sau). mirrorHead: [{rect, cx, over}] dựng lại phần đầu bị vũ khí đè (lớp thân lúc đánh) bằng nửa đầu bên kia lật gương qua cột cx; over = true ghi đè cả vùng. graft.ellipse: chỉ chép phần trong elip nội tiếp mảnh. club: {tip: [x, y] đầu xa của chuỳ, r0 / r1: bán kính chuôi / đầu chuỳ} — chuỳ bị đầu che mất khúc giữa nên lúc đánh màn chơi vẽ lại cả cây liền một khối từ điểm xoay (bàn tay) tới tip thay cho lớp tay vũ khí. graft.unblue: tô điểm xanh (đá trên trán) thành màu tóc. anim (mức nhân vật): {tên đòn: {frames, times: [mốc bắt đầu từng khung theo tiến độ 0..1], views: {down/up/left: ảnh dải khung}, flip: [hướng cần lật gương]}} — lúc đánh màn chơi vẽ thẳng các khung vẽ sẵn thay cho lớp tay vũ khí xoay. anim.walk: dải khung chạy (fps: khung / giây; refFrame: \"median\" = cỡ theo chiều cao trung vị các khung) thay cho khung bước tự dựng của hướng đó. anchor: \"body\" = căn khung theo giữa thân và vạch đất chung của ảnh gốc (dải chạy, chân mỗi khung một chỗ). anim.sheet / order: một ảnh gộp, mỗi hướng một hàng (order: hướng của từng hàng). anim.idle: dải đứng yên (thở lặp, fps) dùng lúc đứng nghỉ thay cho kiểu thở dời hàng pixel; ảnh gộp 3 hàng × 4 khung theo prompt *Đứng yên* trong docs/art/pixel-prompts.md.",
   "light-miner": {
     "down": {
       "legTop": 41,
@@ -16,7 +16,14 @@
       "as": 105,
       "push": 0,
       "lines": [[4, 24, 28, 14, 2]],
-      "cape": [28, 41]
+      "cape": [28, 41],
+      "hand2": [13, 20],
+      "shoulder2": [23, 22],
+      "free": [
+        [24, 29, 30, 36],
+        [5, 19, 9, 32, 0]
+      ],
+      "shoulder1": [11, 22]
     },
     "up": {
       "legTop": 42,
@@ -48,7 +55,22 @@
       "as": -213,
       "push": 0,
       "lines": [[2, 24, 24, 14, 2]],
-      "cape": [24, 41]
+      "cape": [24, 41],
+      "hand2": [10, 20],
+      "shoulder2": [11, 22],
+      "free": [
+        [10, 29, 16, 37],
+        [3, 21, 8, 28]
+      ],
+      "shoulder1": [9, 22]
+    },
+    "anim": {
+      "mine": {
+        "frames": 6,
+        "times": [0, 0.12, 0.26, 0.4, 0.48, 0.72],
+        "sheet": "light-miner-mine.png",
+        "order": ["left", "down", "up"]
+      }
     }
   },
   "light-warrior": {
@@ -67,7 +89,13 @@
       "as": -97,
       "push": 0,
       "cape": [21, 42],
-      "hand2": [11, 31]
+      "hand2": [11, 31],
+      "shoulder2": [27, 23],
+      "free": [
+        [27, 30, 33, 37],
+        [9, 26, 13, 39, 0]
+      ],
+      "shoulder1": [15, 24]
     },
     "up": {
       "legTop": 42,
@@ -97,7 +125,21 @@
       "as": -15,
       "push": 0,
       "cape": [19, 44],
-      "hand2": [15, 29]
+      "hand2": [15, 29],
+      "shoulder2": [21, 23],
+      "free": [
+        [19, 30, 24, 37],
+        [11, 27, 16, 32]
+      ],
+      "shoulder1": [17, 24]
+    },
+    "anim": {
+      "slash": {
+        "frames": 6,
+        "times": [0, 0.14, 0.3, 0.46, 0.6, 0.8],
+        "sheet": "light-warrior-slash.png",
+        "order": ["left", "down", "up"]
+      }
     }
   },
   "light-archer": {
@@ -189,6 +231,568 @@
       "push": 4,
       "dir": [-1, 0.15],
       "cape": [10, 31]
+    }
+  },
+  "light-spearton": {
+    "down": {
+      "legTop": 37,
+      "legs": [
+        [7, 14],
+        [19, 25]
+      ],
+      "arm": [
+        [0, 0, 8, 26],
+        [3, 27, 8, 37]
+      ],
+      "pivot": [5, 24],
+      "aw": -125,
+      "as": -155,
+      "push": 8,
+      "cape": null,
+      "shield": [
+        [21, 19, 30, 31],
+        [21, 32, 29, 34],
+        [22, 35, 26, 36]
+      ],
+      "shieldRaise": [-1, -7]
+    },
+    "up": {
+      "legTop": 40,
+      "legs": [
+        [6, 13],
+        [17, 23]
+      ],
+      "arm": [[25, 0, 31, 27]],
+      "pivot": [25, 24],
+      "aw": -12,
+      "as": 2,
+      "push": 8,
+      "cape": null,
+      "behind": true,
+      "aimShift": [-6, -2]
+    },
+    "left": {
+      "legTop": 36,
+      "legs": [
+        [9, 14],
+        [15, 21]
+      ],
+      "arm": [
+        [0, 0, 7, 24],
+        [3, 25, 9, 35]
+      ],
+      "pivot": [6, 23],
+      "aw": -55,
+      "as": -95,
+      "push": 9,
+      "cape": [18, 35],
+      "shield": [
+        [10, 20, 17, 31],
+        [11, 32, 16, 34]
+      ],
+      "shieldRaise": [-3, -6]
+    }
+  },
+  "light-cavalry": {
+    "grid": [4.4, 4.8],
+    "down": {
+      "legTop": 66,
+      "legs": [
+        [19, 26],
+        [29, 36]
+      ],
+      "arm": [[0, 33, 12, 53]],
+      "pivot": [13, 35],
+      "aw": -12,
+      "as": -31,
+      "push": 12,
+      "cape": [33, 52]
+    },
+    "up": {
+      "legTop": 72,
+      "legs": [
+        [20, 25],
+        [33, 38]
+      ],
+      "arm": [
+        [40, 11, 50, 26],
+        [45, 38, 59, 59]
+      ],
+      "lines": [[44, 26, 47, 40, 3]],
+      "pivot": [44, 33],
+      "aw": 0,
+      "as": 0,
+      "push": 8,
+      "dir": [0.3, -1],
+      "cape": null
+    },
+    "left": {
+      "legTop": 60,
+      "legs": [
+        [12, 30],
+        [40, 70]
+      ],
+      "arm": [[0, 44, 12, 58]],
+      "lines": [[11, 47, 31, 34, 2]],
+      "pivot": [31, 34],
+      "aw": 55,
+      "as": 36,
+      "push": 16,
+      "cape": [
+        [10, 33],
+        [40, 57]
+      ],
+      "gait": {
+        "swing": 4,
+        "lift": 3,
+        "legs": [
+          [12, 59, 22, 67, 0],
+          [23, 59, 32, 72, 0.5],
+          [40, 59, 51, 71, 0.5],
+          [56, 59, 68, 70, 0]
+        ]
+      }
+    },
+    "anim": {
+      "walk": {
+        "frames": 6,
+        "fps": 12,
+        "refFrame": "median",
+        "views": {
+          "left": "light-cavalry-gallop.png"
+        },
+        "flip": ["left"],
+        "anchor": "body"
+      }
+    }
+  },
+  "light-mage": {
+    "grid": [8.3, 8.5],
+    "sample": "median",
+    "sideFacing": "right",
+    "down": {
+      "legTop": 56,
+      "legs": [
+        [11, 19],
+        [25, 34]
+      ],
+      "arm": [
+        [0, 0, 12, 14],
+        [5, 15, 8, 38],
+        [5, 39, 7, 57],
+        [4, 21, 10, 28]
+      ],
+      "pivot": [7, 24],
+      "aw": -12,
+      "as": 8,
+      "push": 7,
+      "dir": [0, -1],
+      "cape": [34, 56]
+    },
+    "up": {
+      "legTop": 57,
+      "legs": [
+        [10, 17],
+        [24, 30]
+      ],
+      "arm": [
+        [29, 0, 41, 15],
+        [33, 16, 36, 47],
+        [30, 21, 38, 28]
+      ],
+      "pivot": [34, 24],
+      "aw": 12,
+      "as": -8,
+      "push": 5,
+      "dir": [0, -1],
+      "cape": null
+    },
+    "left": {
+      "legTop": 51,
+      "legs": [
+        [9, 17],
+        [18, 26]
+      ],
+      "arm": [[0, 24, 10, 32]],
+      "pivot": [12, 28],
+      "aw": 22,
+      "as": -28,
+      "push": 6,
+      "cape": [38, 50],
+      "erase": [[0, 0, 8, 24]],
+      "tool": {
+        "from": "down",
+        "at": [4, 27]
+      },
+      "dir": [0, -1]
+    }
+  },
+  "light-drummer": {
+    "grid": [8.3, 8.5],
+    "sample": "median",
+    "down": {
+      "legTop": 61,
+      "legs": [
+        [4, 11],
+        [17, 25]
+      ],
+      "arm": [[8, 49, 16, 52]],
+      "pivot": [7, 49],
+      "aw": -40,
+      "as": 10,
+      "push": 0,
+      "cape": [
+        {
+          "rows": [0, 18],
+          "pole": 16,
+          "cut": 22,
+          "anchor": 18,
+          "span": [3, 18]
+        }
+      ]
+    },
+    "up": {
+      "legTop": 58,
+      "legs": [
+        [13, 20],
+        [25, 32]
+      ],
+      "arm": [[31, 14, 36, 24]],
+      "pivot": [31, 25],
+      "aw": 20,
+      "as": -40,
+      "push": 0,
+      "behind": true,
+      "cape": [
+        {
+          "rows": [0, 31],
+          "pole": 15,
+          "cut": 19,
+          "anchor": 31,
+          "span": [4, 31],
+          "side": "left"
+        }
+      ]
+    },
+    "left": {
+      "legTop": 56,
+      "legs": [
+        [9, 15],
+        [16, 22]
+      ],
+      "arm": [[0, 35, 5, 45]],
+      "pivot": [6, 45],
+      "aw": 30,
+      "as": -110,
+      "push": 0,
+      "cape": [
+        {
+          "rows": [0, 15],
+          "pole": 25,
+          "cut": 29,
+          "anchor": 32,
+          "span": [4, 32]
+        },
+        {
+          "rows": [16, 32],
+          "pole": 24,
+          "cut": 28,
+          "anchor": 32,
+          "span": [4, 32]
+        },
+        [38, 55]
+      ],
+      "graft": [
+        {
+          "from": "down",
+          "rect": [14, 46, 31, 61],
+          "at": [3, 45],
+          "width": 7
+        }
+      ]
+    }
+  },
+  "light-healer": {
+    "grid": [8.3, 8.9],
+    "sample": "median",
+    "sideFacing": "right",
+    "down": {
+      "legTop": 46,
+      "legs": [
+        [8, 14],
+        [18, 24]
+      ],
+      "arm": [
+        [0, 12, 6, 52],
+        [0, 24, 8, 31]
+      ],
+      "pivot": [4, 28],
+      "aw": -8,
+      "as": 6,
+      "push": 7,
+      "dir": [0, -1],
+      "cape": [34, 47]
+    },
+    "up": {
+      "legTop": 47,
+      "legs": [
+        [9, 15],
+        [19, 25]
+      ],
+      "arm": [
+        [0, 11, 6, 52],
+        [0, 25, 9, 31]
+      ],
+      "pivot": [5, 28],
+      "aw": 8,
+      "as": -6,
+      "push": 7,
+      "dir": [0, -1],
+      "cape": null
+    },
+    "left": {
+      "legTop": 44,
+      "legs": [
+        [10, 15],
+        [16, 21]
+      ],
+      "arm": [[0, 23, 9, 32]],
+      "tool": {
+        "from": "down",
+        "at": [9, 30]
+      },
+      "pivot": [9, 30],
+      "aw": 15,
+      "as": -20,
+      "push": 7,
+      "dir": [0, -1],
+      "cape": [30, 48]
+    }
+  },
+  "light-giant": {
+    "grid": [3.5, 6.0],
+    "sample": "median",
+    "sideFacing": "right",
+    "down": {
+      "legTop": 55,
+      "legs": [
+        [11, 21],
+        [33, 44]
+      ],
+      "arm": [[0, 23, 7, 32]],
+      "keep": [[17, 8, 34, 30]],
+      "pivot": [3, 28],
+      "aw": -64,
+      "as": 116,
+      "push": 0,
+      "cape": null,
+      "fillAlong": true,
+      "inpaint": false,
+      "lines": [
+        [3, 28, 25, 19, 8],
+        [23, 20, 51, 5, 14]
+      ],
+      "shoulder1": [10, 22],
+      "mirrorHead": [
+        {
+          "rect": [35, 6, 42, 27],
+          "cx": 28.5
+        }
+      ],
+      "club": {
+        "tip": [53, 4],
+        "r0": 2.5,
+        "r1": 5.5
+      }
+    },
+    "up": {
+      "legTop": 57,
+      "legs": [
+        [9, 20],
+        [32, 43]
+      ],
+      "arm": [[48, 22, 55, 31]],
+      "lines": [
+        [52, 27, 29, 15, 6],
+        [31, 16, 5, 3, 11]
+      ],
+      "pivot": [52, 27],
+      "aw": 63,
+      "as": -117,
+      "push": 0,
+      "cape": null,
+      "fillAlong": true,
+      "inpaint": false,
+      "shoulder1": [45, 22],
+      "graft": [
+        {
+          "from": "down",
+          "rect": [16, 6, 41, 28],
+          "at": [14, 6],
+          "layer": "body",
+          "dim": [0, 12, 25, 22],
+          "ellipse": true,
+          "unblue": true
+        }
+      ],
+      "free": [[3, 9, 14, 20, 0]],
+      "mirrorHead": [
+        {
+          "rect": [27, 6, 40, 28],
+          "cx": 26.5,
+          "over": true
+        }
+      ],
+      "club": {
+        "tip": [4, 3],
+        "r0": 2.5,
+        "r1": 5.5
+      }
+    },
+    "left": {
+      "legTop": 52,
+      "legs": [
+        [13, 24],
+        [25, 36]
+      ],
+      "arm": [[0, 20, 6, 28]],
+      "keep": [[8, 6, 22, 22]],
+      "pivot": [3, 24],
+      "aw": -68,
+      "as": -215,
+      "push": 0,
+      "cape": [30, 57],
+      "fillAlong": true,
+      "inpaint": false,
+      "lines": [
+        [3, 24, 24, 15, 8],
+        [22, 16, 48, 5, 14]
+      ],
+      "shoulder1": [14, 22],
+      "mirrorHead": [
+        {
+          "rect": [23, 6, 28, 22],
+          "cx": 17.5
+        }
+      ],
+      "club": {
+        "tip": [49, 4],
+        "r0": 2.5,
+        "r1": 5.5
+      }
+    },
+    "anim": {
+      "smash": {
+        "frames": 6,
+        "times": [0, 0.14, 0.3, 0.48, 0.56, 0.8],
+        "views": {
+          "down": "light-giant-smash-front.png",
+          "up": "light-giant-smash-back.png",
+          "left": "light-giant-smash-side.png"
+        },
+        "flip": ["left"]
+      }
+    }
+  },
+  "light-catapult": {
+    "grid": [5.6, 5.8],
+    "sample": "median",
+    "down": {
+      "legTop": 44,
+      "legs": [
+        [17, 24],
+        [25, 33]
+      ],
+      "arm": [[19, 4, 31, 30]],
+      "pivot": [25, 30],
+      "aw": 0,
+      "as": 0,
+      "push": 6,
+      "dir": [0, -1],
+      "cape": null
+    },
+    "up": {
+      "legTop": 40,
+      "legs": [
+        [17, 24],
+        [26, 33]
+      ],
+      "arm": [[22, 1, 29, 12]],
+      "pivot": [25, 12],
+      "aw": 0,
+      "as": 0,
+      "push": 5,
+      "dir": [0, -1],
+      "cape": null,
+      "behind": true
+    },
+    "left": {
+      "legTop": 40,
+      "legs": [
+        [51, 55],
+        [56, 63]
+      ],
+      "arm": [[0, 0, 14, 29]],
+      "lines": [[12, 15, 24, 29, 3]],
+      "pivot": [24, 30],
+      "aw": 95,
+      "as": -12,
+      "push": 0,
+      "cape": null
+    }
+  },
+  "light-builder": {
+    "grid": [8.3, 8.7],
+    "sample": "median",
+    "sideFacing": "right",
+    "down": {
+      "legTop": 41,
+      "legs": [
+        [11, 17],
+        [23, 30]
+      ],
+      "arm": [[0, 19, 9, 26]],
+      "tool": {
+        "rot": 0,
+        "flipX": true,
+        "at": [3, 23]
+      },
+      "pivot": [3, 23],
+      "aw": 40,
+      "as": -118,
+      "push": 0,
+      "cape": null
+    },
+    "up": {
+      "legTop": 41,
+      "legs": [
+        [6, 13],
+        [17, 23]
+      ],
+      "arm": [[0, 2, 10, 20]],
+      "lines": [[8, 15, 28, 23, 3]],
+      "pivot": [28, 23],
+      "aw": -40,
+      "as": 65,
+      "push": 0,
+      "cape": null
+    },
+    "left": {
+      "legTop": 41,
+      "legs": [
+        [9, 12],
+        [13, 17]
+      ],
+      "arm": [
+        [15, 5, 32, 20],
+        [0, 21, 5, 25]
+      ],
+      "lines": [[15, 16, 2, 24, 3]],
+      "pivot": [3, 23],
+      "aw": -50,
+      "as": -200,
+      "push": 0,
+      "cape": null
     }
   }
 }

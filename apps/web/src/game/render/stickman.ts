@@ -222,8 +222,15 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
 
   const elbowF = along(shoulder, front[0], UPPER);
   const handF = along(elbowF, front[1], FORE);
-  const elbowB = along(shoulder, back[0], UPPER);
-  const handB = along(elbowB, back[1], FORE);
+  let elbowB = along(shoulder, back[0], UPPER);
+  let handB = along(elbowB, back[1], FORE);
+  // Thợ mỏ lúc đào / đánh và chiến binh lúc chém: tay sau cũng nắm cán vũ khí (cầm hai tay)
+  const twoHand = !p.carrying && weapon !== undefined && ((a === 'miner' && (p.mining >= 0 || at >= 0)) || (a === 'sword' && at >= 0));
+  if (twoHand) {
+    const grip = gripArm(shoulder, handF, front[1]);
+    elbowB = grip[0];
+    handB = grip[1];
+  }
   const kneeA = along(hip, legA[0], THIGH);
   const footA = along(kneeA, legA[1], SHIN);
   const kneeB = along(hip, legB[0], THIGH);
@@ -287,15 +294,16 @@ export function drawStickman(ctx: CanvasRenderingContext2D, p: StickPose): void 
   // Áo choàng pháp sư / thầy thuốc: bóng đen viền năng lượng
   if (a === 'mage' || a === 'healer') robe(ctx, shoulder, p.flash ? '#ffffff' : GEAR, e);
 
-  const g: Gear = { ctx, p, s, a, weapon, head, shoulder, hand: handF, handB, fore: front[1], ink, e, rim, skin, time };
+  const g: Gear = { ctx, p, s, a, weapon, head, shoulder, hand: handF, handB, fore: front[1], twoHand, ink, e, rim, skin, time };
   let eyes = true;
   if (!p.stone || a === 'sword') eyes = drawHead(g, s.look.head ?? 'halo');
   if (eyes && !p.stone && !p.flash) glowEyes(ctx, head, glow);
   drawWeaponGear(g);
 
-  // Tay trước (vẽ sau cùng để nằm trên vũ khí)
+  // Tay trước (vẽ sau cùng để nằm trên vũ khí); cầm hai tay thì tay sau cũng nằm trên cán
   ctx.strokeStyle = ink;
   ctx.lineWidth = width;
+  if (twoHand) polyline(ctx, limbs[0]);
   polyline(ctx, limbs[3]);
   if (traits) drawTrait(ctx, skin, body, width, time, true);
   if (seated) ctx.restore();
@@ -311,6 +319,8 @@ type Gear = {
   shoulder: V;
   hand: V;
   handB: V;
+  /** Cầm hai tay: vẽ cán dài thêm về phía chuôi cho tay sau nắm. */
+  twoHand: boolean;
   fore: number;
   ink: string;
   /** Màu năng lượng (vũ khí, hoa văn). */
@@ -1158,6 +1168,29 @@ function drawTrait(ctx: CanvasRenderingContext2D, skin: Skin, b: Body, width: nu
   }
 }
 
+// ---------- Cầm hai tay ----------
+
+/** Khoảng cách từ tay trước lùi về phía chuôi tới chỗ tay sau nắm (cán được vẽ dài thêm tới đây). */
+const GRIP = 4.5;
+
+/** Tay sau nắm vào chuôi vũ khí ngay sau tay trước (giải IK hai khớp). */
+function gripArm(shoulder: V, handF: V, fore: number): [V, V] {
+  const target = { x: handF.x - Math.sin(fore) * GRIP, y: handF.y - Math.cos(fore) * GRIP };
+  const reach = UPPER + FORE - 0.4;
+  const dx = target.x - shoulder.x;
+  const dy = target.y - shoulder.y;
+  const d = Math.min(Math.max(Math.hypot(dx, dy), 1), reach);
+  const base = Math.atan2(dy, dx);
+  const bend = Math.acos(Math.min(1, Math.max(-1, (UPPER * UPPER + d * d - FORE * FORE) / (2 * UPPER * d))));
+  // Hai nghiệm khuỷu: chọn nghiệm chĩa xuống / ra trước (như khi cầm cán), tránh bị đầu che
+  const elbowAt = (ang: number): V => ({ x: shoulder.x + Math.cos(ang) * UPPER, y: shoulder.y + Math.sin(ang) * UPPER });
+  const e1 = elbowAt(base + bend);
+  const e2 = elbowAt(base - bend);
+  const elbow = e1.y + e1.x * 0.5 >= e2.y + e2.x * 0.5 ? e1 : e2;
+  const hand = { x: shoulder.x + Math.cos(base) * d, y: shoulder.y + Math.sin(base) * d };
+  return [elbow, hand];
+}
+
 // ---------- Vũ khí ----------
 
 function drawWeaponGear(g: Gear): void {
@@ -1211,6 +1244,8 @@ function drawWeaponGear(g: Gear): void {
     if (shield !== 'none') drawShield(ctx, shoulder, shield, hi, e, rim);
     return;
   }
+
+  if (g.twoHand) line(ctx, hand, tip(-GRIP - 1.5), gear, 2.3);
 
   switch (weapon) {
     case 'trident':

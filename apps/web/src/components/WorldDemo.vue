@@ -8,8 +8,12 @@ import {
   drawArc,
   drawArrowSprite,
   drawGlove,
+  drawArmIK,
   drawLine,
   drawSack,
+  drawSideDrum,
+  drawClub,
+  drawFist,
   drawFloaters,
   drawParticles,
   actionHold,
@@ -33,10 +37,27 @@ import { buildVillage, WORLD_H, WORLD_W, type Prop, type Rect, type Target, type
  * Sprite 4 hướng do docs/art/topdown/build_topdown_sprite.py cắt từ ảnh mẫu; tư thế đánh, nhún thở dựng lúc vẽ
  * bằng cách dời từng hàng pixel (xem game/world/fx.ts).
  */
+/**
+ * Dải khung vẽ sẵn (rig "anim", ghép ở <tên>-anim.png): đòn đánh vẽ thật từng khung (khổng lồ nện chuỳ) hoặc chạy
+ * (walk: ngựa phi), đứng yên (idle: thở lặp). Hàng thứ i của dải ứng với hướng rows[i]; times: mốc bắt đầu từng khung
+ * theo tiến độ đòn 0..1; fps: tốc độ khung khi chạy / đứng yên.
+ */
+interface AnimMeta {
+  w: number;
+  h: number;
+  frames: number;
+  footX: number;
+  footY: number;
+  y: number;
+  rows: string[];
+  times?: number[];
+  fps?: number;
+}
 interface SpriteMeta {
   w: number;
   h: number;
   frames: number;
+  anim?: Record<string, AnimMeta>;
   rows: string[];
   footX: number;
   footY: number;
@@ -44,7 +65,21 @@ interface SpriteMeta {
   legRows: Record<string, number>;
   /** Tay cầm vũ khí: điểm vai (px, py), tâm vũ khí (cx, cy), hướng vũ khí (ux, uy), góc lấy đà / ra đòn, độ đâm. */
   /** Vạt áo choàng bay theo gió (null: hướng đó không có vạt áo thò ra ngoài thân). */
-  cape: Record<string, { cut: number; top: number; bottom: number }[] | null>;
+  cape: Record<
+    string,
+    | {
+        cut: number;
+        top: number;
+        bottom: number;
+        flag?: boolean;
+        left?: boolean;
+        pole?: number;
+        anchor?: number;
+        spanTop?: number;
+        spanBottom?: number;
+      }[]
+    | null
+  >;
   arm: Record<
     string,
     {
@@ -57,9 +92,17 @@ interface SpriteMeta {
       aw: number;
       as: number;
       push: number;
-      /** Hai đầu vũ khí (đầu cung để mắc dây) và chỗ bàn tay thứ hai nắm (kiếm 2 tay). */
+      /** Hai đầu vũ khí (đầu cung để mắc dây) và chỗ bàn tay thứ hai nắm (kiếm / cuốc 2 tay). */
       tips: [number, number][];
       hand2?: [number, number];
+      /** Chuỳ khổng lồ: lúc đánh vẽ lại cả cây liền một khối từ bàn tay tới tip (ảnh gốc bị đầu che khúc giữa). */
+      club?: { tip: [number, number]; r0: number; r1: number };
+      /** Khiên tách lớp riêng (khung thứ hai của hàng tay vũ khí): lúc đánh dời theo `raise` [dx, dy] — giơ lên che người. */
+      shield?: { raise: [number, number] };
+      /** Vai của tay cầm vũ khí (toạ độ lớp thân): có thì lúc đánh bàn tay vung theo vũ khí quanh vai, vẽ cả cánh tay. */
+      shoulder1?: [number, number];
+      /** Vai của tay thứ hai (toạ độ lớp thân): lúc đánh vẽ cánh tay từ đây tới hand2 (lớp thân đã bỏ bàn tay đó). */
+      shoulder2?: [number, number];
       /** Dời cung vào giữa người khi ngắm (nhìn trước / sau) và có vẽ sau thân không. */
       shiftX?: number;
       shiftY?: number;
@@ -73,6 +116,8 @@ type Dir = 'down' | 'up' | 'left' | 'right';
 interface Sprite {
   meta: SpriteMeta;
   sheet: HTMLImageElement;
+  /** Dải khung vẽ sẵn (meta.anim), nếu có. */
+  anim?: HTMLImageElement;
 }
 interface Arrow {
   x: number;
@@ -88,6 +133,17 @@ interface Arrow {
   dx?: number;
   dy?: number;
 }
+/** Cầu ánh sáng của pháp sư: bay thẳng ngang tầm ngực, nổ khi trúng mục tiêu / tường / hết tầm. */
+interface Orb {
+  x: number;
+  y: number;
+  /** Độ cao so với mặt đất: bay vòng cung lên rồi rơi xuống như mũi tên. */
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  dist: number;
+}
 interface Ghost {
   x: number;
   y: number;
@@ -101,13 +157,35 @@ const HEROES = [
   { id: 'light-warrior', name: 'worldDemo.heroWarrior', action: 'slash' },
   { id: 'light-archer', name: 'worldDemo.heroArcher', action: 'shoot' },
   { id: 'light-assassin', name: 'worldDemo.heroAssassin', action: 'stab' },
+  { id: 'light-spearton', name: 'worldDemo.heroSpearton', action: 'thrust' },
+  { id: 'light-cavalry', name: 'worldDemo.heroCavalry', action: 'charge' },
+  { id: 'light-mage', name: 'worldDemo.heroMage', action: 'cast' },
+  { id: 'light-drummer', name: 'worldDemo.heroDrummer', action: 'drum' },
+  { id: 'light-healer', name: 'worldDemo.heroHealer', action: 'heal' },
+  { id: 'light-giant', name: 'worldDemo.heroGiant', action: 'smash' },
+  { id: 'light-catapult', name: 'worldDemo.heroCatapult', action: 'launch' },
+  { id: 'light-builder', name: 'worldDemo.heroBuilder', action: 'build' },
 ] as const;
 type HeroId = (typeof HEROES)[number]['id'];
 
 const SPEED = 72; // px / giây
+const ARM_REACH = 8; // độ dài cánh tay duỗi (vai → bàn tay) lúc vung vũ khí, pixel nghệ thuật
 const ARROW_Z = 26; // độ cao mũi tên lúc rời dây = ngang tầm cung lúc nâng lên ngắm
 const ARROW_VH = 210; // tốc độ ngang của mũi tên (px/s)
 const ARROW_G = 420; // trọng lực kéo mũi tên rơi (px/s²)
+const ORB_Z = 46; // độ cao đầu gậy khi chưa biết vị trí thật (cầu tụ / phóng từ đầu gậy)
+const ORB_V = 150; // tốc độ ngang của cầu ánh sáng (px/s)
+const ORB_G = 420; // trọng lực kéo cầu rơi xuống (px/s²): bay vòng cung rõ
+const ORB_RANGE = 280; // tầm bay tối đa
+const SHOT_VH = 150; // tốc độ ngang của quả cầu máy phóng (px/s)
+const SHOT_G = 300; // trọng lực kéo quả cầu rơi
+const SHOT_Z = 34; // độ cao lúc rời cần
+const SHOT_R = 30; // bán kính nổ khi chạm đất
+const WAVE_R = 46; // bán kính sóng trống (mục tiêu trong vòng này đều trúng)
+const WAVE_DUR = 0.4;
+const SMASH_R = 34; // bán kính chấn động chuỳ khổng lồ nện đất
+const HEAL_R = 30; // bán kính vòng hồi máu
+const HEAL_DUR = 0.7;
 const FEET = { w: 14, h: 6 }; // hộp va chạm ở chân
 const GOLD = ['#fff3a8', '#ffd34a', '#c9921e'];
 const LIGHT = ['#ffffff', '#fff3a8', '#ffd34a', '#c9921e'];
@@ -150,6 +228,15 @@ let act: { kind: ActionKind; t: number; done: number; aimVz: number } | null = n
 const particles: Particle[] = [];
 const floaters: Floater[] = [];
 const arrows: Arrow[] = [];
+const orbs: Orb[] = [];
+/** Quả cầu sáng của máy phóng: bay vòng cung (z: độ cao), nổ khi chạm đất. */
+const shots: { x: number; y: number; z: number; vx: number; vy: number; vz: number }[] = [];
+/** Đầu gậy pháp sư (toạ độ thế giới, z = độ cao) lúc đang thi phép: cầu ánh sáng tụ và phóng ra từ đây. */
+let staffTip: { x: number; y: number; z: number } | null = null;
+/** Sóng âm của tay trống: vòng sáng nở ra quanh chỗ nện trống (t: giây đã qua). */
+const waves: { x: number; y: number; t: number; r: number }[] = [];
+/** Vòng hồi máu của tu sĩ: elip thánh quang nở ra quanh người, dấu thập sáng bay lên. */
+const heals: { x: number; y: number; t: number }[] = [];
 const ghosts: Ghost[] = [];
 
 const KEYS: Record<string, Dir> = {
@@ -225,13 +312,86 @@ function strike(tg: Target, x: number, y: number, dmg: number, crit = false): vo
 /** Mốc ra đòn thứ `i` của hành động hiện tại. */
 function fire(kind: ActionKind): void {
   const [fx, fy] = DIRS[hero.dir];
+  if (kind === 'build') {
+    // Búa thợ xây: nện trước mặt, toé tia lửa vàng và vụn gỗ
+    const tg = meleeTarget(20);
+    const bx = hero.x + fx * 16;
+    const by = hero.y + fy * 12;
+    burst(particles, bx, by, 4, 6, ['#ffffff', '#ffd34a', '#c9921e'], 70, 60, 260);
+    burst(particles, bx, by, 2, 4, ['#9c7434', '#c79a48', '#6b4e30'], 40, 70, 320);
+    shake = Math.max(shake, 1.2);
+    if (tg) strike(tg, bx, by, 9 + Math.floor(Math.random() * 5));
+    return;
+  }
+  if (kind === 'launch') {
+    // Ngắm mục tiêu gần nhất phía trước (cùng hàng) trong tầm, tính vận tốc bay lên để rơi trúng; không có thì bắn xa vừa
+    let best = 180;
+    for (const tt of village?.targets ?? []) {
+      const cx = tt.hit.x + tt.hit.w / 2;
+      const feet = tt.hit.y + tt.hit.h;
+      const along = fx ? (cx - hero.x) * fx : (feet - hero.y) * fy;
+      const across = fx ? Math.abs(feet - hero.y) : Math.abs(cx - hero.x);
+      if (along > 50 && along < 380 && across < 20 && (best === 180 || along < best)) best = along;
+    }
+    const sx = hero.x + fx * 16;
+    const sy = hero.y + fy * 6;
+    const t = (best - 16) / SHOT_VH;
+    shots.push({ x: sx, y: sy, z: SHOT_Z, vx: fx * SHOT_VH, vy: fy * SHOT_VH, vz: (SHOT_G * t * t) / 2 / t - SHOT_Z / t });
+    burst(particles, sx, sy, SHOT_Z, 8, LIGHT, 50, 40, 0);
+    shake = Math.max(shake, 1.5);
+    return;
+  }
+  if (kind === 'smash') {
+    // Chuỳ nện đất trước mặt: sóng chấn động, đất đá văng, đánh mạnh mọi mục tiêu quanh chỗ nện
+    const ix = hero.x + fx * 30;
+    const iy = hero.y + fy * 18 + (fx ? 2 : 0);
+    waves.push({ x: ix, y: iy, t: 0, r: SMASH_R });
+    shake = Math.max(shake, 5);
+    freeze = 0.08;
+    burst(particles, ix, iy, 0, 14, ['#8a6a44', '#b08a5a', '#6b4e30'], 70, 90, 320);
+    burst(particles, ix, iy, 2, 10, LIGHT, 60, 50, 120);
+    for (const tg of village?.targets ?? []) {
+      const cx = tg.hit.x + tg.hit.w / 2;
+      const cy = tg.hit.y + tg.hit.h;
+      if (Math.hypot(cx - ix, (cy - iy) * 1.6) < SMASH_R + tg.hit.w / 2) strike(tg, cx, cy - 6, 22 + Math.floor(Math.random() * 9));
+    }
+    return;
+  }
+  if (kind === 'drum') {
+    // Nện trống: sóng âm toả ra, đánh nhẹ mọi mục tiêu quanh người; nốt nhạc sáng bay lên
+    waves.push({ x: hero.x, y: hero.y, t: 0, r: WAVE_R });
+    shake = Math.max(shake, 1.5);
+    for (const tg of village?.targets ?? []) {
+      const cx = tg.hit.x + tg.hit.w / 2;
+      const cy = tg.hit.y + tg.hit.h;
+      if (Math.hypot(cx - hero.x, (cy - hero.y) * 1.6) < WAVE_R + tg.hit.w / 2) strike(tg, cx, cy - 4, 5 + Math.floor(Math.random() * 4));
+    }
+    burst(particles, hero.x + fx * 6, hero.y + fy * 3, 14, 6, LIGHT, 40, 70, 0);
+    return;
+  }
+  if (kind === 'heal') {
+    // Toả thánh quang: vòng hồi máu nở quanh người, dấu thập sáng bay lên, số máu hồi hiện trên đầu
+    const tip = staffTip ?? { x: hero.x, y: hero.y, z: ORB_Z };
+    heals.push({ x: hero.x, y: hero.y, t: 0 });
+    burst(particles, tip.x, tip.y, tip.z, 10, LIGHT, 40, 30, 0);
+    floaters.push({ x: hero.x, y: hero.y - 52, text: `+${16 + Math.floor(Math.random() * 6)}`, color: '#b8ff7a', t: 0 });
+    return;
+  }
+  if (kind === 'cast') {
+    // Bay vòng cung: phóng chếch lên từ đầu gậy, rơi trúng mục tiêu gần nhất phía trước (không có thì rơi ở tầm vừa)
+    const tip = staffTip ?? { x: hero.x + fx * 12, y: hero.y + fy * 4, z: ORB_Z };
+    const vz = aimLob(ORB_V, tip.z, ORB_G, 12);
+    orbs.push({ x: tip.x, y: tip.y, z: tip.z, vx: fx * ORB_V, vy: fy * ORB_V, vz, dist: 0 });
+    burst(particles, tip.x, tip.y, tip.z, 8, LIGHT, 50, 20, 0);
+    return;
+  }
   if (kind === 'shoot') {
     const vz = act?.aimVz ?? 150;
     arrows.push({ x: hero.x + fx * 12, y: hero.y + fy * 4, z: ARROW_Z, vx: fx * ARROW_VH, vy: fy * ARROW_VH, vz, dist: 0 });
     burst(particles, hero.x + fx * 12, hero.y + fy * 6, 16, 5, LIGHT, 40, 20, 0);
     return;
   }
-  const reach = kind === 'mine' ? 22 : kind === 'slash' ? 28 : 22;
+  const reach = kind === 'mine' ? 22 : kind === 'slash' ? 28 : kind === 'thrust' ? 34 : kind === 'charge' ? 36 : 22;
   const tg = meleeTarget(reach);
   const px = hero.x + fx * reach * 0.8;
   const py = hero.y + fy * reach * 0.8;
@@ -253,6 +413,10 @@ function fire(kind: ActionKind): void {
     } else strike(tg, px, py, 4 + Math.floor(Math.random() * 4));
   } else if (kind === 'slash') {
     strike(tg, px, py, 14 + Math.floor(Math.random() * 7));
+  } else if (kind === 'thrust') {
+    strike(tg, px, py, 12 + Math.floor(Math.random() * 6));
+  } else if (kind === 'charge') {
+    strike(tg, px, py, 16 + Math.floor(Math.random() * 8));
   } else {
     const crit = Math.random() < 0.25;
     strike(tg, px, py, (7 + Math.floor(Math.random() * 4)) * (crit ? 2 : 1), crit);
@@ -272,6 +436,30 @@ function update(dt: number): void {
   }
   for (let i = ghosts.length - 1; i >= 0; i--) if ((ghosts[i].life -= dt) <= 0) ghosts.splice(i, 1);
   updateArrows(dt);
+  updateOrbs(dt);
+  // Quả cầu máy phóng: bay vòng cung, chạm đất thì nổ sáng, đánh mọi mục tiêu trong vùng nổ
+  for (let i = shots.length - 1; i >= 0; i--) {
+    const s = shots[i];
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.vz -= SHOT_G * dt;
+    s.z += s.vz * dt;
+    if (Math.random() < 0.7)
+      particles.push({ x: s.x, y: s.y, z: s.z, vx: 0, vy: 0, vz: 0, life: 0, max: 0.3, color: '#ffd34a', size: 1, g: 0 });
+    if (s.z > 0) continue;
+    shots.splice(i, 1);
+    waves.push({ x: s.x, y: s.y, t: 0, r: SHOT_R });
+    shake = Math.max(shake, 3.5);
+    burst(particles, s.x, s.y, 2, 14, LIGHT, 80, 80, 200);
+    burst(particles, s.x, s.y, 0, 8, ['#8a6a44', '#b08a5a', '#6b4e30'], 60, 70, 320);
+    for (const tg of village?.targets ?? []) {
+      const cx = tg.hit.x + tg.hit.w / 2;
+      const cy = tg.hit.y + tg.hit.h;
+      if (Math.hypot(cx - s.x, (cy - s.y) * 1.6) < SHOT_R + tg.hit.w / 2) strike(tg, cx, cy - 6, 18 + Math.floor(Math.random() * 9));
+    }
+  }
+  for (let i = waves.length - 1; i >= 0; i--) if ((waves[i].t += dt) >= WAVE_DUR) waves.splice(i, 1);
+  for (let i = heals.length - 1; i >= 0; i--) if ((heals[i].t += dt) >= HEAL_DUR) heals.splice(i, 1);
 
   if (freeze > 0) {
     freeze -= dt;
@@ -296,6 +484,17 @@ function update(dt: number): void {
         hero.y += fy * step;
       }
       ghosts.push({ x: hero.x, y: hero.y, dir: hero.dir, life: 0.18 });
+    }
+    // Kỵ binh thúc ngựa lao tới (đà mạnh rồi chậm dần), bụi tung sau vó ngựa
+    if (act.kind === 'charge' && p > 0.08 && p < 0.5) {
+      const [fx, fy] = DIRS[hero.dir];
+      const step = 230 * (1 - (p - 0.08) / 0.42) * dt;
+      if (!hits(hero.x + fx * step, hero.y + fy * step)) {
+        hero.x += fx * step;
+        hero.y += fy * step;
+      }
+      if (Math.random() < 0.5) burst(particles, hero.x - fx * 14, hero.y - fy * 4, 0, 2, ['#8a6a44', '#b08a5a', '#c9921e'], 30, 25);
+      if (Math.random() < 0.35) ghosts.push({ x: hero.x, y: hero.y, dir: hero.dir, life: 0.14 });
     }
     if (p >= 1) act = null;
     return;
@@ -341,7 +540,7 @@ function update(dt: number): void {
  * Cung thủ bắn vòng cung: tìm hình nộm / mỏ ở phía trước (cùng hàng) trong tầm, tính vận tốc bay lên để mũi tên
  * rơi trúng ngang thân mục tiêu. Không có mục tiêu thì bắn vòng cung mặc định.
  */
-function aimLob(): number {
+function aimLob(vh = ARROW_VH, z0 = ARROW_Z, g = ARROW_G, zHit = 18): number {
   const [fx, fy] = DIRS[hero.dir];
   let best = Infinity;
   for (const tt of village?.targets ?? []) {
@@ -351,9 +550,10 @@ function aimLob(): number {
     const across = fx ? Math.abs(feet - hero.y) : Math.abs(cx - hero.x);
     if (along > 16 && along < 330 && across < 14 && along < best) best = along;
   }
-  if (best === Infinity) return 150;
-  const t = (best - 12) / ARROW_VH;
-  return Math.min(320, Math.max(70, (18 - ARROW_Z + (ARROW_G * t * t) / 2) / t));
+  // Vận tốc bay lên để tới độ cao zHit (ngang thân mục tiêu) đúng lúc tới nơi
+  if (best === Infinity) return vh === ARROW_VH ? 150 : 140;
+  const t = (best - 12) / vh;
+  return Math.min(320, Math.max(70, (zHit - z0 + (g * t * t) / 2) / t));
 }
 
 function updateArrows(dt: number): void {
@@ -396,6 +596,48 @@ function updateArrows(dt: number): void {
   }
 }
 
+function updateOrbs(dt: number): void {
+  if (!village) return;
+  for (let i = orbs.length - 1; i >= 0; i--) {
+    const o = orbs[i];
+    o.x += o.vx * dt;
+    o.y += o.vy * dt;
+    o.z += o.vz * dt;
+    o.vz -= ORB_G * dt;
+    o.dist += ORB_V * dt;
+    // Vệt sáng lấp lánh bay sau cầu
+    if (Math.random() < 0.8)
+      particles.push({
+        x: o.x + (Math.random() - 0.5) * 4,
+        y: o.y,
+        z: o.z + (Math.random() - 0.5) * 4,
+        vx: 0,
+        vy: 0,
+        vz: 6,
+        life: 0,
+        max: 0.3,
+        color: Math.random() < 0.4 ? '#ffffff' : '#ffd34a',
+        size: 1,
+        g: 0,
+      });
+    // Trúng khi cầu ở ngang thân mục tiêu (đang rơi xuống tới tầm người)
+    const tg = o.z < 34 ? village.targets.find((tt) => inRect(o.x, o.y - 6, tt.hit, 3)) : undefined;
+    const pop = (n: number) => {
+      burst(particles, o.x, o.y, Math.max(2, o.z), n, LIGHT, 80, 40, 60);
+      orbs.splice(i, 1);
+    };
+    if (tg) {
+      strike(tg, o.x, o.y, 14 + Math.floor(Math.random() * 6));
+      pop(16);
+    } else if (o.z <= 0) {
+      // Rơi chạm đất: nổ toé sáng, rung nhẹ
+      shake = Math.max(shake, 1);
+      pop(12);
+    } else if (o.z < 20 && village.solids.some((sd) => inRect(o.x, o.y, sd))) pop(10);
+    else if (o.dist > ORB_RANGE) pop(6);
+  }
+}
+
 function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, hx: number, hy: number, dir: Dir, ghost = false): void {
   const sp = sprites.get(heroId.value);
   if (!sp) return;
@@ -415,9 +657,13 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
     wave: 0,
     phase: clock * 3,
     // Quay lưng: áo choàng che cả thân → cả vạt dưới lay nhẹ; các hướng khác: phần vạt thò ra ngoài thân bay mạnh
-    cape: capeMeta
-      ? capeMeta.map((c) => ({ ...c, amp: 1 }))
-      : [{ cut: 0, top: legTop - Math.round(meta.h * 0.28), bottom: legTop - 1, amp: 0.45 }],
+    // Lá cờ (khúc flag) tính riêng: hướng chỉ có cờ mà không có vạt áo thò ra vẫn được lay vạt dưới như thường
+    cape: [
+      ...(capeMeta ?? []).filter((c) => c.flag).map((c) => ({ ...c, amp: 1 })),
+      ...(capeMeta?.some((c) => !c.flag)
+        ? capeMeta.filter((c) => !c.flag).map((c) => ({ ...c, amp: 1 }))
+        : [{ cut: 0, top: legTop - Math.round(meta.h * 0.28), bottom: legTop - 1, amp: 0.45 }]),
+    ],
     flap: ghost ? 0 : 2.3,
     flapPhase: clock * 5,
   };
@@ -457,18 +703,42 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
     opt.sway = Math.sin(clock * 1.3) * 0.9;
     opt.wave = 0.45 + 0.25 * Math.sin(clock * 0.7);
   }
+  // Dải khung vẽ sẵn: đòn đánh (theo mốc tiến độ) hoặc chạy (walk, lặp theo fps) cho hướng này, nếu có
+  let animDraw: { a: AnimMeta; f: number; r: number } | null = null;
+  if (sp.anim && meta.anim) {
+    // Đánh: dải của đòn đó; chạy: walk; đứng yên: idle (thở lặp theo đồng hồ)
+    const aa = act && !ghost ? meta.anim[act.kind] : hero.moving || ghost ? meta.anim.walk : meta.anim.idle;
+    const r = aa ? aa.rows.indexOf(key) : -1;
+    if (aa && r >= 0) {
+      let f = 0;
+      if (act && !ghost && aa.times) {
+        const p = act.t / ACTIONS[act.kind].dur;
+        while (f + 1 < aa.frames && p >= aa.times[f + 1]) f++;
+      } else if (!ghost) f = Math.floor((hero.moving ? walkT : clock) * (aa.fps ?? 10)) % aa.frames;
+      animDraw = { a: aa, f, r };
+      lunge = 0; // khung vẽ sẵn đã có chuyển động
+    }
+  }
   const x = q(hx - camX + fx * lunge);
   const y = q(hy - camY + fy * lunge * 0.6);
   if (!ghost) {
+    // Bóng dưới chân, rộng theo cỡ nhân vật (kỵ binh cưỡi ngựa bóng to gấp đôi)
+    const sw = Math.round(meta.w * 0.19);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-    ctx.fillRect(x - 8, y - 2, 16, 3);
-    ctx.fillRect(x - 6, y + 1, 12, 1);
+    ctx.fillRect(x - sw, y - 2, sw * 2, 3);
+    ctx.fillRect(x - sw + 2, y + 1, sw * 2 - 4, 1);
   }
   ctx.save();
   if (ghost) ctx.globalAlpha = 0.35;
   // Vẽ quanh điểm chân (lật gương khi quay phải). Toạ độ cục bộ: chân ở (0, 0).
   ctx.translate(x, y);
   if (dir === 'right') ctx.scale(-1, 1);
+  if (animDraw && sp.anim) {
+    const { a, f, r } = animDraw;
+    ctx.drawImage(sp.anim, f * a.w, a.y + r * a.h, a.w, a.h, -a.footX, -a.footY, a.w, a.h);
+    ctx.restore();
+    return;
+  }
   const dx = -meta.footX;
   const rows = meta.rows.length;
   // Lúc đánh: vẽ thân không có tay vũ khí + tay vũ khí xoay quanh vai (thường đè lên thân; cung thủ quay lưng
@@ -478,28 +748,80 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
    * Vẽ lớp tay vũ khí xoay quanh vai theo `st`; trả về hàm đổi một điểm của lớp tay (toạ độ khung) ra toạ độ cục bộ
    * sau khi xoay / đâm / dời — để gắn bàn tay thứ hai, dây cung… đúng chỗ.
    */
-  const drawWeapon = (st: { angle: number; push: number }) => {
+  const weaponPose = (st: { angle: number; push: number }) => {
     const a = meta.arm[key];
-    const sh = rowPos(a.py, meta.footY, 0, opt);
     const p = act ? act.t / ACTIONS[act.kind].dur : 1;
     // Mức "giữ" tư thế đánh (0..1): tay vũ khí dời theo aimShift (cung vào giữa người; vũ khí nâng qua đầu khi quay lưng)
     const hold = act ? actionHold(act.kind, p) : 0;
-    const pvx = dx + a.px + sh.x + (a.shiftX ?? 0) * hold;
-    const pvy = sh.y + (a.shiftY ?? 0) * hold;
     const c = Math.cos(st.angle);
     const sn = Math.sin(st.angle);
+    // Bàn tay cầm vũ khí (điểm xoay của vũ khí)
+    const hr = rowPos(a.py, meta.footY, 0, opt);
+    let pvx = dx + a.px + hr.x + (a.shiftX ?? 0) * hold;
+    let pvy = hr.y + (a.shiftY ?? 0) * hold;
+    // Có vai: lúc đánh bàn tay rời chỗ vác, duỗi ra theo hướng vũ khí, cách vai một cánh tay — giơ cuốc / kiếm lên thì
+    // tay giơ lên theo, bổ xuống thì tay hạ theo
+    const shoulder = a.shoulder1 ? bodyPoint(a.shoulder1) : null;
+    if (a.shoulder1 && shoulder) {
+      // Tay duỗi khi vung: ít nhất bằng tay buông ở hông (bàn tay cầm vũ khí trong sprite có thể nằm sát vai)
+      const len = Math.max(ARM_REACH, Math.hypot(a.px - a.shoulder1[0], a.py - a.shoulder1[1]));
+      const ex = shoulder.x + (a.ux * c - a.uy * sn) * len;
+      const ey = shoulder.y + (a.ux * sn + a.uy * c) * len;
+      pvx += (ex - pvx) * hold;
+      pvy += (ey - pvy) * hold;
+    }
     const at = (px: number, py: number) => {
       const vx = px - a.px + a.ux * st.push;
       const vy = py - a.py + a.uy * st.push;
       return { x: pvx + vx * c - vy * sn, y: pvy + vx * sn + vy * c };
     };
+    return { at, hold, p, pvx, pvy, shoulder };
+  };
+  const drawWeapon = (st: { angle: number; push: number }) => {
+    const a = meta.arm[key];
+    const w = weaponPose(st);
+    const { pvx, pvy } = w;
+    // Cánh tay cầm vũ khí: vai → bàn tay (bàn tay nằm trong lớp vũ khí, vẽ đè lên đầu cánh tay)
+    drawSecondHand('arm');
+    if (w.shoulder) drawArmIK(ctx, w.shoulder.x, w.shoulder.y, pvx, pvy);
+    if (a.club) {
+      // Khổng lồ: chuỳ liền một khối từ nắm tay, xoay theo đòn; nắm tay vẽ đè lên chuôi
+      const bx = a.club.tip[0] - a.px;
+      const by = a.club.tip[1] - a.py;
+      const L = Math.hypot(bx, by);
+      const c = Math.cos(st.angle);
+      const sn = Math.sin(st.angle);
+      drawClub(ctx, pvx, pvy, (bx * c - by * sn) / L, (bx * sn + by * c) / L, L, a.club.r0, a.club.r1);
+      drawFist(ctx, pvx, pvy);
+      return w;
+    }
     ctx.save();
     ctx.translate(q(pvx), q(pvy));
     ctx.rotate(st.angle);
     ctx.translate(q(a.ux * st.push), q(a.uy * st.push));
     ctx.drawImage(sheet, 0, (row + rows * 2) * meta.h, meta.w, meta.h, -a.px, -a.py, meta.w, meta.h);
     ctx.restore();
-    return { at, hold, p };
+    return w;
+  };
+  /** Điểm trên lớp thân (toạ độ khung) → toạ độ cục bộ, theo thân đang nghiêng / nhún. */
+  function bodyPoint(pt: [number, number]): { x: number; y: number } {
+    const r = rowPos(pt[1], meta.footY, 0, opt);
+    return { x: dx + pt[0] + r.x, y: r.y };
+  }
+  /**
+   * Tay thứ hai (kiếm / cuốc cầm 2 tay): vai bên kia → chỗ nắm trên cán; thợ mỏ vừa đào ra vàng thì tay này rời cán
+   * đi nhặt vàng (drawGather vẽ bàn tay). Cánh tay (`arm`) vẽ trước tay cầm vũ khí, bàn tay (`hand`) vẽ đè lên cán.
+   */
+  const drawSecondHand = (part: 'arm' | 'hand') => {
+    const a = meta.arm[key];
+    if (!arm || !a.hand2 || !a.shoulder2) return;
+    const h = weaponPose(arm).at(a.hand2[0], a.hand2[1]);
+    const g = gatherPos();
+    if (part === 'arm') {
+      const s2 = bodyPoint(a.shoulder2);
+      const end = g ?? h;
+      drawArmIK(ctx, s2.x, s2.y, end.x, end.y);
+    } else if (!g) drawGlove(ctx, h.x, h.y);
   };
 
   // Cung thủ: mũi tên lắp dây + dây cung + tay kéo dây (tay kia giữ cung)
@@ -558,17 +880,23 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
     if (act?.kind === 'shoot' && key === 'left')
       arm.angle += Math.atan2(act.aimVz, ARROW_VH) * actionHold('shoot', act.t / ACTIONS.shoot.dur);
     const w = drawWeapon(arm);
+    // Pháp sư: nhớ vị trí đầu gậy (đỉnh lớp vũ khí, lùi xuống giữa quả cầu trên gậy) để tụ / phóng phép đúng chỗ
+    if (!ghost && (act?.kind === 'cast' || act?.kind === 'heal')) {
+      const t = w.at(a.tips[0][0], a.tips[0][1] + 5);
+      staffTip = { x: hx + fx * lunge + (dir === 'right' ? -t.x : t.x), y: hy + fy * lunge * 0.6, z: -t.y };
+    }
     drawBowString(w);
-    // Kiếm sĩ: tay thứ hai nắm chuôi kiếm, đi theo kiếm khi vung
-    if (a.hand2) {
+    // Cầm 2 tay (kiếm sĩ, thợ mỏ): tay thứ hai nắm chuôi kiếm / cán cuốc, đi theo vũ khí khi vung
+    if (a.shoulder2) drawSecondHand('hand');
+    else if (a.hand2) {
       const h = w.at(a.hand2[0], a.hand2[1]);
       drawGlove(ctx, h.x, h.y);
     }
   };
-  // Kiếm sĩ lúc không đánh: tay thứ hai vẫn nắm chuôi kiếm (cầm kiếm 2 tay)
+  // Kiếm sĩ lúc không đánh: tay thứ hai vẫn nắm chuôi kiếm (cầm kiếm 2 tay); thợ mỏ lúc nghỉ vác cuốc 1 tay
   const drawIdleGrip = () => {
     const a = meta.arm[key];
-    if (arm || !a.hand2 || ghost) return;
+    if (arm || !a.hand2 || ghost || kind === 'mine') return;
     const r = rowPos(a.hand2[1], meta.footY, 0, opt);
     drawGlove(ctx, dx + a.hand2[0] + r.x, r.y);
   };
@@ -584,18 +912,45 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   // Thợ mỏ: túi vàng vác sau lưng (phồng theo số vàng) + tay kia nhặt vàng bỏ vào túi
   const sackAt = SACK_AT[key];
   const sackR = kind === 'mine' && gold.value > 0 && !ghost ? Math.min(8, 2.5 + Math.sqrt(gold.value) * 0.9) * (1 + sackPulse * 1.2) : 0;
-  const drawGather = () => {
-    if (kind !== 'mine' || ghost) return;
+  /** Chỗ bàn tay nhặt vàng của thợ mỏ lúc này (null: không nhặt). */
+  function gatherPos(): { x: number; y: number } | null {
+    if (kind !== 'mine' || ghost) return null;
     const t = (clock - gatherAt) / 0.55;
-    if (t < 0 || t > 1) return;
+    if (t < 0 || t > 1) return null;
     // Tay đưa từ chỗ đào (trước mặt, thấp) lên miệng túi theo đường vòng, cầm theo một cục vàng
     const from = key === 'left' ? { x: -14, y: -6 } : key === 'down' ? { x: -6, y: -4 } : { x: 6, y: -14 };
     const e = t * t * (3 - 2 * t);
-    const x = from.x + (sackAt.x - from.x) * e;
-    const y = from.y + (sackAt.y - 6 - from.y) * e - Math.sin(Math.PI * t) * 6;
+    return {
+      x: from.x + (sackAt.x - from.x) * e,
+      y: from.y + (sackAt.y - 6 - from.y) * e - Math.sin(Math.PI * t) * 6,
+    };
+  }
+  const drawGather = () => {
+    const g = gatherPos();
+    if (!g) return;
+    const { x, y } = g;
     drawGlove(ctx, x, y);
     ctx.fillStyle = '#ffd34a';
     ctx.fillRect(q(x) - 1, q(y) - 3, 2, 2);
+  };
+
+  // Giáo binh: lúc đánh giơ khiên lên che người (khiên đi theo thân đang nghiêng / nhún), giáo đâm ra phía trên khiên
+  const drawShield = () => {
+    const a = meta.arm[key];
+    if (!arm || !a.shield || ghost) return;
+    const hold = act ? actionHold(act.kind, act.t / ACTIONS[act.kind].dur) : 0;
+    const r = rowPos(a.py, meta.footY, 0, opt);
+    const x = q(dx + r.x + a.shield.raise[0] * hold);
+    const y = q(r.y - a.py + a.shield.raise[1] * hold);
+    ctx.drawImage(sheet, meta.w, (row + rows * 2) * meta.h, meta.w, meta.h, x, y, meta.w, meta.h);
+  };
+  // Tay trống nhìn ngang: ảnh gốc bị thân che mất trống nên vẽ trống đeo hông, đi theo thân; mặt trống loé khi dùi nện
+  const drawDrum = () => {
+    if (kind !== 'drum' || key !== 'left') return;
+    const c = bodyPoint(DRUM_AT);
+    const p = act ? act.t / ACTIONS.drum.dur : -1;
+    const hit = p >= 0 ? Math.max(0, 1 - Math.abs(p - ACTIONS.drum.hits[0]) / 0.12) : 0;
+    drawSideDrum(ctx, c.x + (hit > 0.5 ? 1 : 0), c.y, hit);
   };
 
   const behind = !!arm && !!meta.arm[key].behind;
@@ -603,6 +958,8 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   if (key === 'left' || key === 'up') drawSecondBlade();
   if (behind) drawArm();
   drawRows(ctx, sheet, frame * meta.w, (arm ? row + rows : row) * meta.h, meta.w, meta.h, dx, meta.footY, 0, opt);
+  drawShield();
+  drawDrum();
   if (!behind) drawArm();
   if (key === 'down') drawSecondBlade();
   drawIdleGrip();
@@ -610,6 +967,9 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   drawGather();
   ctx.restore();
 }
+
+/** Tâm trống đeo hông của tay trống khi nhìn ngang (toạ độ khung sprite light-drummer, trước bụng ngang hông). */
+const DRUM_AT: [number, number] = [14, 57];
 
 /** Vị trí túi vàng sau lưng thợ mỏ (toạ độ cục bộ quanh chân; nhìn ngang +x là phía sau lưng). */
 const SACK_AT: Record<string, { x: number; y: number }> = { left: { x: 9, y: -19 }, down: { x: 7, y: -27 }, up: { x: 0, y: -20 } };
@@ -653,7 +1013,7 @@ function drawActionFx(ctx: CanvasRenderingContext2D, camX: number, camY: number)
     // Nhìn ngang: quét từ trên đầu xuống trước mặt. Nhìn trước / sau: quét ngang nửa vòng trước mặt (kiểu Zelda)
     const sweep = fx ? ang - fx * 0.45 : ang;
     drawArc(ctx, cx, cy + (fy > 0 ? 6 : fy < 0 ? -4 : -2), fx ? 21 : 24, sweep, fx ? 1.5 : -1.5, head, head - seg(0.5, 0.78), LIGHT);
-  } else if (act.kind === 'mine' && p > 0.4 && p < 0.66) {
+  } else if ((act.kind === 'mine' || act.kind === 'build') && p > 0.4 && p < 0.66) {
     const head = seg(0.4, 0.54);
     if (fx) drawArc(ctx, cx, cy + 4, 15, ang + (fx < 0 ? -0.5 : 0.5) * Math.abs(fx), 1.1, head, head - seg(0.5, 0.66), GOLD);
     // Nhìn trước: cuốc bổ dọc bên phải người (từ trên xuống); nhìn sau: bên trái
@@ -669,6 +1029,34 @@ function drawActionFx(ctx: CanvasRenderingContext2D, camX: number, camY: number)
         ctx.fillRect(q(cx + fx * d + ox), q(cy + 2 + fy * d * 0.8 + oy), 1, 1);
       }
     }
+  } else if (act.kind === 'thrust' || act.kind === 'charge') {
+    // Giáo đâm: tia sáng thẳng phóng dài theo mũi giáo rồi tắt dần từ gốc
+    const h = ACTIONS[act.kind].hits[0];
+    if (p > h - 0.06 && p < h + 0.16) {
+      const k = (p - h + 0.06) / 0.22;
+      for (let d = 8 + k * 14; d < 14 + Math.min(1, k * 3) * 22; d++) {
+        ctx.fillStyle = d > 30 - k * 6 ? '#ffffff' : '#ffd34a';
+        ctx.fillRect(q(cx + fx * d), q(cy + (fx ? 0 : 2) + fy * d * 0.8), 1, 1);
+      }
+    }
+  } else if ((act.kind === 'cast' || act.kind === 'heal') && p > 0.12 && p < ACTIONS[act.kind].hits[0]) {
+    // Tụ sáng trước mặt: các hạt sáng hút vào một điểm, điểm sáng lớn dần tới lúc phóng
+    const k = (p - 0.12) / (ACTIONS[act.kind].hits[0] - 0.12);
+    // Tụ ở đầu gậy (vị trí thật lúc vẽ nhân vật), không thì trước mặt
+    const tip = staffTip ?? { x: hero.x + fx * 12, y: hero.y + fy * 4, z: ORB_Z };
+    const gx = tip.x - camX;
+    const gy = tip.y - tip.z - camY;
+    for (let i = 0; i < 6; i++) {
+      const a = clock * 6 + (i * Math.PI) / 3;
+      const d = 12 * (1 - k);
+      ctx.fillStyle = i % 2 ? '#ffffff' : '#ffd34a';
+      ctx.fillRect(q(gx + Math.cos(a) * d), q(gy + Math.sin(a) * d * 0.7), 1, 1);
+    }
+    const r = Math.round(k * 3);
+    ctx.fillStyle = '#ffd34a';
+    ctx.fillRect(q(gx) - r, q(gy) - r, r * 2 + 1, r * 2 + 1);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(q(gx) - 1, q(gy) - 1, 3, 3);
   } else if (act.kind === 'shoot' && p > 0.3 && p < ACTIONS.shoot.hits[0]) {
     // Ánh sáng tụ ở đầu mũi tên trên dây cung
     const r = Math.round(1 + p * 4);
@@ -679,6 +1067,91 @@ function drawActionFx(ctx: CanvasRenderingContext2D, camX: number, camY: number)
     ctx.fillRect(gx, gy - r, 1, r * 2 + 1);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(gx - 1, gy - 1, 3, 3);
+  }
+}
+
+/** Sóng trống: vòng elip (mặt đất nhìn nghiêng) nở rộng và mờ dần, viền trắng ở mép trước. */
+function drawWaves(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  for (const w of waves) {
+    const k = w.t / WAVE_DUR;
+    const r = 6 + (w.r - 6) * (1 - (1 - k) * (1 - k));
+    const n = Math.ceil(r * 2.2);
+    ctx.globalAlpha = 1 - k;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      ctx.fillStyle = Math.sin(a) > 0.3 ? '#ffffff' : i % 3 ? '#ffd34a' : '#fff3a8';
+      ctx.fillRect(q(w.x - camX + Math.cos(a) * r), q(w.y - camY - 2 + Math.sin(a) * r * 0.45), 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Vòng hồi máu: elip thánh quang nở quanh chân rồi mờ dần, các dấu thập sáng trên vòng bay dần lên. */
+function drawHeals(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  for (const h of heals) {
+    const k = h.t / HEAL_DUR;
+    const r = 8 + (HEAL_R - 8) * (1 - (1 - k) * (1 - k));
+    const n = Math.ceil(r * 2.2);
+    ctx.globalAlpha = 1 - k * k;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      ctx.fillStyle = i % 4 ? '#fff3a8' : '#ffffff';
+      ctx.fillRect(q(h.x - camX + Math.cos(a) * r), q(h.y - camY - 1 + Math.sin(a) * r * 0.45), 1, 1);
+    }
+    // 6 dấu thập sáng trên vòng, bay lên theo thời gian
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + 0.4;
+      const x = q(h.x - camX + Math.cos(a) * r * 0.8);
+      const y = q(h.y - camY - 1 + Math.sin(a) * r * 0.36 - k * (18 + (i % 3) * 6));
+      ctx.fillStyle = '#ffd34a';
+      ctx.fillRect(x - 1, y, 3, 1);
+      ctx.fillRect(x, y - 1, 1, 3);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** Cầu ánh sáng: lõi trắng, vành vàng, quầng mờ nhấp nháy; bóng nhỏ dưới đất. */
+/** Quả cầu máy phóng: cầu vàng sáng có viền, bóng dưới đất nhỏ dần theo độ cao. */
+function drawShots(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  for (const s of shots) {
+    const x = q(s.x - camX);
+    const gy = q(s.y - camY);
+    const y = q(s.y - s.z - camY);
+    const sw = Math.max(2, 5 - Math.round(s.z / 20));
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.fillRect(x - sw, gy - 1, sw * 2 + 1, 2);
+    ctx.fillStyle = '#120c06';
+    ctx.fillRect(x - 3, y - 4, 7, 9);
+    ctx.fillRect(x - 4, y - 3, 9, 7);
+    ctx.fillStyle = '#c9921e';
+    ctx.fillRect(x - 2, y - 3, 5, 7);
+    ctx.fillRect(x - 3, y - 2, 7, 5);
+    ctx.fillStyle = '#ffd34a';
+    ctx.fillRect(x - 2, y - 2, 4, 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - 1, y - 2, 2, 2);
+  }
+}
+
+function drawOrbs(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+  for (const o of orbs) {
+    const x = q(o.x - camX);
+    const y = q(o.y - camY);
+    const z = q(o.y - o.z - camY);
+    const r = Math.sin(clock * 30 + o.dist) > 0 ? 4 : 3;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.fillRect(x - 2, y - 1, 5, 2);
+    ctx.fillStyle = 'rgba(255, 243, 168, 0.35)';
+    ctx.fillRect(x - r - 1, z - r + 1, r * 2 + 3, r * 2 - 1);
+    ctx.fillRect(x - r + 1, z - r - 1, r * 2 - 1, r * 2 + 3);
+    ctx.fillStyle = '#ffd34a';
+    ctx.fillRect(x - 2, z - 1, 5, 3);
+    ctx.fillRect(x - 1, z - 2, 3, 5);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - 1, z - 1, 3, 3);
   }
 }
 
@@ -782,6 +1255,10 @@ function render(dt: number): void {
   if (!heroDrawn) drawHero();
 
   drawArrows(ctx, camX, camY);
+  drawOrbs(ctx, camX, camY);
+  drawShots(ctx, camX, camY);
+  drawWaves(ctx, camX, camY);
+  drawHeals(ctx, camX, camY);
   drawActionFx(ctx, camX, camY);
   drawLoot(ctx, camX, camY);
   drawParticles(ctx, particles, camX, camY);
@@ -845,7 +1322,13 @@ onMounted(async () => {
         await sheet.decode();
         if (sheet.width !== meta.w * meta.frames || sheet.height !== meta.h * meta.rows.length * LAYERS)
           throw new Error(`${id}.png không khớp json`);
-        sprites.set(id, { meta, sheet });
+        let anim: HTMLImageElement | undefined;
+        if (meta.anim) {
+          anim = new Image();
+          anim.src = `${base}-anim.png`;
+          await anim.decode();
+        }
+        sprites.set(id, { meta, sheet, anim });
       }),
     );
     village = buildVillage();

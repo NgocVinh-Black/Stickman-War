@@ -21,7 +21,9 @@
         [10, 33],
         [2, 46]
       ],
-      "hand2": [13, 33]
+      "hand2": [13, 33],
+      "shoulder1": [17, 26],
+      "shoulder2": [29, 25]
     },
     "up": {
       "cx": 41.1,
@@ -56,8 +58,22 @@
         [14, 32],
         [3, 45]
       ],
-      "hand2": [18, 31]
+      "hand2": [18, 31],
+      "shoulder1": [20, 26],
+      "shoulder2": [24, 25]
     }
   },
-  "cape": { "down": [{ "cut": 35, "top": 23, "bottom": 44 }], "up": null, "left": [{ "cut": 31, "top": 21, "bottom": 46 }] }
+  "cape": { "down": [{ "cut": 35, "top": 23, "bottom": 44 }], "up": null, "left": [{ "cut": 31, "top": 21, "bottom": 46 }] },
+  "anim": {
+    "slash": {
+      "w": 90,
+      "h": 52,
+      "frames": 6,
+      "footX": 50,
+      "footY": 50,
+      "y": 0,
+      "rows": ["down", "up", "left"],
+      "times": [0, 0.14, 0.3, 0.46, 0.6, 0.8]
+    }
+  }
 }
