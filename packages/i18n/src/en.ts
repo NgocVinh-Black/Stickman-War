@@ -464,6 +464,18 @@ export const en: Dict = {
     and: 'and',
     privacy: 'Privacy Policy',
   },
+  worldDemo: {
+    title: '🗺️ 2D pixel world demo',
+    back: '← Back to lobby',
+    hint: 'Arrow keys or W A S D to walk, hold Shift to run, Space or J to act: the miner digs at the gold mine right of the plaza, soldiers hit the dummies below it. On phones use the buttons below.',
+    zoom: 'Pixel size',
+    hero: 'Hero',
+    heroMiner: 'Miner',
+    heroWarrior: 'Warrior',
+    heroArcher: 'Archer',
+    heroAssassin: 'Assassin',
+    gold: 'Gold',
+  },
   guide: {
     basics: '📖 How to play',
     civs: '🏳️ Civilizations & units',

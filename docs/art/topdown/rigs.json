@@ -1,0 +1,194 @@
+{
+  "_doc": "Khung xương cho build_topdown_sprite.py. Toạ độ tính trong ô đã cắt của từng góc nhìn (in bằng lưới pixel gốc). legTop: hàng đầu tiên của chân; legs: 2 khoảng cột [x0, x1] của 2 chân; arm: các hình chữ nhật [x0, y0, x1, y1] gồm vũ khí + bàn tay (tách thành lớp riêng để xoay); pivot: điểm xoay (vai); aw / as: góc lấy đà / ra đòn (độ, dương = chiều kim đồng hồ trên ảnh gốc); push: độ đâm tới dọc theo vũ khí (pixel). dir (tuỳ chọn): hướng đâm tới, mặc định theo hướng vũ khí. lines (tuỳ chọn): đoạn thẳng [x0, y0, x1, y1, độ dày] thêm vào vùng tay (cán cuốc). cape (tuỳ chọn): [hàng đầu, hàng cuối] của vạt áo choàng nằm ngoài mép chân phải (bay phất phới); null = không có. grid: khoảng cỡ ô pixel (điểm ảnh) để dò lưới; trim: bỏ n hàng đáy; sideFacing: \"right\" nếu ô SIDE quay phải (sẽ lật); tool: ghép cuốc của ô SIDE sang ô này {rot: số lần xoay 90° như np.rot90, flipX, at: điểm bàn tay}. aimShift: dời cung vào giữa người khi ngắm [dx, dy]; behind: vẽ tay vũ khí sau thân lúc đánh. hand2: điểm bàn tay thứ hai nắm trên vũ khí (kiếm 2 tay).",
+  "light-miner": {
+    "down": {
+      "legTop": 41,
+      "legs": [
+        [8, 16],
+        [19, 26]
+      ],
+      "arm": [
+        [27, 10, 37, 27],
+        [0, 21, 7, 27]
+      ],
+      "pivot": [4, 24],
+      "aw": -75,
+      "as": 105,
+      "push": 0,
+      "lines": [[4, 24, 28, 14, 2]],
+      "cape": [28, 41]
+    },
+    "up": {
+      "legTop": 42,
+      "legs": [
+        [11, 18],
+        [23, 30]
+      ],
+      "arm": [[0, 11, 8, 28]],
+      "pivot": [12, 18],
+      "aw": 91,
+      "as": -89,
+      "push": 0,
+      "cape": null,
+      "behind": true,
+      "aimShift": [6, -18]
+    },
+    "left": {
+      "legTop": 39,
+      "legs": [
+        [8, 13],
+        [14, 19]
+      ],
+      "arm": [
+        [24, 4, 34, 23],
+        [0, 21, 4, 26]
+      ],
+      "pivot": [2, 24],
+      "aw": -50,
+      "as": -213,
+      "push": 0,
+      "lines": [[2, 24, 24, 14, 2]],
+      "cape": [24, 41]
+    }
+  },
+  "light-warrior": {
+    "down": {
+      "legTop": 41,
+      "legs": [
+        [11, 19],
+        [24, 32]
+      ],
+      "arm": [
+        [0, 31, 11, 39],
+        [0, 40, 7, 44]
+      ],
+      "pivot": [13, 29],
+      "aw": 83,
+      "as": -97,
+      "push": 0,
+      "cape": [21, 42],
+      "hand2": [11, 31]
+    },
+    "up": {
+      "legTop": 42,
+      "legs": [
+        [9, 17],
+        [20, 28]
+      ],
+      "arm": [[30, 34, 40, 44]],
+      "pivot": [27, 30],
+      "aw": -48,
+      "as": -228,
+      "push": 0,
+      "cape": null,
+      "behind": true,
+      "aimShift": [-4, -22],
+      "hand2": [30, 33]
+    },
+    "left": {
+      "legTop": 40,
+      "legs": [
+        [15, 21],
+        [22, 27]
+      ],
+      "arm": [[0, 30, 14, 43]],
+      "pivot": [16, 27],
+      "aw": 150,
+      "as": -15,
+      "push": 0,
+      "cape": [19, 44],
+      "hand2": [15, 29]
+    }
+  },
+  "light-archer": {
+    "down": {
+      "legTop": 40,
+      "legs": [
+        [5, 12],
+        [16, 24]
+      ],
+      "arm": [[0, 14, 7, 38]],
+      "pivot": [9, 21],
+      "aw": 4,
+      "as": 2,
+      "push": 5,
+      "dir": [0, -1],
+      "cape": [22, 40],
+      "aimShift": [6, 4]
+    },
+    "up": {
+      "legTop": 40,
+      "legs": [
+        [8, 14],
+        [18, 26]
+      ],
+      "arm": [[0, 13, 7, 38]],
+      "pivot": [9, 20],
+      "aw": 4,
+      "as": 2,
+      "push": 5,
+      "dir": [0, -1],
+      "cape": null,
+      "aimShift": [12, -12],
+      "behind": true
+    },
+    "left": {
+      "legTop": 38,
+      "legs": [
+        [9, 14],
+        [15, 21]
+      ],
+      "arm": [[0, 11, 8, 37]],
+      "pivot": [10, 20],
+      "aw": 6,
+      "as": 4,
+      "push": 5,
+      "dir": [0, -1],
+      "cape": [22, 40]
+    }
+  },
+  "light-assassin": {
+    "down": {
+      "legTop": 30,
+      "legs": [
+        [8, 14],
+        [15, 25]
+      ],
+      "arm": [[0, 22, 7, 36]],
+      "pivot": [9, 21],
+      "aw": 72,
+      "as": -38,
+      "push": 5,
+      "cape": [15, 31]
+    },
+    "up": {
+      "legTop": 31,
+      "legs": [
+        [6, 12],
+        [14, 21]
+      ],
+      "arm": [[0, 23, 5, 36]],
+      "pivot": [7, 20],
+      "aw": 40,
+      "as": 151,
+      "push": 5,
+      "cape": null,
+      "behind": true,
+      "aimShift": [4, -16]
+    },
+    "left": {
+      "legTop": 30,
+      "legs": [
+        [9, 18],
+        [20, 26]
+      ],
+      "arm": [[0, 24, 8, 36]],
+      "pivot": [12, 21],
+      "aw": -25,
+      "as": 40,
+      "push": 4,
+      "dir": [-1, 0.15],
+      "cape": [10, 31]
+    }
+  }
+}
