@@ -10,3 +10,7 @@ coverage
 
 # Ảnh nháp / bản gốc, không đưa lên repo
 output/
+
+# Bộ nhớ tạm của Python
+__pycache__/
+*.pyc
