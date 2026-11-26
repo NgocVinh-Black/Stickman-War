@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '@stickman-war/i18n';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   ACTIONS,
   actionPose,
@@ -151,24 +151,29 @@ interface Ghost {
   life: number;
 }
 
-/** Nhân vật chọn được: tên file trong public/art/topdown, khoá i18n tên, kiểu hành động */
+/**
+ * Nhân vật chọn được: đường dẫn <hệ>/<lính> trong public/art/topdown, khoá i18n tên, kiểu hành động; tag: nhãn bản vẽ
+ * khi đang so nhiều bản của cùng một lính (thợ mỏ: v1 = bản đang làm lại, v2 = dải vẽ sẵn đứng yên / đi / chạy)
+ */
 const HEROES = [
-  { id: 'light-miner', name: 'worldDemo.heroMiner', action: 'mine' },
-  { id: 'light-warrior', name: 'worldDemo.heroWarrior', action: 'slash' },
-  { id: 'light-archer', name: 'worldDemo.heroArcher', action: 'shoot' },
-  { id: 'light-assassin', name: 'worldDemo.heroAssassin', action: 'stab' },
-  { id: 'light-spearton', name: 'worldDemo.heroSpearton', action: 'thrust' },
-  { id: 'light-cavalry', name: 'worldDemo.heroCavalry', action: 'charge' },
-  { id: 'light-mage', name: 'worldDemo.heroMage', action: 'cast' },
-  { id: 'light-drummer', name: 'worldDemo.heroDrummer', action: 'drum' },
-  { id: 'light-healer', name: 'worldDemo.heroHealer', action: 'heal' },
-  { id: 'light-giant', name: 'worldDemo.heroGiant', action: 'smash' },
-  { id: 'light-catapult', name: 'worldDemo.heroCatapult', action: 'launch' },
-  { id: 'light-builder', name: 'worldDemo.heroBuilder', action: 'build' },
+  { id: 'light/miner-v1', name: 'worldDemo.heroMiner', action: 'mine', tag: 'v1' },
+  { id: 'light/miner-v2', name: 'worldDemo.heroMiner', action: 'mine', tag: 'v2' },
+  { id: 'light/warrior', name: 'worldDemo.heroWarrior', action: 'slash' },
+  { id: 'light/archer', name: 'worldDemo.heroArcher', action: 'shoot' },
+  { id: 'light/assassin', name: 'worldDemo.heroAssassin', action: 'stab' },
+  { id: 'light/spearton', name: 'worldDemo.heroSpearton', action: 'thrust' },
+  { id: 'light/cavalry', name: 'worldDemo.heroCavalry', action: 'charge' },
+  { id: 'light/mage', name: 'worldDemo.heroMage', action: 'cast' },
+  { id: 'light/drummer', name: 'worldDemo.heroDrummer', action: 'drum' },
+  { id: 'light/healer', name: 'worldDemo.heroHealer', action: 'heal' },
+  { id: 'light/giant', name: 'worldDemo.heroGiant', action: 'smash' },
+  { id: 'light/catapult', name: 'worldDemo.heroCatapult', action: 'launch' },
+  { id: 'light/builder', name: 'worldDemo.heroBuilder', action: 'build' },
 ] as const;
 type HeroId = (typeof HEROES)[number]['id'];
 
 const SPEED = 72; // px / giây
+const RUN = 1.7; // giữ Shift: nhanh gấp RUN lần
 const ARM_REACH = 8; // độ dài cánh tay duỗi (vai → bàn tay) lúc vung vũ khí, pixel nghệ thuật
 const ARROW_Z = 26; // độ cao mũi tên lúc rời dây = ngang tầm cung lúc nâng lên ngắm
 const ARROW_VH = 210; // tốc độ ngang của mũi tên (px/s)
@@ -207,7 +212,9 @@ const failed = ref(false);
 const gold = ref(0);
 const held = new Set<string>();
 const sprites = new Map<HeroId, Sprite>();
-const heroId = ref<HeroId>('light-miner');
+const heroId = ref<HeroId>('light/miner-v1');
+/** Nhân vật có dải khung kỹ năng vẽ sẵn (anim.skill): bấm K / nút ✦ để tung kỹ năng. */
+const skillHeroes = ref(new Set<HeroId>());
 
 let village: Village | null = null;
 let raf = 0;
@@ -223,7 +230,7 @@ let gatherAt = -1e9; // lúc thợ mỏ đào ra vàng: tay kia nhặt vàng b�
 const loot: { sx: number; sy: number; t: number }[] = [];
 const LOOT_DUR = 0.55;
 const cam = { x: -1, y: -1 };
-const hero = { x: 0, y: 0, dir: 'down' as Dir, moving: false };
+const hero = { x: 0, y: 0, dir: 'down' as Dir, moving: false, running: false };
 let act: { kind: ActionKind; t: number; done: number; aimVz: number } | null = null;
 const particles: Particle[] = [];
 const floaters: Floater[] = [];
@@ -250,14 +257,17 @@ const KEYS: Record<string, Dir> = {
   KeyD: 'right',
 };
 const ACT_KEYS = new Set(['Space', 'KeyJ', 'Enter']);
-/** Nút cảm ứng: 4 hướng + hành động */
-const PAD: Record<string, string> = { up: '▲', left: '◀', down: '▼', right: '▶', act: '⚔' };
+const SKILL_KEYS = new Set(['KeyK']);
+/** Nút cảm ứng: 4 hướng + hành động + kỹ năng (chỉ nhân vật có anim.skill) */
+const PAD: Record<string, string> = { up: '▲', left: '◀', down: '▼', right: '▶', act: '⚔', skill: '✦' };
+const padKeys = computed(() => Object.keys(PAD).filter((k) => k !== 'skill' || skillHeroes.value.has(heroId.value)));
 const pressed = (d: Dir) => [...held].some((k) => KEYS[k] === d || k === `pad-${d}`);
 const acting = () => [...ACT_KEYS].some((k) => held.has(k)) || held.has('pad-act');
+const skilling = () => skillHeroes.value.has(heroId.value) && ([...SKILL_KEYS].some((k) => held.has(k)) || held.has('pad-skill'));
 const heroAction = (): ActionKind => HEROES.find((h) => h.id === heroId.value)!.action;
 
 function onKey(e: KeyboardEvent, down: boolean): void {
-  if (KEYS[e.code] || ACT_KEYS.has(e.code) || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+  if (KEYS[e.code] || ACT_KEYS.has(e.code) || SKILL_KEYS.has(e.code) || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
     e.preventDefault();
     if (down) held.add(e.code);
     else held.delete(e.code);
@@ -369,6 +379,14 @@ function fire(kind: ActionKind): void {
     burst(particles, hero.x + fx * 6, hero.y + fy * 3, 14, 6, LIGHT, 40, 70, 0);
     return;
   }
+  if (kind === 'skill') {
+    // Phúc lành (thợ mỏ Quang): bùng thánh quang quanh người, vòng sáng nở ra, hồi máu
+    heals.push({ x: hero.x, y: hero.y, t: 0 });
+    burst(particles, hero.x, hero.y, 18, 16, LIGHT, 60, 40, 0);
+    floaters.push({ x: hero.x, y: hero.y - 56, text: '+50%', color: '#b8ff7a', t: 0 });
+    shake = Math.max(shake, 1.5);
+    return;
+  }
   if (kind === 'heal') {
     // Toả thánh quang: vòng hồi máu nở quanh người, dấu thập sáng bay lên, số máu hồi hiện trên đầu
     const tip = staffTip ?? { x: hero.x, y: hero.y, z: ORB_Z };
@@ -465,6 +483,7 @@ function update(dt: number): void {
     freeze -= dt;
     return;
   }
+  if (!act && skilling()) act = { kind: 'skill', t: 0, done: 0, aimVz: 0 };
   if (!act && acting()) act = { kind: heroAction(), t: 0, done: 0, aimVz: heroAction() === 'shoot' ? aimLob() : 0 };
   if (act) {
     hero.moving = false;
@@ -503,6 +522,7 @@ function update(dt: number): void {
   let dx = (pressed('right') ? 1 : 0) - (pressed('left') ? 1 : 0);
   let dy = (pressed('down') ? 1 : 0) - (pressed('up') ? 1 : 0);
   hero.moving = dx !== 0 || dy !== 0;
+  hero.running = hero.moving && (held.has('ShiftLeft') || held.has('ShiftRight'));
   if (!hero.moving) {
     // Đứng yên: hạt sáng hệ Ánh sáng bay lên quanh người
     moteT -= dt;
@@ -527,7 +547,7 @@ function update(dt: number): void {
   if (dx) hero.dir = dx > 0 ? 'right' : 'left';
   else hero.dir = dy > 0 ? 'down' : 'up';
   const len = Math.hypot(dx, dy);
-  const run = held.has('ShiftLeft') || held.has('ShiftRight') ? 1.7 : 1;
+  const run = hero.running ? RUN : 1;
   dx = (dx / len) * SPEED * run * dt;
   dy = (dy / len) * SPEED * run * dt;
   // Đi từng trục để trượt dọc tường thay vì dính cứng
@@ -706,15 +726,20 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   // Dải khung vẽ sẵn: đòn đánh (theo mốc tiến độ) hoặc chạy (walk, lặp theo fps) cho hướng này, nếu có
   let animDraw: { a: AnimMeta; f: number; r: number } | null = null;
   if (sp.anim && meta.anim) {
-    // Đánh: dải của đòn đó; chạy: walk; đứng yên: idle (thở lặp theo đồng hồ)
-    const aa = act && !ghost ? meta.anim[act.kind] : hero.moving || ghost ? meta.anim.walk : meta.anim.idle;
+    // Đánh: dải của đòn đó; đi: walk, giữ Shift: run (nếu có); đứng yên: idle (thở lặp theo đồng hồ)
+    const runA = hero.running && !ghost ? meta.anim.run : undefined;
+    const aa = act && !ghost ? (meta.anim[act.kind] ?? meta.anim.attack) : runA || (hero.moving || ghost ? meta.anim.walk : meta.anim.idle);
     const r = aa ? aa.rows.indexOf(key) : -1;
     if (aa && r >= 0) {
       let f = 0;
       if (act && !ghost && aa.times) {
         const p = act.t / ACTIONS[act.kind].dur;
         while (f + 1 < aa.frames && p >= aa.times[f + 1]) f++;
-      } else if (!ghost) f = Math.floor((hero.moving ? walkT : clock) * (aa.fps ?? 10)) % aa.frames;
+      } else if (!ghost) {
+        // walkT chạy nhanh gấp RUN lần lúc giữ Shift; dải run đã vẽ nhịp nhanh (fps riêng) nên chia lại
+        const t = hero.moving ? (aa === runA ? walkT / RUN : walkT) : clock;
+        f = Math.floor(t * (aa.fps ?? 10)) % aa.frames;
+      }
       animDraw = { a: aa, f, r };
       lunge = 0; // khung vẽ sẵn đã có chuyển động
     }
@@ -911,7 +936,8 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   };
   // Thợ mỏ: túi vàng vác sau lưng (phồng theo số vàng) + tay kia nhặt vàng bỏ vào túi
   const sackAt = SACK_AT[key];
-  const sackR = kind === 'mine' && gold.value > 0 && !ghost ? Math.min(8, 2.5 + Math.sqrt(gold.value) * 0.9) * (1 + sackPulse * 1.2) : 0;
+  // Túi luôn đeo sau lưng (rỗng thì xẹp nhỏ), càng nhiều vàng càng phồng
+  const sackR = kind === 'mine' && !ghost ? Math.min(9, 4.5 + Math.sqrt(gold.value) * 0.8) * (1 + sackPulse * 1.2) : 0;
   /** Chỗ bàn tay nhặt vàng của thợ mỏ lúc này (null: không nhặt). */
   function gatherPos(): { x: number; y: number } | null {
     if (kind !== 'mine' || ghost) return null;
@@ -954,7 +980,7 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   };
 
   const behind = !!arm && !!meta.arm[key].behind;
-  if (sackR && key !== 'up') drawSack(ctx, sackAt.x, sackAt.y, sackR);
+  if (sackR && key !== 'up') drawSack(ctx, sackAt.x, sackAt.y, sackR, gold.value > 0);
   if (key === 'left' || key === 'up') drawSecondBlade();
   if (behind) drawArm();
   drawRows(ctx, sheet, frame * meta.w, (arm ? row + rows : row) * meta.h, meta.w, meta.h, dx, meta.footY, 0, opt);
@@ -963,16 +989,16 @@ function drawHeroAt(ctx: CanvasRenderingContext2D, camX: number, camY: number, h
   if (!behind) drawArm();
   if (key === 'down') drawSecondBlade();
   drawIdleGrip();
-  if (sackR && key === 'up') drawSack(ctx, sackAt.x, sackAt.y, sackR);
+  if (sackR && key === 'up') drawSack(ctx, sackAt.x, sackAt.y, sackR, gold.value > 0);
   drawGather();
   ctx.restore();
 }
 
-/** Tâm trống đeo hông của tay trống khi nhìn ngang (toạ độ khung sprite light-drummer, trước bụng ngang hông). */
+/** Tâm trống đeo hông của tay trống khi nhìn ngang (toạ độ khung sprite light/drummer, trước bụng ngang hông). */
 const DRUM_AT: [number, number] = [14, 57];
 
 /** Vị trí túi vàng sau lưng thợ mỏ (toạ độ cục bộ quanh chân; nhìn ngang +x là phía sau lưng). */
-const SACK_AT: Record<string, { x: number; y: number }> = { left: { x: 9, y: -19 }, down: { x: 7, y: -27 }, up: { x: 0, y: -20 } };
+const SACK_AT: Record<string, { x: number; y: number }> = { left: { x: 9, y: -19 }, down: { x: -12, y: -30 }, up: { x: 0, y: -20 } };
 
 /** Vàng bay từ chỗ đào theo đường vòng vào miệng túi sau lưng (túi đi theo người). */
 function drawLoot(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
@@ -1329,6 +1355,7 @@ onMounted(async () => {
           await anim.decode();
         }
         sprites.set(id, { meta, sheet, anim });
+        if (meta.anim?.skill) skillHeroes.value = new Set([...skillHeroes.value, id]);
       }),
     );
     village = buildVillage();
@@ -1363,7 +1390,7 @@ onBeforeUnmount(() => {
     <div class="world-zoom">
       <span class="muted">{{ t('worldDemo.hero') }}</span>
       <button v-for="h in HEROES" :key="h.id" class="btn" :class="heroId === h.id ? 'btn-primary' : 'btn-ghost'" @click="pickHero(h.id)">
-        {{ t(h.name) }}
+        {{ t(h.name) + ('tag' in h ? ` ${h.tag}` : '') }}
       </button>
       <span class="world-zoom-gap" />
       <span class="world-gold">🪙 {{ t('worldDemo.gold') }}: {{ gold }}</span>
@@ -1376,7 +1403,7 @@ onBeforeUnmount(() => {
     <p class="muted world-hint">{{ t('worldDemo.hint') }}</p>
     <div class="world-pad">
       <button
-        v-for="d in Object.keys(PAD)"
+        v-for="d in padKeys"
         :key="d"
         class="world-pad-btn"
         :class="`world-pad-${d}`"

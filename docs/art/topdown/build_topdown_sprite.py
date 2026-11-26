@@ -3,27 +3,31 @@
 
 Hướng: xuống = FRONT, lên = BACK, trái = SIDE (ảnh quay mặt sang trái), phải = SIDE lật gương lúc vẽ.
 
+Mỗi nền văn minh một thư mục: ảnh gốc + rigs.json ở docs/art/topdown/<hệ>/, sprite ra apps/web/public/art/topdown/<hệ>/.
+Tên lính bỏ tiền tố hệ (thư mục đã là hệ): <lính>-views.png -> <lính>.png / <lính>.json / <lính>-anim.png.
+
 Chạy (Python 3 + Pillow + NumPy):
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-miner-views.png apps/web/public/art/topdown light-miner
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-warrior-views.png apps/web/public/art/topdown light-warrior
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-archer-views.png apps/web/public/art/topdown light-archer
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-assassin-views.png apps/web/public/art/topdown light-assassin
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-spearton-views.png apps/web/public/art/topdown light-spearton
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-cavalry-views.png apps/web/public/art/topdown light-cavalry
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-healer-views.png apps/web/public/art/topdown light-healer
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-mage-views.png apps/web/public/art/topdown light-mage
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-drummer-views.png apps/web/public/art/topdown light-drummer
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-giant-views.png apps/web/public/art/topdown light-giant
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-catapult-views.png apps/web/public/art/topdown light-catapult
-  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light-builder-views.png apps/web/public/art/topdown light-builder
+  python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/<hệ>/<lính>-views.png apps/web/public/art/topdown/<hệ> <lính>
+  vd. python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light/miner-views.png apps/web/public/art/topdown/light miner
+Dựng lại cả hệ Quang:
+  for u in miner warrior archer assassin spearton cavalry healer mage drummer giant catapult builder; do
+    python3 docs/art/topdown/build_topdown_sprite.py docs/art/topdown/light/$u-views.png apps/web/public/art/topdown/light $u
+  done
 
-rig "anim" = dải khung đòn đánh vẽ sẵn cho từng hướng (xem build_anim; như light-giant: nện chuỳ).
-rig "sample": "median" = thu nhỏ theo trung vị từng ô (ảnh vẽ to hơn cỡ lính khác, như light-mage).
+rig "anim" = dải khung đòn đánh vẽ sẵn cho từng hướng (xem build_anim; như light/giant: nện chuỳ).
+rig "sample": "median" = thu nhỏ theo trung vị từng ô (ảnh vẽ to hơn cỡ lính khác, như light/mage).
 
-Ảnh nền trắng phẳng hoặc PNG nền trong suốt đều được (ảnh có nền ô caro vẽ sẵn — như light-cavalry — phải bỏ nền
+Ảnh nền trắng phẳng hoặc PNG nền trong suốt đều được (ảnh có nền ô caro vẽ sẵn — như light/cavalry — phải bỏ nền
 thành trong suốt trước: loang từ mép qua các điểm xám ít bão hoà).
 
-Khung xương từng nhân vật (chân, tay cầm vũ khí, điểm xoay, góc vung) khai ở rigs.json cùng thư mục.
+Ảnh vào là bảng 4 mặt một hàng (<lính>-views.png). Đứng yên / đi / chạy: <lính>-idle|walk|run.png (3 hàng ngang /
+trước / sau; 6 khung mỗi hàng).
+Các dải vẽ sẵn khác theo docs/art/prompts/ — mỗi hướng một ảnh
+<lính>-<idle|walk|run|attack|skill>-<side|front|back>.png cùng thư mục — được tự nhận thành anim.<kiểu> (đủ 3 hướng mới
+nhận; rigs.json đã khai kiểu đó thì theo rig). Ảnh gộp 4 hàng kiểu cũ (4 mặt + đứng yên) vẫn được tự tách.
+
+Khung xương từng nhân vật (chân, tay cầm vũ khí, điểm xoay, góc vung) khai ở rigs.json cùng thư mục với ảnh gốc
+(docs/art/topdown/<hệ>/rigs.json), khoá = tên lính.
 
 Ra: <tên>.png gồm 9 hàng, mỗi hàng 4 khung cùng cỡ:
   0-2  đi bộ: xuống, lên, trái
@@ -99,8 +103,32 @@ def median_cells(rgba: np.ndarray, px: float, ph: float) -> np.ndarray:
     return out
 
 
-def load_views(path: str, grid=(9.0, 12.0), median=False):
+def split_sheet(path: str):
+    """Ảnh gộp 4 hàng (prompt 1-dung-yen.md): hàng 1 = bảng 4 mặt, hàng 2-4 = đứng yên ngang / trước / sau × 4 khung.
+    Trả về (ảnh bảng 4 mặt, ảnh đứng yên 3 hàng hoặc None). Ảnh chỉ có một hàng 4 mặt (bản cũ) thì trả nguyên ảnh."""
     rgba = np.array(Image.open(path).convert('RGBA'))
+    mask = rgba.copy()
+    if (rgba[..., 3] == 0).mean() <= 0.2:  # nền trắng phẳng: coi điểm gần trắng là nền
+        mask[..., 3] = np.where(rgba[..., :3].min(-1) > 235, 0, 255)
+    rows = np.nonzero((mask[..., 3] > 0).any(1))[0]
+    runs, st, p = [], rows[0], rows[0]
+    for r in rows[1:]:
+        if r > p + 1:
+            runs.append([st, p])
+            st = r
+        p = r
+    runs.append([st, p])
+    # Hàng thật = cụm cao ≥ 10% ảnh (bỏ hạt rời, vệt nền); ảnh gộp có đủ 4 hàng như vậy
+    h = rgba.shape[0]
+    runs = [r for r in runs if r[1] - r[0] >= h * 0.1]
+    if len(runs) < 4:  # bảng 4 mặt riêng (bản cũ, một hàng)
+        return rgba, None
+    cut = (runs[0][1] + runs[1][0]) // 2  # giữa khe hàng 1 và hàng 2
+    return rgba[:cut], rgba[cut:]
+
+
+def load_views(path, grid=(9.0, 12.0), median=False):
+    rgba = path if isinstance(path, np.ndarray) else np.array(Image.open(path).convert('RGBA'))
     alpha = rgba[..., 3]
     transparent = (alpha == 0).mean() > 0.2  # ảnh nền trong suốt: dùng thẳng kênh alpha, không loang nền
     # Dò lưới trên ảnh đã ghép lên nền trắng (viền đen nổi rõ)
@@ -531,6 +559,40 @@ def drop_specks(s: np.ndarray, small: int = 60) -> np.ndarray:
     return s
 
 
+def load_strip(path: Path) -> np.ndarray:
+    """Dải khung một hướng; ảnh nền phẳng (trắng / màu) thì bỏ nền thành trong suốt."""
+    rgba = np.array(Image.open(path).convert('RGBA'))
+    if (rgba[..., 3] == 0).mean() <= 0.2:
+        rgba = remove_bg(rgba[..., :3])
+    return rgba
+
+
+# Dải vẽ sẵn tách theo hướng (prompt docs/art/prompts/: mỗi hướng một ảnh): <lính>-<kiểu>-side|front|back.png
+STRIPS = {'idle': (6, 5), 'walk': (6, 10), 'run': (6, 14), 'attack': (6, 12), 'skill': (6, 10)}
+STRIP_DIRS = {'left': 'side', 'down': 'front', 'up': 'back'}
+
+
+def find_strips(src_dir: Path, name: str, anim_cfg: dict) -> dict:
+    """Thêm vào anim mọi kiểu có đủ dải ảnh từng hướng mà rigs.json chưa chỉ ảnh (khoá khác của rig như fps vẫn giữ)."""
+    for kind, (frames, fps) in STRIPS.items():
+        old = anim_cfg.get(kind, {})
+        whole = f'{name}-{kind}.png'
+        if (src_dir / whole).exists() and not {'sheet', 'views', '_img'} & set(old):
+            # Một ảnh 3 hàng (ngang / trước / sau): đứng yên, đi, chạy theo docs/art/prompts/
+            anim_cfg[kind] = {'frames': frames, 'fps': fps, 'order': ['left', 'down', 'up'], **old, 'sheet': whole}
+            continue
+        files = {k: f'{name}-{kind}-{v}.png' for k, v in STRIP_DIRS.items()}
+        have = {k: f for k, f in files.items() if (src_dir / f).exists()}
+        if not have or {'sheet', 'views', '_img'} & set(old):  # rig đã chỉ ảnh riêng: theo rig
+            continue
+        if len(have) < len(files):
+            print(f'bỏ qua {kind}: thiếu {sorted(set(files.values()) - set(have.values()))}')
+            continue
+        # Giữ các khoá rig khai thêm (fps, times, refFrame…), ảnh lấy từ các dải
+        anim_cfg[kind] = {'frames': frames, 'fps': fps, **old, 'views': have}
+    return anim_cfg
+
+
 def build_anim(cfg: dict, ref_h: dict, src_dir: Path, out_dir: Path, name: str) -> dict:
     """Dải khung đòn đánh vẽ sẵn (rig "anim"): mỗi đòn {frames, times, views: {hướng: ảnh}, flip: [hướng]} — hoặc
     sheet: một ảnh gộp, mỗi hướng một hàng, order: [hướng của từng hàng, trên xuống dưới].
@@ -540,13 +602,14 @@ def build_anim(cfg: dict, ref_h: dict, src_dir: Path, out_dir: Path, name: str) 
     for kind, c in cfg.items():
         n = c['frames']
         rows = []
-        if 'sheet' in c:
-            # Một ảnh gộp nhiều hướng, mỗi hướng một hàng (order: hướng của từng hàng, trên xuống dưới)
-            whole = np.array(Image.open(src_dir / c['sheet']).convert('RGBA'))
+        if 'sheet' in c or '_img' in c:
+            # Một ảnh gộp nhiều hướng, mỗi hướng một hàng (order: hướng của từng hàng, trên xuống dưới);
+            # _img: phần đứng yên cắt từ ảnh gộp 4 hàng của chính lính
+            whole = c['_img'] if '_img' in c else load_strip(src_dir / c['sheet'])
             bands = split_frames(whole.transpose(1, 0, 2), len(c['order']))
             images = {k: b.transpose(1, 0, 2) for k, (b, _) in zip(c['order'], bands)}
         else:
-            images = {k: np.array(Image.open(src_dir / f).convert('RGBA')) for k, f in c['views'].items()}
+            images = {k: load_strip(src_dir / f) for k, f in c['views'].items()}
         dirs = [k for k in ('down', 'up', 'left') if k in images]
         for k in dirs:
             rgba = images[k].copy()
@@ -615,9 +678,11 @@ def build_anim(cfg: dict, ref_h: dict, src_dir: Path, out_dir: Path, name: str) 
 
 def main():
     out_dir, name = Path(sys.argv[2]), sys.argv[3]
-    rigs = json.loads((Path(__file__).parent / 'rigs.json').read_text())[name]
+    # rigs.json của nền văn minh nằm cạnh ảnh gốc (docs/art/topdown/<hệ>/rigs.json)
+    rigs = json.loads((Path(sys.argv[1]).parent / 'rigs.json').read_text())[name]
     # Khoảng cỡ ô pixel để dò lưới (ảnh vẽ to / nhỏ khác nhau), mặc định 9–12 điểm ảnh mỗi ô
-    front, back, side = load_views(sys.argv[1], tuple(rigs.get('grid', (9.0, 12.0))), rigs.get('sample') == 'median')
+    sheet, idle = split_sheet(sys.argv[1])
+    front, back, side = load_views(sheet, tuple(rigs.get('grid', (9.0, 12.0))), rigs.get('sample') == 'median')
     keys = ['down', 'up', 'left']
     trim = rigs.get('trim', 0)  # bỏ vài hàng đáy (vệt viền nhạt dưới đế giày)
     if trim:
@@ -625,6 +690,16 @@ def main():
     if rigs.get('sideFacing') == 'right':  # quy ước: ô SIDE quay mặt sang trái
         side = side[:, ::-1].copy()
     anim_cfg = rigs.get('anim')
+    if idle is not None:
+        # Ảnh gộp có sẵn 4 khung đứng yên: dùng luôn (rig có thể khai anim.idle để chỉnh fps / refFrame)
+        anim_cfg = dict(anim_cfg or {})
+        cfg = dict(anim_cfg.get('idle', {}))
+        cfg.setdefault('frames', 4)
+        cfg.setdefault('fps', 4)
+        cfg.setdefault('order', ['left', 'down', 'up'])
+        cfg['_img'] = idle
+        anim_cfg['idle'] = cfg
+    anim_cfg = find_strips(Path(sys.argv[1]).parent, name, dict(anim_cfg or {})) or None
     rigs = {k: dict(rigs[k]) for k in keys}
     views = {'down': front, 'up': back, 'left': side}
     src_views, src_rigs = dict(views), {k: dict(rigs[k]) for k in keys}

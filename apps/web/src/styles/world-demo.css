@@ -51,7 +51,7 @@
 .world-pad {
   display: none;
   grid-template-areas:
-    '. up . act'
+    '. up . skill'
     'left down right act';
   gap: 6px;
 }
@@ -80,7 +80,11 @@
 }
 .world-pad-act {
   grid-area: act;
-  height: auto;
+  margin-left: 14px;
+  width: 70px;
+}
+.world-pad-skill {
+  grid-area: skill;
   margin-left: 14px;
   width: 70px;
 }

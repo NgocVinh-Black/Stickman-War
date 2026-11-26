@@ -4,7 +4,7 @@
  */
 
 export type ActionKind =
-  'mine' | 'slash' | 'shoot' | 'stab' | 'thrust' | 'charge' | 'cast' | 'drum' | 'heal' | 'smash' | 'launch' | 'build';
+  'mine' | 'slash' | 'shoot' | 'stab' | 'thrust' | 'charge' | 'cast' | 'drum' | 'heal' | 'smash' | 'launch' | 'build' | 'skill';
 
 /**
  * Làm tròn toạ độ vẽ về điểm ảnh THẬT của màn hình (1/Z pixel nghệ thuật) thay vì cả ô pixel nghệ thuật: chuyển động
@@ -30,6 +30,7 @@ export const ACTIONS: Record<ActionKind, { dur: number; hits: number[] }> = {
   launch: { dur: 1, hits: [0.56] }, // máy phóng: kéo cần ra sau rồi hất quả cầu sáng bay vòng cung
   smash: { dur: 0.82, hits: [0.6] }, // khổng lồ: giơ chuỳ cao qua đầu rồi nện xuống đất
   heal: { dur: 0.7, hits: [0.5] }, // tu sĩ: giơ gậy tụ thánh quang rồi toả vòng hồi máu quanh người
+  skill: { dur: 1.3, hits: [0.42] }, // kỹ năng riêng (dải khung vẽ sẵn anim.skill): bùng sáng ở khung 4
 };
 
 export interface Pose {
@@ -59,6 +60,7 @@ const SPEC: Record<ActionKind, [number, number, Pose, Pose]> = {
   launch: [0.46, 0.56, { lean: 0, stretch: -0.02, lunge: 0 }, { lean: 1, stretch: 0.02, lunge: 0 }],
   smash: [0.48, 0.6, { lean: -4, stretch: 0.06, lunge: -2 }, { lean: 6, stretch: -0.08, lunge: 4 }],
   heal: [0.44, 0.58, { lean: -1, stretch: 0.06, lunge: 0 }, { lean: 1, stretch: 0.03, lunge: 0 }],
+  skill: [0.42, 0.6, { lean: 0, stretch: 0, lunge: 0 }, { lean: 0, stretch: 0, lunge: 0 }],
 };
 
 /** Các pha của hành động tại tiến độ p: w = lấy đà, s = ra đòn, r = thu về (đều 0..1), follow = quán tính khi thu về. */
@@ -220,6 +222,7 @@ const GLYPHS: Record<string, string> = {
   '9': '111101111001111',
   '+': '000010111010000',
   '!': '010010010000010',
+  '%': '101001010100101',
 };
 
 export function drawPixelText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string): void {
@@ -504,7 +507,7 @@ export function drawSideDrum(ctx: CanvasRenderingContext2D, x: number, y: number
   }
 }
 
-export function drawSack(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+export function drawSack(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, full = true): void {
   const cx = q(x);
   const cy = q(y);
   const rx = Math.round(r);
@@ -526,6 +529,7 @@ export function drawSack(ctx: CanvasRenderingContext2D, x: number, y: number, r:
   ctx.fillRect(cx - 2, cy - ry - 3, 5, 2);
   ctx.fillStyle = '#5a3a22';
   ctx.fillRect(cx - 1, cy - ry - 1, 3, 1);
+  if (!full) return; // túi rỗng: không có vàng ló ra
   ctx.fillStyle = '#ffd34a';
   ctx.fillRect(cx - 1, cy - ry - 3, 2, 1);
   ctx.fillStyle = '#fff3a8';

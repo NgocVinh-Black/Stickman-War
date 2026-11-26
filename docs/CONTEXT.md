@@ -95,5 +95,12 @@ rồi xoá file probe. Kết quả gần nhất (2026-11-21, máy đấu máy c�
 
 - Ảnh trong `apps/web/public` tham chiếu bằng `import.meta.env.BASE_URL + 'logo.png'` trong template, hoặc `url('/bg-desktop.webp')` trong CSS.
 - Snapshot online gửi chỉ số quân trong `UNIT_ORDER`; client và máy chủ phải cùng phiên bản.
+- Ảnh lính pixel (demo thế giới `#/world`): prompt cả 144 lính gom ở `docs/art/prompts/` — `1-dung-yen.md` (bảng 4 mặt + đứng yên),
+  `2-di-chuyen.md` (đi + chạy), `3-tan-cong.md` (đòn thường + kỹ năng theo `skills.ts`), `4-ban-do.md` (mỏ vàng, công trình từng hệ, cây, nhà…); sinh lại bằng `python3 docs/art/prompts/gen_prompts.py`.
+  Mọi chuyển động (đứng yên / đi / chạy / đòn thường / kỹ năng) gộp một ảnh 3 hàng (ngang / trước / sau) `<lính>-<kiểu>.png`
+  theo ý chủ dự án; prompt khoá hướng từng hàng + đếm mắt từng khung vì AI hay vẽ lẫn hướng (nhất là khung cuối hàng). Chạy nhanh (Shift)
+  phải bám đất, không có khung hai chân rời đất (AI vẽ thành nhảy). Script build tự nhận các ảnh này thành `anim.<kiểu>`.
+  Ảnh gốc + `rigs.json` theo hệ ở `docs/art/topdown/<hệ>/`, sprite ra `apps/web/public/art/topdown/<hệ>/` (dựng bằng
+  `docs/art/topdown/build_topdown_sprite.py`, lệnh ở đầu file).
 - `noUnusedLocals` bật ở mọi gói. pnpm 12 chặn script cài đặt: các gói được phép ở `allowBuilds` trong `pnpm-workspace.yaml`.
 - Bản sao lưu trước các đợt sửa lớn: `/home/vinh-le/Projects/nguoi-que-backup-2026-11-16.tar.gz` (ngoài repo, bản trước 2.0).

@@ -467,7 +467,7 @@ export const en: Dict = {
   worldDemo: {
     title: '🗺️ 2D pixel world demo',
     back: '← Back to lobby',
-    hint: 'Arrow keys or W A S D to walk, hold Shift to run, Space or J to act: the miner digs at the gold mine right of the plaza, soldiers hit the dummies below it. On phones use the buttons below.',
+    hint: 'Arrow keys or W A S D to walk, hold Shift to run, Space or J to act, K to use the skill (miner: Blessing): the miner digs at the gold mine right of the plaza, soldiers hit the dummies below it. On phones use the buttons below.',
     zoom: 'Pixel size',
     hero: 'Hero',
     heroMiner: 'Miner',

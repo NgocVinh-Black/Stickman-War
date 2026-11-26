@@ -463,7 +463,7 @@ export const vi = {
   worldDemo: {
     title: '🗺️ Demo thế giới pixel 2D',
     back: '← Về sảnh',
-    hint: 'Phím mũi tên hoặc W A S D để đi, giữ Shift để chạy, Space hoặc J để hành động: thợ mỏ đào ở mỏ vàng bên phải quảng trường, lính đánh hình nộm dưới quảng trường. Trên điện thoại dùng nút bên dưới.',
+    hint: 'Phím mũi tên hoặc W A S D để đi, giữ Shift để chạy, Space hoặc J để hành động, K để tung kỹ năng (thợ mỏ: Phúc lành): thợ mỏ đào ở mỏ vàng bên phải quảng trường, lính đánh hình nộm dưới quảng trường. Trên điện thoại dùng nút bên dưới.',
     zoom: 'Cỡ pixel',
     hero: 'Nhân vật',
     heroMiner: 'Thợ mỏ',

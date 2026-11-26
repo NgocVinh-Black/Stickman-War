@@ -1,79 +1,6 @@
 {
-  "_doc": "Khung xương cho build_topdown_sprite.py. Toạ độ tính trong ô đã cắt của từng góc nhìn (in bằng lưới pixel gốc). legTop: hàng đầu tiên của chân; legs: 2 khoảng cột [x0, x1] của 2 chân; arm: các hình chữ nhật [x0, y0, x1, y1] gồm vũ khí + bàn tay (tách thành lớp riêng để xoay); pivot: điểm xoay (vai); aw / as: góc lấy đà / ra đòn (độ, dương = chiều kim đồng hồ trên ảnh gốc); push: độ đâm tới dọc theo vũ khí (pixel). dir (tuỳ chọn): hướng đâm tới, mặc định theo hướng vũ khí. lines (tuỳ chọn): đoạn thẳng [x0, y0, x1, y1, độ dày] thêm vào vùng tay (cán cuốc). cape (tuỳ chọn): [hàng đầu, hàng cuối] của vạt áo choàng nằm ngoài mép chân phải (bay phất phới); null = không có; nhiều khúc [[đầu, cuối], ...], mỗi khúc thêm được cột cắt riêng và số 1 = lá cờ ([đầu, cuối, cột ngay sau cán cờ, 1]: cán đứng yên, cờ chỉ bay ra xa cán). grid: khoảng cỡ ô pixel (điểm ảnh) để dò lưới; trim: bỏ n hàng đáy; sideFacing: \"right\" nếu ô SIDE quay phải (sẽ lật); tool: ghép cuốc của ô SIDE sang ô này {rot: số lần xoay 90° như np.rot90, flipX, at: điểm bàn tay}. aimShift: dời cung vào giữa người khi ngắm [dx, dy]; behind: vẽ tay vũ khí sau thân lúc đánh. hand2: điểm bàn tay thứ hai nắm trên vũ khí (kiếm 2 tay). free: các hình chữ nhật [x0, y0, x1, y1] phần tay (bàn tay kia buông ở hông, đoạn cánh tay cầm vũ khí) bỏ khỏi lớp thân dùng lúc đánh rồi tô lại; thêm số thứ 5 = 0 thì chỉ xoá, không tô (phần nằm ở mép người); shoulder2: vai của tay kia — lúc đánh màn chơi vẽ cánh tay từ đây tới hand2 (cầm vũ khí 2 tay). shoulder1: vai của tay cầm vũ khí — lúc đánh bàn tay rời chỗ vác, duỗi theo hướng vũ khí quanh vai (giơ lên / bổ xuống cùng vũ khí) và màn chơi vẽ cánh tay từ vai tới bàn tay; đoạn cánh tay cũ trên thân cũng khai trong free. shield: các hình chữ nhật [x0, y0, x1, y1] của khiên — tách thành lớp riêng (khung thứ hai của hàng tay vũ khí), lúc đánh màn chơi giơ khiên lên; shieldRaise: độ dời khiên lúc đánh [dx, dy] (nhìn ngang: dx âm = về phía trước). gait (thú cưỡi, nhìn ngang): {legs: [[x0, y0, x1, y1, pha], …] mỗi chân một vùng (y0 = hông), pha nhịp 0..1; swing: vó đưa tới / lui (px); lift: nhấc vó (px)} — thay cho bước chân người. tool.from: ô lấy công cụ (left / down / up, mặc định left) — vd. ghép gậy của ô FRONT vào ô SIDE khi ảnh SIDE thiếu gậy; erase: các hình chữ nhật xoá khỏi ô trước khi ghép công cụ. graft: [{from, rect, at, width, flipX}] ghép một mảnh của ô khác vào thân ô này (ép ngang còn `width` px) — vd. trống treo hông nhìn ngang. keep: các hình chữ nhật luôn giữ ở thân, không tách vào lớp vũ khí (vd. cái đầu đè lên chùy vác sau gáy). fillAlong: dựng lại đoạn vũ khí bị che trong vùng keep bằng cách chép màu dọc trục `lines`; inpaint: false — chỗ vũ khí để lại trên thân chỉ xoá, không tô. graft.layer = \"body\": chỉ dán vào lớp thân lúc đánh; graft.dim: [x0, y0, x1, y1] trong mảnh — tô tối điểm sáng (tắt mắt khi mượn đầu nhìn trước làm đầu nhìn sau). mirrorHead: [{rect, cx, over}] dựng lại phần đầu bị vũ khí đè (lớp thân lúc đánh) bằng nửa đầu bên kia lật gương qua cột cx; over = true ghi đè cả vùng. graft.ellipse: chỉ chép phần trong elip nội tiếp mảnh. club: {tip: [x, y] đầu xa của chuỳ, r0 / r1: bán kính chuôi / đầu chuỳ} — chuỳ bị đầu che mất khúc giữa nên lúc đánh màn chơi vẽ lại cả cây liền một khối từ điểm xoay (bàn tay) tới tip thay cho lớp tay vũ khí. graft.unblue: tô điểm xanh (đá trên trán) thành màu tóc. anim (mức nhân vật): {tên đòn: {frames, times: [mốc bắt đầu từng khung theo tiến độ 0..1], views: {down/up/left: ảnh dải khung}, flip: [hướng cần lật gương]}} — lúc đánh màn chơi vẽ thẳng các khung vẽ sẵn thay cho lớp tay vũ khí xoay. anim.walk: dải khung chạy (fps: khung / giây; refFrame: \"median\" = cỡ theo chiều cao trung vị các khung) thay cho khung bước tự dựng của hướng đó. anchor: \"body\" = căn khung theo giữa thân và vạch đất chung của ảnh gốc (dải chạy, chân mỗi khung một chỗ). anim.sheet / order: một ảnh gộp, mỗi hướng một hàng (order: hướng của từng hàng). anim.idle: dải đứng yên (thở lặp, fps) dùng lúc đứng nghỉ thay cho kiểu thở dời hàng pixel; ảnh gộp 3 hàng × 4 khung theo prompt *Đứng yên* trong docs/art/pixel-prompts.md.",
-  "light-miner": {
-    "down": {
-      "legTop": 41,
-      "legs": [
-        [8, 16],
-        [19, 26]
-      ],
-      "arm": [
-        [27, 10, 37, 27],
-        [0, 21, 7, 27]
-      ],
-      "pivot": [4, 24],
-      "aw": -75,
-      "as": 105,
-      "push": 0,
-      "lines": [[4, 24, 28, 14, 2]],
-      "cape": [28, 41],
-      "hand2": [13, 20],
-      "shoulder2": [23, 22],
-      "free": [
-        [24, 29, 30, 36],
-        [5, 19, 9, 32, 0]
-      ],
-      "shoulder1": [11, 22]
-    },
-    "up": {
-      "legTop": 42,
-      "legs": [
-        [11, 18],
-        [23, 30]
-      ],
-      "arm": [[0, 11, 8, 28]],
-      "pivot": [12, 18],
-      "aw": 91,
-      "as": -89,
-      "push": 0,
-      "cape": null,
-      "behind": true,
-      "aimShift": [6, -18]
-    },
-    "left": {
-      "legTop": 39,
-      "legs": [
-        [8, 13],
-        [14, 19]
-      ],
-      "arm": [
-        [24, 4, 34, 23],
-        [0, 21, 4, 26]
-      ],
-      "pivot": [2, 24],
-      "aw": -50,
-      "as": -213,
-      "push": 0,
-      "lines": [[2, 24, 24, 14, 2]],
-      "cape": [24, 41],
-      "hand2": [10, 20],
-      "shoulder2": [11, 22],
-      "free": [
-        [10, 29, 16, 37],
-        [3, 21, 8, 28]
-      ],
-      "shoulder1": [9, 22]
-    },
-    "anim": {
-      "mine": {
-        "frames": 6,
-        "times": [0, 0.12, 0.26, 0.4, 0.48, 0.72],
-        "sheet": "light-miner-mine.png",
-        "order": ["left", "down", "up"]
-      }
-    }
-  },
-  "light-warrior": {
+  "_doc": "Khung xương cho build_topdown_sprite.py. Toạ độ tính trong ô đã cắt của từng góc nhìn (in bằng lưới pixel gốc). legTop: hàng đầu tiên của chân; legs: 2 khoảng cột [x0, x1] của 2 chân; arm: các hình chữ nhật [x0, y0, x1, y1] gồm vũ khí + bàn tay (tách thành lớp riêng để xoay); pivot: điểm xoay (vai); aw / as: góc lấy đà / ra đòn (độ, dương = chiều kim đồng hồ trên ảnh gốc); push: độ đâm tới dọc theo vũ khí (pixel). dir (tuỳ chọn): hướng đâm tới, mặc định theo hướng vũ khí. lines (tuỳ chọn): đoạn thẳng [x0, y0, x1, y1, độ dày] thêm vào vùng tay (cán cuốc). cape (tuỳ chọn): [hàng đầu, hàng cuối] của vạt áo choàng nằm ngoài mép chân phải (bay phất phới); null = không có; nhiều khúc [[đầu, cuối], ...], mỗi khúc thêm được cột cắt riêng và số 1 = lá cờ ([đầu, cuối, cột ngay sau cán cờ, 1]: cán đứng yên, cờ chỉ bay ra xa cán). grid: khoảng cỡ ô pixel (điểm ảnh) để dò lưới; trim: bỏ n hàng đáy; sideFacing: \"right\" nếu ô SIDE quay phải (sẽ lật); tool: ghép cuốc của ô SIDE sang ô này {rot: số lần xoay 90° như np.rot90, flipX, at: điểm bàn tay}. aimShift: dời cung vào giữa người khi ngắm [dx, dy]; behind: vẽ tay vũ khí sau thân lúc đánh. hand2: điểm bàn tay thứ hai nắm trên vũ khí (kiếm 2 tay). free: các hình chữ nhật [x0, y0, x1, y1] phần tay (bàn tay kia buông ở hông, đoạn cánh tay cầm vũ khí) bỏ khỏi lớp thân dùng lúc đánh rồi tô lại; thêm số thứ 5 = 0 thì chỉ xoá, không tô (phần nằm ở mép người); shoulder2: vai của tay kia — lúc đánh màn chơi vẽ cánh tay từ đây tới hand2 (cầm vũ khí 2 tay). shoulder1: vai của tay cầm vũ khí — lúc đánh bàn tay rời chỗ vác, duỗi theo hướng vũ khí quanh vai (giơ lên / bổ xuống cùng vũ khí) và màn chơi vẽ cánh tay từ vai tới bàn tay; đoạn cánh tay cũ trên thân cũng khai trong free. shield: các hình chữ nhật [x0, y0, x1, y1] của khiên — tách thành lớp riêng (khung thứ hai của hàng tay vũ khí), lúc đánh màn chơi giơ khiên lên; shieldRaise: độ dời khiên lúc đánh [dx, dy] (nhìn ngang: dx âm = về phía trước). gait (thú cưỡi, nhìn ngang): {legs: [[x0, y0, x1, y1, pha], …] mỗi chân một vùng (y0 = hông), pha nhịp 0..1; swing: vó đưa tới / lui (px); lift: nhấc vó (px)} — thay cho bước chân người. tool.from: ô lấy công cụ (left / down / up, mặc định left) — vd. ghép gậy của ô FRONT vào ô SIDE khi ảnh SIDE thiếu gậy; erase: các hình chữ nhật xoá khỏi ô trước khi ghép công cụ. graft: [{from, rect, at, width, flipX}] ghép một mảnh của ô khác vào thân ô này (ép ngang còn `width` px) — vd. trống treo hông nhìn ngang. keep: các hình chữ nhật luôn giữ ở thân, không tách vào lớp vũ khí (vd. cái đầu đè lên chùy vác sau gáy). fillAlong: dựng lại đoạn vũ khí bị che trong vùng keep bằng cách chép màu dọc trục `lines`; inpaint: false — chỗ vũ khí để lại trên thân chỉ xoá, không tô. graft.layer = \"body\": chỉ dán vào lớp thân lúc đánh; graft.dim: [x0, y0, x1, y1] trong mảnh — tô tối điểm sáng (tắt mắt khi mượn đầu nhìn trước làm đầu nhìn sau). mirrorHead: [{rect, cx, over}] dựng lại phần đầu bị vũ khí đè (lớp thân lúc đánh) bằng nửa đầu bên kia lật gương qua cột cx; over = true ghi đè cả vùng. graft.ellipse: chỉ chép phần trong elip nội tiếp mảnh. club: {tip: [x, y] đầu xa của chuỳ, r0 / r1: bán kính chuôi / đầu chuỳ} — chuỳ bị đầu che mất khúc giữa nên lúc đánh màn chơi vẽ lại cả cây liền một khối từ điểm xoay (bàn tay) tới tip thay cho lớp tay vũ khí. graft.unblue: tô điểm xanh (đá trên trán) thành màu tóc. anim (mức nhân vật): {tên đòn: {frames, times: [mốc bắt đầu từng khung theo tiến độ 0..1], views: {down/up/left: ảnh dải khung}, flip: [hướng cần lật gương]}} — lúc đánh màn chơi vẽ thẳng các khung vẽ sẵn thay cho lớp tay vũ khí xoay. anim.walk: dải khung chạy (fps: khung / giây; refFrame: \"median\" = cỡ theo chiều cao trung vị các khung) thay cho khung bước tự dựng của hướng đó. anchor: \"body\" = căn khung theo giữa thân và vạch đất chung của ảnh gốc (dải chạy, chân mỗi khung một chỗ). anim.sheet / order: một ảnh gộp, mỗi hướng một hàng (order: hướng của từng hàng). anim.idle: dải đứng yên (thở lặp, fps) dùng lúc đứng nghỉ thay cho kiểu thở dời hàng pixel; ảnh <lính>-views.png lưới 4×4 (docs/art/prompts/1-dung-yen.md) tự tách hàng 2-4 thành anim.idle, khai anim.idle ở đây chỉ để chỉnh fps; đi: 2-di-chuyen.md, đánh / kỹ năng: 3-tan-cong.md.",
+  "warrior": {
     "down": {
       "legTop": 41,
       "legs": [
@@ -137,12 +64,12 @@
       "slash": {
         "frames": 6,
         "times": [0, 0.14, 0.3, 0.46, 0.6, 0.8],
-        "sheet": "light-warrior-slash.png",
+        "sheet": "warrior-slash.png",
         "order": ["left", "down", "up"]
       }
     }
   },
-  "light-archer": {
+  "archer": {
     "down": {
       "legTop": 40,
       "legs": [
@@ -189,7 +116,7 @@
       "cape": [22, 40]
     }
   },
-  "light-assassin": {
+  "assassin": {
     "down": {
       "legTop": 30,
       "legs": [
@@ -233,7 +160,7 @@
       "cape": [10, 31]
     }
   },
-  "light-spearton": {
+  "spearton": {
     "down": {
       "legTop": 37,
       "legs": [
@@ -293,7 +220,7 @@
       "shieldRaise": [-3, -6]
     }
   },
-  "light-cavalry": {
+  "cavalry": {
     "grid": [4.4, 4.8],
     "down": {
       "legTop": 66,
@@ -359,14 +286,14 @@
         "fps": 12,
         "refFrame": "median",
         "views": {
-          "left": "light-cavalry-gallop.png"
+          "left": "cavalry-gallop.png"
         },
         "flip": ["left"],
         "anchor": "body"
       }
     }
   },
-  "light-mage": {
+  "mage": {
     "grid": [8.3, 8.5],
     "sample": "median",
     "sideFacing": "right",
@@ -427,7 +354,7 @@
       "dir": [0, -1]
     }
   },
-  "light-drummer": {
+  "drummer": {
     "grid": [8.3, 8.5],
     "sample": "median",
     "down": {
@@ -512,7 +439,7 @@
       ]
     }
   },
-  "light-healer": {
+  "healer": {
     "grid": [8.3, 8.9],
     "sample": "median",
     "sideFacing": "right",
@@ -569,7 +496,7 @@
       "cape": [30, 48]
     }
   },
-  "light-giant": {
+  "giant": {
     "grid": [3.5, 6.0],
     "sample": "median",
     "sideFacing": "right",
@@ -686,15 +613,15 @@
         "frames": 6,
         "times": [0, 0.14, 0.3, 0.48, 0.56, 0.8],
         "views": {
-          "down": "light-giant-smash-front.png",
-          "up": "light-giant-smash-back.png",
-          "left": "light-giant-smash-side.png"
+          "down": "giant-smash-front.png",
+          "up": "giant-smash-back.png",
+          "left": "giant-smash-side.png"
         },
         "flip": ["left"]
       }
     }
   },
-  "light-catapult": {
+  "catapult": {
     "grid": [5.6, 5.8],
     "sample": "median",
     "down": {
@@ -741,7 +668,7 @@
       "cape": null
     }
   },
-  "light-builder": {
+  "builder": {
     "grid": [8.3, 8.7],
     "sample": "median",
     "sideFacing": "right",
@@ -793,6 +720,144 @@
       "as": -200,
       "push": 0,
       "cape": null
+    }
+  },
+  "miner-v1": {
+    "down": {
+      "legTop": 41,
+      "legs": [
+        [8, 16],
+        [19, 26]
+      ],
+      "arm": [
+        [27, 10, 37, 27],
+        [0, 21, 7, 27]
+      ],
+      "pivot": [4, 24],
+      "aw": -75,
+      "as": 105,
+      "push": 0,
+      "lines": [[4, 24, 28, 14, 2]],
+      "cape": [28, 41],
+      "hand2": [13, 20],
+      "shoulder2": [23, 22],
+      "free": [
+        [24, 29, 30, 36],
+        [5, 19, 9, 32, 0]
+      ],
+      "shoulder1": [11, 22]
+    },
+    "up": {
+      "legTop": 42,
+      "legs": [
+        [11, 18],
+        [23, 30]
+      ],
+      "arm": [[0, 11, 8, 28]],
+      "pivot": [12, 18],
+      "aw": 91,
+      "as": -89,
+      "push": 0,
+      "cape": null,
+      "behind": true,
+      "aimShift": [6, -18]
+    },
+    "left": {
+      "legTop": 39,
+      "legs": [
+        [8, 13],
+        [14, 19]
+      ],
+      "arm": [
+        [24, 4, 34, 23],
+        [0, 21, 4, 26]
+      ],
+      "pivot": [2, 24],
+      "aw": -50,
+      "as": -213,
+      "push": 0,
+      "lines": [[2, 24, 24, 14, 2]],
+      "cape": [24, 41],
+      "hand2": [10, 20],
+      "shoulder2": [11, 22],
+      "free": [
+        [10, 29, 16, 37],
+        [3, 21, 8, 28]
+      ],
+      "shoulder1": [9, 22]
+    },
+    "anim": {
+      "mine": {
+        "frames": 6,
+        "times": [0, 0.12, 0.26, 0.4, 0.48, 0.72],
+        "sheet": "miner-v1-mine.png",
+        "order": ["left", "down", "up"]
+      }
+    }
+  },
+  "miner-v2": {
+    "down": {
+      "legTop": 41,
+      "legs": [
+        [8, 16],
+        [19, 26]
+      ],
+      "arm": [
+        [27, 10, 37, 27],
+        [0, 21, 7, 27]
+      ],
+      "pivot": [4, 24],
+      "aw": -75,
+      "as": 105,
+      "push": 0,
+      "lines": [[4, 24, 28, 14, 2]],
+      "cape": [28, 41],
+      "hand2": [13, 20],
+      "shoulder2": [23, 22],
+      "free": [
+        [24, 29, 30, 36],
+        [5, 19, 9, 32, 0]
+      ],
+      "shoulder1": [11, 22]
+    },
+    "up": {
+      "legTop": 42,
+      "legs": [
+        [11, 18],
+        [23, 30]
+      ],
+      "arm": [[0, 11, 8, 28]],
+      "pivot": [12, 18],
+      "aw": 91,
+      "as": -89,
+      "push": 0,
+      "cape": null,
+      "behind": true,
+      "aimShift": [6, -18]
+    },
+    "left": {
+      "legTop": 39,
+      "legs": [
+        [8, 13],
+        [14, 19]
+      ],
+      "arm": [
+        [24, 4, 34, 23],
+        [0, 21, 4, 26]
+      ],
+      "pivot": [2, 24],
+      "aw": -50,
+      "as": -213,
+      "push": 0,
+      "lines": [[2, 24, 24, 14, 2]],
+      "cape": [24, 41],
+      "hand2": [10, 20],
+      "shoulder2": [11, 22],
+      "free": [
+        [10, 29, 16, 37],
+        [3, 21, 8, 28]
+      ],
+      "shoulder1": [9, 22]
     }
   }
 }
