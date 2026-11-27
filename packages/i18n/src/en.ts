@@ -464,6 +464,15 @@ export const en: Dict = {
     and: 'and',
     privacy: 'Privacy Policy',
   },
+  mapDemo: {
+    whole: '🗺️ Whole map',
+    title: '🗺️ Top-down map demo',
+    light: '☀️ Light map',
+    wind: '🌪️ Wind map',
+    follow: '🎥 Follow the fight',
+    restart: '🔄 New match',
+    hint: 'Bot vs bot with the real battle rules (Light soldiers stand in for both sides for now: blue ring on the left, red ring on the right). Drag, scroll or press ← → to look around.',
+  },
   worldDemo: {
     title: '🗺️ 2D pixel world demo',
     back: '← Back to lobby',

@@ -1,0 +1,33 @@
+/* Trang demo bản đồ nhìn từ trên (#/map-demo) */
+.map-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.map-demo-sep {
+  width: 10px;
+}
+.map-demo-gold {
+  margin-left: auto;
+  font-weight: 700;
+}
+.map-demo-hint {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 13px;
+}
+.map-demo-canvas {
+  width: 100%;
+  height: min(72vh, 640px);
+  image-rendering: pixelated;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  touch-action: none;
+}

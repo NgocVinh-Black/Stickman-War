@@ -460,6 +460,15 @@ export const vi = {
     and: 'và',
     privacy: 'Chính sách bảo mật',
   },
+  mapDemo: {
+    whole: '🗺️ Cả map',
+    title: '🗺️ Demo bản đồ nhìn từ trên',
+    light: '☀️ Map Quang',
+    wind: '🌪️ Map Phong',
+    follow: '🎥 Theo giao tranh',
+    restart: '🔄 Trận mới',
+    hint: 'Máy đấu máy theo đúng luật trận (tạm dùng lính hệ Quang cho cả hai phe: vòng xanh bên trái, vòng đỏ bên phải). Kéo chuột, lăn chuột hoặc phím ← → để xem chỗ khác.',
+  },
   worldDemo: {
     title: '🗺️ Demo thế giới pixel 2D',
     back: '← Về sảnh',

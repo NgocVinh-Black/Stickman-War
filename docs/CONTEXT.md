@@ -102,5 +102,10 @@ rồi xoá file probe. Kết quả gần nhất (2026-11-21, máy đấu máy c�
   phải bám đất, không có khung hai chân rời đất (AI vẽ thành nhảy). Script build tự nhận các ảnh này thành `anim.<kiểu>`.
   Ảnh gốc + `rigs.json` theo hệ ở `docs/art/topdown/<hệ>/`, sprite ra `apps/web/public/art/topdown/<hệ>/` (dựng bằng
   `docs/art/topdown/build_topdown_sprite.py`, lệnh ở đầu file).
+- Demo bản đồ nhìn từ trên `#/map-demo` (`components/MapDemo.vue`): chạy `World` + `EnemyAI` thật (máy đấu máy, tượng
+  không vỡ), x thế giới = x ảnh nền 4000 × 1000, đường đánh y 400..700 (lane 0..1 → chân y 440..670). Tạm dùng sprite lính
+  Quang cho cả hai phe (vòng xanh / đỏ). Nền + trạm + tường ở `apps/web/public/art/topdown/maps/<light|wind>*`, ghép từ
+  ảnh mẫu của chủ dự án (chưa có script trong repo). Prompt toàn cảnh `5-ban-do-theo-he.md` đặt vật theo toạ độ trận
+  (hằng số đầu `gen_map_prompts.py` chép từ `world.ts`): đường rộng 1/3 ảnh, tượng ~5 lần lính, mỏ ~1.3–1.6 lần.
 - `noUnusedLocals` bật ở mọi gói. pnpm 12 chặn script cài đặt: các gói được phép ở `allowBuilds` trong `pnpm-workspace.yaml`.
 - Bản sao lưu trước các đợt sửa lớn: `/home/vinh-le/Projects/nguoi-que-backup-2026-11-16.tar.gz` (ngoài repo, bản trước 2.0).
